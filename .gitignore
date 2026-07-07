@@ -1,0 +1,16 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# virtualenvs
+.venv/
+venv/
+
+# editor / OS
+.DS_Store
+*.swp
+
+# opm-lan runtime artifacts (contact sheets, previews, logs)
+opm-lan/_work/
+opm-lan/*.log

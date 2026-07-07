@@ -1,0 +1,36 @@
+# SD card profile — starcap24 @ 10.42.0.128
+brand=SanDisk
+device_name=starcap24
+disk=mmcblk0
+size_GB=255.9
+card_type=SD
+card_name=SD256
+card_manfid=0x000003
+card_oemid=0x5344
+card_hwrev=0x8
+card_fwrev=0x5
+card_serial=0x86c32e33
+card_date=08/2023
+cid=03534453443235368586c32e33017897
+bus_mode=new ultra high speed SDR104 SDXC card at address aaaa
+mmc_io_errors=0
+fs_errors=0
+recent_errors:
+read_speed=67.1 MB/s
+device_id=pi-0b4e264547
+fw_version=1.21.1
+eth_conn=Wired connection 1
+eth_method=auto
+eth_route_metric=100
+eth_autoconnect=yes
+eth_autoconnect_prio=-999
+wired_profiles:
+  Wired connection 1:802-3-ethernet:-999
+  Wired connection 2:802-3-ethernet:-999
+mmc_host=mmc0
+signal_voltage=1 (1.80 V)
+timing_spec=6 (sd uhs SDR104)
+bus_clock=150000000 Hz
+bus_width=2 (4 bits)
+voltage_switch_fail=0
+verdict=GOOD ✅

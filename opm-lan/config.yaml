@@ -1,0 +1,45 @@
+destination: /media/nodogoro/Sandisk 1
+copy_paths:
+- /home/orangepi/orangepi-recorder/recordings/stereo
+- /home/orangepi/camera-recorder/recordings/stereo
+- /home/orangepi/.config/starcap
+warn_if_missing: []
+exclude: []
+ssh:
+  user: orangepi
+  password: orangepi
+  port: 22
+lan:
+  iface: ''
+  scan_subnet: ''
+identify:
+  mode: device
+after_copy:
+  verify: size
+  delete_source: false
+  prune_empty_dirs: true
+  no_delete_paths:
+  - /home/orangepi/.config/starcap
+copy:
+  parallel: true
+  max_workers: 4
+  flatten: true
+  skip_empty: true
+preview:
+  seconds: 20
+  width: 480
+  fps: 15
+  crf: 34
+safety:
+  require_identified: true
+opm_dir: ~/starcap-dashboard/orangepi-manager
+analysis:
+  contact_sheet: true
+  estimate: true
+  dashboard_url: https://starcap.dev
+  password: starupload
+  thumb_w: 480
+  sheet_max_mb: 10
+  fps: 4
+  width: 224
+  eye: left
