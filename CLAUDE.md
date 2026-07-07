@@ -74,10 +74,14 @@ Orange Pi 5 recorders (fleet: starcapNN)   ← 2 USB cameras, IMU, records to SD
 |---|---|
 | `check_ssd.py` | Verify an SSD's recordings against the cloud — layout/wrapper-proof (handles weird nested folders via `--any-key`; `--also-device`). The authoritative "is this footage actually uploaded" check. |
 | `check_cloud_hours.py` / `check_drive_hours.py` | Tally recorded hours from the cloud vs a drive (hours come from opm contact sheets, not raw uploads). |
-| `fix_arp_cache.sh` | Raise the PC's ARP `gc_thresh` so a /24 ping-sweep can't evict live pis (fixes pis flickering in/out of opm-lan). |
 | `fix_boot_buzzer.sh` | Silence the recorders' long boot BEEP. Patches the pi's U-Boot boot script (`/boot/boot.cmd`→`boot.scr`) to drive the buzzer GPIO (pin15/GPIO0_D4) low before Linux starts. Idempotent; `--scan` hits the whole /24; `--reboot` optional. |
 | `sdcard_health.sh` / `sdcard_probe.sh` | Read-speed / health profiling of a recorder's SD card (bad/slow cards are a recurring cause of flapping + slow copies). |
-| `fix_ugreen_uas.sh` | Work around a UGREEN USB-SATA dock's UAS quirk (drive shows 0B / won't mount). |
+| `vnc_into_pi.sh <ip>` | VNC into a recorder's live desktop over ethernet (also wired into opm-lan as a "🖥️ VNC" button per online recorder). Installs/starts `x11vnc`, works around this fleet's Mali GPU driver needing a DRM-forced HDMI connector to render anything, opens TigerVNC fullscreen, and cleans everything up on the pi when you close the viewer. |
+
+ARP-cache thresholds (raising the PC's `gc_thresh` so a /24 ping-sweep doesn't evict
+live pis — fixes pis flickering in/out of opm-lan) and the UGREEN USB-SATA UAS
+workaround used to be separate scripts here; the ARP fix is now inlined into
+`setup_copy_station.sh` (see below), and the UGREEN workaround was dropped as unused.
 
 Most tools SSH to pis with `sshpass -p orangepi ssh orangepi@<ip>`. Sudo on the pi also
 uses the password `orangepi` (feed via `sudo -S`).
@@ -99,7 +103,8 @@ nmcli connection modify <wired-conn> ipv4.method shared ipv4.addresses 10.77.0.1
 
 - Verify: `ip -br addr show <iface>` → `10.77.0.1/24`. If NM regenerates the connection
   (netplan), re-apply and consider persisting it properly.
-- Also raise ARP thresholds so the sweep doesn't evict pis: run `tools/fix_arp_cache.sh`.
+- Also raise ARP thresholds so the sweep doesn't evict pis — `setup_copy_station.sh`
+  does this (writes `/etc/sysctl.d/99-arp-cache.conf`, raises `gc_thresh1/2/3`).
 
 On a **fresh laptop** the wired NIC name differs (e.g. `eno1`, `enp*`) — set the right
 connection name in the nmcli command above.
@@ -118,12 +123,12 @@ connection name in the nmcli command above.
 
 ## Setup on a fresh Ubuntu laptop (checklist)
 
-1. `sudo apt install -y sshpass openssh-client rsync ffmpeg python3 python3-yaml`
-2. Clone this repo.
-3. Put the wired NIC on `10.77.0.1/24` shared (see Networking), run
-   `tools/fix_arp_cache.sh`.
-4. Edit `opm-lan/config.yaml` → set `destination:` to your SSD mount.
-5. `cd opm-lan && ./start_opm_lan.sh` → open http://localhost:8770, dock a recorder over
+1. Clone this repo.
+2. `sudo ./setup_copy_station.sh` — installs opm-lan's packages (sshpass, rsync,
+   ffmpeg, PyYAML, opencv/numpy), shares the wired NIC on `10.77.0.1/24` (see
+   Networking), and raises the ARP-cache thresholds. Safe to re-run.
+3. Edit `opm-lan/config.yaml` → set `destination:` to your SSD mount.
+4. `cd opm-lan && ./start_opm_lan.sh` → open http://localhost:8770, dock a recorder over
    ethernet, and it should appear.
 
 ---
