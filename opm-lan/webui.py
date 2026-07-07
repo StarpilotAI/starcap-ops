@@ -622,6 +622,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_eject(self._body()))
         if path == "/api/open":
             return self._json(api_open(self._body()))
+        if path == "/api/vnc":
+            return self._json(api_vnc(self._body()))
         if path in ("/api/update/check", "/api/update/apply"):
             return self._json({"ok": False, "available": False,
                                "message": "opm-lan has no self-update"}, 200)
@@ -926,6 +928,30 @@ def api_open(body):
     subprocess.Popen(["xdg-open", f"sftp://{user}@{ip}{home}/"])
     return {"ok": True, "msg": f"opening {name} in Files — accept the key / enter the "
             f"password ({CFG['ssh']['password']}) once", "method": "gvfs"}
+
+
+def api_vnc(body):
+    """Open a recorder's live desktop over VNC, via tools/vnc_into_pi.sh, running in
+    the background so this request returns immediately. That script installs/starts
+    x11vnc on the pi (working around this fleet's GPU driver needing a DRM-forced
+    HDMI connector to render at all), opens TigerVNC here, and — once that window is
+    closed — cleans up everything it changed on the pi (kills x11vnc, un-forces the
+    HDMI connector) so it never affects a later launch or the pi's normal behavior.
+    One instance per IP: a second click while one's still open is a no-op (the
+    script itself guards this with a lock file)."""
+    ip = body.get("ip")
+    card = next((c for c in recorders() if c.get("ip") == ip), None)
+    if not ip or not card:
+        return {"ok": False, "msg": "recorder not found / not online"}
+    script = Path(__file__).resolve().parent.parent / "tools" / "vnc_into_pi.sh"
+    if not script.exists():
+        return {"ok": False, "msg": f"missing {script}"}
+    log_path = f"/tmp/vnc_into_pi_{ip.replace('.', '_')}.log"
+    with open(log_path, "ab") as logf:
+        subprocess.Popen(["bash", str(script), ip], stdout=logf, stderr=subprocess.STDOUT,
+                          stdin=subprocess.DEVNULL, start_new_session=True)
+    return {"ok": True, "msg": f"opening VNC to {ip} — a TigerVNC window should appear "
+            f"shortly (log: {log_path})"}
 
 
 def main():

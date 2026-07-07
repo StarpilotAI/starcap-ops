@@ -268,7 +268,8 @@ async function detect(force){
     const runs = (c.runs!=null) ? ` <span class="hint">· ${c.runs} runs</span>` : '';
     const dev = c.device ? ` <span class="badge ok" title="device name from device_info.json">🎚 ${c.device}</span>` : '';
     const openBtn = c.eligible ? ` <button class="rowbtn" onclick="openRecorder('${c.ip}')" title="Browse this recorder's files in your file manager (over SFTP)">📂 Open</button>` : '';
-    const status = c.eligible ? `<span class="badge ok">online</span>${dev}${runs}${openBtn}`
+    const vncBtn = c.eligible ? ` <button class="rowbtn" onclick="vncRecorder('${c.ip}')" title="Open this recorder's live desktop over VNC (runs in the background; closes/cleans up when you close the TigerVNC window)">🖥️ VNC</button>` : '';
+    const status = c.eligible ? `<span class="badge ok">online</span>${dev}${runs}${openBtn}${vncBtn}`
       : `<span class="badge no">skip</span> <span class="hint">${c.error||''}</span>`;
     tb.innerHTML += `<tr><td>${chk}</td><td>${c.slot}</td><td class="mono">${c.disk||'-'}</td>
       <td>${c.fstype||'-'}</td><td>${c.size_h||'-'}</td><td class="mono">${c.label||'-'}</td><td>${status}</td></tr>`;
@@ -282,6 +283,13 @@ async function openRecorder(ip){
   let r; try { r = await jpost('/api/open', {ip}); } catch(e){ r = {ok:false, msg:String(e)}; }
   if(!r.ok){ alert('Could not open: ' + (r.msg||'unknown error')); return; }
   $('detsum').textContent = r.msg || 'opened';
+}
+
+async function vncRecorder(ip){
+  $('detsum').textContent = 'opening VNC…';
+  let r; try { r = await jpost('/api/vnc', {ip}); } catch(e){ r = {ok:false, msg:String(e)}; }
+  if(!r.ok){ alert('Could not open VNC: ' + (r.msg||'unknown error')); return; }
+  $('detsum').textContent = r.msg || 'VNC opening';
 }
 
 async function loadConfig(){
