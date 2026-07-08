@@ -90,8 +90,13 @@ else
   echo "$SUDO_PASS" | sudo -S bash -c \
     "nohup x11vnc -display :0 -auth /var/run/lightdm/root/:0 -forever -shared -rfbauth /home/$USER/.vnc/passwd -rfbport 5900 -xcomposite -bg -o /home/$USER/x11vnc.log < /dev/null > /dev/null 2>&1 &"
 fi
-sleep 2
-pgrep -a x11vnc || { echo "x11vnc failed to start — check ~/x11vnc.log on the pi"; exit 1; }
+ok=0
+for _ in $(seq 1 10); do
+  pgrep -a x11vnc >/dev/null && { ok=1; break; }
+  sleep 0.5
+done
+[ "$ok" = 1 ] || { echo "x11vnc failed to start — check ~/x11vnc.log on the pi"; exit 1; }
+pgrep -a x11vnc
 REMOTE
 
 cleanup_pi() {
