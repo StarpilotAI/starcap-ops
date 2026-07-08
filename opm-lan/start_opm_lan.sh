@@ -35,5 +35,9 @@ if ss -ltn 2>/dev/null | grep -q ":${PORT} "; then
   fi
 fi
 
-( sleep 1; xdg-open "http://127.0.0.1:$PORT" >/dev/null 2>&1 || true ) &
+# setsid + full fd detachment: if Firefox wasn't already running, xdg-open's browser
+# becomes a real child of this terminal's session, so closing the terminal sends it
+# SIGHUP and Firefox quits ENTIRELY (every window/tab) — not just this one.
+( sleep 1; setsid xdg-open "http://127.0.0.1:$PORT" < /dev/null > /dev/null 2>&1 || true ) &
+disown
 exec python3 webui.py
