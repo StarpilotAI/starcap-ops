@@ -1,4 +1,4 @@
-destination: /media/nodogoro/Sandisk 1
+destination: /home/waleed/opm-lan-drop
 copy_paths:
 - /home/orangepi/orangepi-recorder/recordings/stereo
 - /home/orangepi/camera-recorder/recordings/stereo
