@@ -75,13 +75,14 @@ Orange Pi 5 recorders (fleet: starcapNN)   ← 2 USB cameras, IMU, records to SD
 | `check_ssd.py` | Verify an SSD's recordings against the cloud — layout/wrapper-proof (handles weird nested folders via `--any-key`; `--also-device`). The authoritative "is this footage actually uploaded" check. |
 | `check_cloud_hours.py` / `check_drive_hours.py` | Tally recorded hours from the cloud vs a drive (hours come from opm contact sheets, not raw uploads). |
 | `fix_boot_buzzer.sh` | Silence the recorders' long boot BEEP. Patches the pi's U-Boot boot script (`/boot/boot.cmd`→`boot.scr`) to drive the buzzer GPIO (pin15/GPIO0_D4) low before Linux starts. Idempotent; `--scan` hits the whole /24; `--reboot` optional. |
-| `sdcard_health.sh` / `sdcard_probe.sh` | Read-speed / health profiling of a recorder's SD card (bad/slow cards are a recurring cause of flapping + slow copies). |
 | `vnc_into_pi.sh <ip>` | VNC into a recorder's live desktop over ethernet (also wired into opm-lan as a "🖥️ VNC" button per online recorder). Installs/starts `x11vnc`, works around this fleet's Mali GPU driver needing a DRM-forced HDMI connector to render anything, opens TigerVNC fullscreen, and cleans everything up on the pi when you close the viewer. |
 
 ARP-cache thresholds (raising the PC's `gc_thresh` so a /24 ping-sweep doesn't evict
 live pis — fixes pis flickering in/out of opm-lan) and the UGREEN USB-SATA UAS
 workaround used to be separate scripts here; the ARP fix is now inlined into
 `setup_copy_station.sh` (see below), and the UGREEN workaround was dropped as unused.
+`sdcard_health.sh` / `sdcard_probe.sh` (SD-card read-speed/health profiling) were
+also dropped as unused.
 
 Most tools SSH to pis with `sshpass -p orangepi ssh orangepi@<ip>`. Sudo on the pi also
 uses the password `orangepi` (feed via `sudo -S`).
