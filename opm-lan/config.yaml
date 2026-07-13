@@ -1,7 +1,8 @@
-destination: /home/waleed/opm-lan-drop
+destination: ~/dummytests
 copy_paths:
 - /home/orangepi/orangepi-recorder/recordings/stereo
 - /home/orangepi/camera-recorder/recordings/stereo
+- /media/sdcard/stereo
 - /home/orangepi/.config/starcap
 warn_if_missing: []
 exclude: []

@@ -14,3 +14,6 @@ venv/
 # opm-lan runtime artifacts (contact sheets, previews, logs)
 opm-lan/_work/
 opm-lan/*.log
+
+# golden eMMC/SD clone images — large raw disk images, don't belong in git
+emmc/assets/golden/

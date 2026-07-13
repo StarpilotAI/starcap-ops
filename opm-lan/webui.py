@@ -742,14 +742,22 @@ def api_precheck(body):
                         if not ((inv.get("paths") or {}).get(p) or {}).get("exists")]
         cb = cf = newb = present = 0
         sessions, src_free, src_total = [], 0, 0
+        # eMMC-booted recorders redirect actual recording storage to an inserted
+        # SD card at /media/sdcard/stereo (see orangepi-recorder's
+        # storage_ready()) — its free/total should win over copy_paths[0]'s
+        # stats (the eMMC itself, now just an unused/empty local dir there). On
+        # a normal SD-booted board this path never exists, so it's a no-op and
+        # the loop below falls straight through to the prior first-found logic.
+        sdcard_info = (inv.get("paths") or {}).get("/media/sdcard/stereo") or {}
         for p in CFG["copy_paths"]:
             pinfo = (inv.get("paths") or {}).get(p) or {}
             if not pinfo.get("exists"):
                 continue
             cb += pinfo.get("bytes", 0)
             cf += pinfo.get("files", 0)
-            src_free = src_free or pinfo.get("free", 0)
-            src_total = src_total or pinfo.get("total", 0)
+            if not sdcard_info.get("exists"):
+                src_free = src_free or pinfo.get("free", 0)
+                src_total = src_total or pinfo.get("total", 0)
             runs = [s["name"] for s in pinfo.get("sessions", [])]
             namemap = opmlan.dest_session_names(runs, device)
             for s in pinfo.get("sessions", []):
@@ -764,6 +772,8 @@ def api_precheck(body):
                 else:
                     newb += s["bytes"]
                 sessions.append(s)
+        if sdcard_info.get("exists"):
+            src_free, src_total = sdcard_info.get("free", 0), sdcard_info.get("total", 0)
         need += newb
         per.append({"slot": c["slot"], "card_id": cid, "device": device,
                     "label": c.get("label"), "missing_warn": missing_warn, "disk": ip,

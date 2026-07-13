@@ -363,8 +363,14 @@ def identify(cfg, ip, force=False):
         c = _ID_CACHE.get(ip)
         if c and now - c[0] < _ID_TTL:
             return c[1]
-    rec = _q(cfg["copy_paths"][0] if cfg["copy_paths"]
-             else "orangepi-recorder/recordings/stereo")            # single-quoted, injection-safe
+    rec0 = _q(cfg["copy_paths"][0] if cfg["copy_paths"]
+              else "orangepi-recorder/recordings/stereo")           # single-quoted, injection-safe
+    # eMMC-booted recorders redirect actual recording storage to an inserted SD
+    # card at /media/sdcard/stereo (see orangepi-recorder's storage_ready()) —
+    # copy_paths[0] is then a stale, empty local dir. Prefer the SD-card path
+    # when it's actually there; on a normal SD-booted board it never exists, so
+    # this is a no-op there and falls straight through to the old behavior.
+    sdcard = _q("/media/sdcard/stereo")
     script = (
         f'echo "HOST=$(hostname)"; '
         f'echo "MID=$(cat /etc/machine-id 2>/dev/null)"; '
@@ -373,11 +379,12 @@ def identify(cfg, ip, force=False):
         f'echo "NAME=$(cat ~/.config/starcap/device_name 2>/dev/null)"; '
         f'echo "DEVID=$(cat ~/.config/starcap/device_id 2>/dev/null)"; '
         f'echo "VER=$(cat ~/orangepi-recorder/stereocam/VERSION 2>/dev/null | head -1)"; '
-        f'echo "RUNS=$(ls {rec} 2>/dev/null | wc -l)"; '
+        f'if [ -d {sdcard} ]; then rec={sdcard}; else rec={rec0}; fi; '
+        f'echo "RUNS=$(ls "$rec" 2>/dev/null | wc -l)"; '
         # bound the size probe so a huge recordings tree can't blow the SSH timeout and
         # make the recorder flap offline; an unknown size just shows as 0
-        f'echo "BYTES=$(timeout 10 du -sb {rec} 2>/dev/null | cut -f1)"; '
-        f'di=$(ls -t {rec}/*/device_info.json 2>/dev/null | head -1); '
+        f'echo "BYTES=$(timeout 10 du -sb "$rec" 2>/dev/null | cut -f1)"; '
+        f'di=$(ls -t "$rec"/*/device_info.json 2>/dev/null | head -1); '
         f'echo DIJSON_START; cat "$di" 2>/dev/null; echo DIJSON_END'
     )
     r = _ssh(cfg, ip, script, timeout=25)
