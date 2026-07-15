@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>opm-name - fleet bulk renamer</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171d26; --panel2:#1d2530; --line:#2a3340;
+    --fg:#e6edf3; --mut:#8b98a8; --acc:#ff7a18; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --blu:#388bfd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:17px;margin:0;font-weight:600}
+  header .dot{color:var(--acc)}
+  header .hint{margin-left:auto;font-size:12px;color:var(--mut)}
+  main{max-width:900px;margin:0 auto;padding:20px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .panel h2{margin:0 0 12px;font-size:14px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{color:var(--mut);font-weight:500}
+  td.mono,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  input[type=text]{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;width:160px}
+  input[type=text]:focus{outline:none;border-color:var(--acc)}
+  button{background:var(--acc);border:1px solid var(--acc);color:#1a1205;font-weight:600;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;margin-left:6px}
+  button:hover:not(:disabled){filter:brightness(1.08)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+  .badge.ok{color:var(--ok);border-color:var(--ok)}
+  .badge.bad{color:var(--bad);border-color:var(--bad)}
+  .empty{color:var(--mut);text-align:center;padding:30px 0}
+  .flash{font-size:12px;margin-left:8px}
+  .flash.ok{color:var(--ok)} .flash.bad{color:var(--bad)}
+  .warnbar{background:#2a1f0f;border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot">●</span> opm-name</h1>
+  <span class="hint" id="iface">—</span>
+</header>
+<main>
+  <div id="warnbar" class="warnbar" style="display:none">
+    ⚠ Redis not configured — set UPSTASH_REDIS_REST_URL/TOKEN or create ~/starcap-dashboard/dashboard/.env.local. Renaming will fail until then.
+  </div>
+  <div class="panel">
+    <h2>Docked recorders</h2>
+    <table id="tbl">
+      <thead>
+        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th></th><th></th><th>New name</th><th></th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">No recorders detected on the wired subnet yet — dock one over ethernet.</div>
+  </div>
+</main>
+<script>
+const rowsEl = document.getElementById('rows');
+const emptyEl = document.getElementById('empty');
+const ifaceEl = document.getElementById('iface');
+const warnEl = document.getElementById('warnbar');
+const pending = {};   // ip -> input value the user is actively typing (don't clobber while typing)
+const buzzing = {};   // ip -> true while a buzz is in flight (~10-20s) — the 2s poll
+                       // re-render would otherwise reset the button mid-operation
+const clearing = {};  // ip -> true while a clear-recordings request is in flight
+
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function rename(ip, btn, flashEl){
+  const input = document.getElementById('in-' + ip.replace(/\./g,'_'));
+  const name = input.value.trim();
+  if(!name) return;
+  btn.disabled = true;
+  flashEl.textContent = '';
+  try{
+    const r = await fetch('/api/rename', {method:'POST', headers:{'Content-Type':'application/json'},
+                                           body: JSON.stringify({ip, name})});
+    const j = await r.json();
+    if(j.ok){
+      flashEl.textContent = '✓ renamed'; flashEl.className = 'flash ok';
+      delete pending[ip];
+    } else {
+      flashEl.textContent = '✗ ' + (j.error || 'failed'); flashEl.className = 'flash bad';
+    }
+  } catch(e){
+    flashEl.textContent = '✗ ' + e; flashEl.className = 'flash bad';
+  }
+  btn.disabled = false;
+}
+
+async function buzz(ip, btn, flashEl){
+  buzzing[ip] = true;
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '…';
+  flashEl.textContent = '';
+  try{
+    const r = await fetch('/api/buzz', {method:'POST', headers:{'Content-Type':'application/json'},
+                                         body: JSON.stringify({ip})});
+    const j = await r.json();
+    flashEl.textContent = j.ok ? '✓ buzzed' : ('✗ ' + (j.error || 'failed'));
+    flashEl.className = 'flash ' + (j.ok ? 'ok' : 'bad');
+  } catch(e){
+    flashEl.textContent = '✗ ' + e; flashEl.className = 'flash bad';
+  }
+  delete buzzing[ip];
+  btn.textContent = orig;
+  btn.disabled = false;
+}
+
+async function clearRecordings(ip, name, btn, flashEl){
+  if(!confirm(`Delete ALL recordings on ${name || ip}? This can't be undone.`)) return;
+  clearing[ip] = true;
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '…';
+  flashEl.textContent = '';
+  try{
+    const r = await fetch('/api/clear_recordings', {method:'POST', headers:{'Content-Type':'application/json'},
+                                                     body: JSON.stringify({ip})});
+    const j = await r.json();
+    flashEl.textContent = j.ok ? '✓ cleared' : ('✗ ' + (j.error || 'failed'));
+    flashEl.className = 'flash ' + (j.ok ? 'ok' : 'bad');
+  } catch(e){
+    flashEl.textContent = '✗ ' + e; flashEl.className = 'flash bad';
+  }
+  delete clearing[ip];
+  btn.textContent = orig;
+  btn.disabled = false;
+}
+
+function render(devices){
+  // re-rendering wipes + recreates every <input>, which drops focus/cursor
+  // position out from under you mid-keystroke — save it here, restore it below.
+  const active = document.activeElement;
+  let focusId = null, selStart = null, selEnd = null;
+  if(active && active.tagName === 'INPUT' && active.id.startsWith('in-')){
+    focusId = active.id; selStart = active.selectionStart; selEnd = active.selectionEnd;
+  }
+  if(!devices.length){ rowsEl.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+  emptyEl.style.display = 'none';
+  rowsEl.innerHTML = devices.map(d => {
+    const id = d.ip.replace(/\./g,'_');
+    const ok = d.ok;
+    const cur = ok ? esc(d.name || '(unset)') : `<span class="badge bad">${esc(d.error||'unreachable')}</span>`;
+    const val = pending[d.ip] !== undefined ? pending[d.ip] : '';
+    const isBuzzing = !!buzzing[d.ip];
+    const isClearing = !!clearing[d.ip];
+    const nameForJs = (d.name || d.ip).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<tr>
+      <td class="mono">${esc(d.ip)}</td>
+      <td>${cur}</td>
+      <td class="mono">${ok ? esc(d.hostname||'') : ''}</td>
+      <td class="mono">${ok ? esc((d.cpu_id||'').slice(0,12)) : ''}</td>
+      <td class="mono">${ok ? esc(d.version||'') : ''}</td>
+      <td><button id="buzz-${id}" title="Beep this board's buzzer twice (stops+restarts its service briefly, ~10-20s)"
+                  ${(ok && !isBuzzing) ? '' : 'disabled'} onclick="buzz('${d.ip}', this, document.getElementById('bfl-${id}'))">${isBuzzing ? '…' : '🔊'}</button>
+          <span class="flash" id="bfl-${id}"></span></td>
+      <td><button id="clear-${id}" title="Delete all recordings on this board (e.g. dummy field-ready test takes)"
+                  ${(ok && !isClearing) ? '' : 'disabled'} onclick="clearRecordings('${d.ip}', '${nameForJs}', this, document.getElementById('cfl-${id}'))">${isClearing ? '…' : '🗑️'}</button>
+          <span class="flash" id="cfl-${id}"></span></td>
+      <td><input type="text" id="in-${id}" placeholder="new name" value="${esc(val)}"
+                  oninput="pending['${d.ip}']=this.value"
+                  onkeydown="if(event.key==='Enter') document.getElementById('btn-${id}').click()"
+                  ${ok ? '' : 'disabled'}></td>
+      <td><button id="btn-${id}" ${ok ? '' : 'disabled'} onclick="rename('${d.ip}', this, document.getElementById('fl-${id}'))">Rename</button>
+          <span class="flash" id="fl-${id}"></span></td>
+    </tr>`;
+  }).join('');
+  if(focusId){
+    const el = document.getElementById(focusId);
+    if(el){ el.focus(); if(selStart !== null) el.setSelectionRange(selStart, selEnd); }
+  }
+}
+
+async function poll(){
+  try{
+    const r = await fetch('/api/status');
+    const j = await r.json();
+    ifaceEl.textContent = j.iface ? `wired iface: ${j.iface}` : 'no wired subnet detected';
+    warnEl.style.display = j.redis_configured ? 'none' : 'block';
+    render(j.devices || []);
+  } catch(e){ /* transient — next poll will retry */ }
+  setTimeout(poll, 2000);
+}
+poll();
+</script>
+</body>
+</html>
