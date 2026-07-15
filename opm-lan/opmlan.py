@@ -450,6 +450,14 @@ def _stable_key(info):
             or info.get("hostname") or info["ip"])
 
 
+# how long a just-seen recorder stays on the board after a scan pass fails to
+# reconfirm it. discover() sends a single -c1 -W1 ping per host across the whole
+# /24 sweep; a lone dropped ICMP reply is normal noise on a ~250-host sweep and
+# would otherwise flicker the card out/in every ~4s scan cycle for no real reason.
+_LAST_SEEN_GRACE = 10.0
+_LAST_CARDS = {}          # stable key -> (last_seen_ts, card_dict)
+
+
 def detect_recorders(cfg):
     """opm.detect_cards analog: discover pis on the cable, identify each, and return
     'card' dicts in the SAME shape opm's detect produces (slot/disk/fstype/size/label/
@@ -466,9 +474,10 @@ def detect_recorders(cfg):
         if key in by_id and not ip.startswith("10.42.0."):
             continue
         by_id[key] = info
-    cards = []
+    now = time.time()
+    cards, seen_keys = [], set()
     for key, info in by_id.items():
-        cards.append({
+        card = {
             "ip": info["ip"], "disk": info["ip"],          # 'disk' column shows the IP
             "fstype": (f"v{info['sw']}" if info.get("sw") else "lan"),
             "size": info.get("bytes") or 0,
@@ -479,7 +488,19 @@ def detect_recorders(cfg):
             "sw": info.get("sw"), "runs": info.get("runs") or 0,
             "mounted_at": info["ip"],                       # truthy = reachable
             "eligible": True, "error": None, "slot": _slot_for(key),
-        })
+        }
+        cards.append(card)
+        seen_keys.add(key)
+        _LAST_CARDS[key] = (now, card)
+    # ride out a lone missed sweep: keep recently-confirmed recorders on the board
+    # until they've genuinely been gone for _LAST_SEEN_GRACE seconds
+    for key, (ts, card) in list(_LAST_CARDS.items()):
+        if key in seen_keys:
+            continue
+        if now - ts > _LAST_SEEN_GRACE:
+            del _LAST_CARDS[key]
+            continue
+        cards.append(card)
     cards.sort(key=lambda c: c["slot"])
     return cards, iface
 
