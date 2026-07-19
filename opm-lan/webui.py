@@ -176,6 +176,92 @@ class Job:
 JOB = Job()
 SECTOR = 512
 
+# --------------------------------------------------------------------------- #
+# copy-history ledger — one JSONL record per recorder per job: what got docked
+# when, how much data it actually copied (new bytes, not pre-existing dest
+# bytes), and onto WHICH SSD (mount + volume label + fs UUID, so records stay
+# attributable after the drive is remounted elsewhere). Lives on this laptop
+# (not the SSD) so one search covers every drive ever used. Machine-local,
+# git-ignored. Searched via /api/history?q=<text>&day=YYYY-MM-DD.
+# --------------------------------------------------------------------------- #
+HISTORY_FILE = SCRIPT_DIR / "copy_history.jsonl"
+HIST_LOCK = threading.Lock()
+
+
+def history_append(rec):
+    with HIST_LOCK:
+        with open(HISTORY_FILE, "a") as f:
+            f.write(json.dumps(rec) + "\n")
+
+
+def history_load():
+    out = []
+    try:
+        with HIST_LOCK, open(HISTORY_FILE) as f:
+            for line in f:
+                try:
+                    out.append(json.loads(line))
+                except ValueError:
+                    continue                    # a torn/corrupt line never hides the rest
+    except OSError:
+        pass
+    return out
+
+
+def ssd_info(dest):
+    """Identity of the drive behind `dest`: mountpoint, volume label, fs UUID.
+    JSON output from findmnt/lsblk — labels with spaces ('Extreme SSD') survive."""
+    info = {"path": None, "label": None, "uuid": None}
+    try:
+        fs = json.loads(subprocess.run(
+            ["findmnt", "-J", "-o", "TARGET,SOURCE", "--target", os.path.abspath(dest)],
+            text=True, capture_output=True).stdout)["filesystems"][0]
+        info["path"] = fs.get("target")
+        src = fs.get("source") or ""
+        if src.startswith("/dev/"):
+            bd = json.loads(subprocess.run(
+                ["lsblk", "-J", "-o", "LABEL,UUID", src],
+                text=True, capture_output=True).stdout)["blockdevices"][0]
+            info["label"] = bd.get("label")
+            info["uuid"] = bd.get("uuid")
+    except Exception:                              # noqa: BLE001 - identity is best-effort
+        pass
+    if not info["label"]:                          # unlabeled fs / not a block device
+        info["label"] = os.path.basename(info["path"] or os.path.abspath(dest)) or "internal disk"
+    return info
+
+
+def api_history(device, day_from, day_to, q=""):
+    """Filter the ledger. `device` is an EXACT device/card_id match (the UI's
+    dropdown — substring would make starcap1 swallow starcap10..19/100),
+    `day_from`/`day_to` an optional inclusive date range (either end alone
+    works; both empty = all time). `q` stays as a free substring filter
+    (device/ip/ssd-label) for curl use. Also returns every distinct device the
+    ledger has ever seen, so the UI dropdown can include odd ones (slotN,
+    hostname ids) beyond the standard starcap1..100."""
+    recs = history_load()
+    all_devices = sorted({(r.get("device") or r.get("card_id") or "") for r in recs} - {""},
+                         key=str.lower)
+    device = (device or "").strip().lower()
+    day_from, day_to = (day_from or "").strip(), (day_to or "").strip()
+    q = (q or "").strip().lower()
+    if device:
+        recs = [r for r in recs
+                if (r.get("device") or r.get("card_id") or "").lower() == device]
+    if q:
+        recs = [r for r in recs
+                if q in " ".join(str(r.get(k) or "") for k in ("device", "card_id", "ip")).lower()
+                or q in str((r.get("ssd") or {}).get("label") or "").lower()]
+    if day_from:
+        recs = [r for r in recs if (r.get("date") or "") >= day_from]
+    if day_to:
+        recs = [r for r in recs if (r.get("date") or "") <= day_to]
+    recs.sort(key=lambda r: r.get("ts", 0), reverse=True)
+    return {"records": recs[:500], "count": len(recs),
+            "bytes_copied": sum(r.get("bytes_copied") or 0 for r in recs),
+            "devices": len({r.get("device") or r.get("card_id") for r in recs}),
+            "all_devices": all_devices, "truncated": len(recs) > 500}
+
 
 def _diskstats():
     out = {}
@@ -281,6 +367,14 @@ def build_card(cfg, c):
     inv = opmlan.remote_inventory(cfg, c["ip"])
     info = opmlan.identify(cfg, c["ip"], force=True)
     device = info.get("name") or ""
+    # best-guess destination for this recorder, so each session's PRE-existing
+    # dest bytes can be snapshotted now — the copy-history ledger subtracts them
+    # to report bytes actually written THIS job (an earlier copy of the same
+    # session must not count again). process_recorder may suffix the cid on a
+    # rare name collision; then pre reads as 0 and the ledger just over-counts
+    # that one record slightly.
+    dest_card = os.path.join(cfg["destination"], opmlan.card_id_for(info, c["slot"], cfg))
+    flatten = cfg["copy"].get("flatten", True)
     tb = tf = 0
     sessions, namemaps = [], {}
     for p in cfg["copy_paths"]:
@@ -296,6 +390,9 @@ def build_card(cfg, c):
             s["path"] = p
             s["copied"] = 0
             s["done"] = False
+            dsp = os.path.join(opmlan.dest_path_for(dest_card, p, flatten),
+                               namemaps[p].get(s["name"], s["name"]))
+            s["pre"] = opmlan.dir_stats(dsp)[0] if os.path.isdir(dsp) else 0
             sessions.append(s)
     return {
         "slot": c["slot"], "stage": "pending", "status": "pending",
@@ -398,6 +495,29 @@ def run_job(no_delete, slots, recheck=False):
                            f"{', deleted source' if res['deleted'] else ''}")
             if res["error"]:
                 JOB.append_log(f"[slot {res['slot']}] !! {res['error']}")
+            # snapshot what the ledger needs while still under the lock
+            hist = None
+            if cur is not None:
+                copied_b = sum(max(0, (s.get("copied") or 0) - (s.get("pre") or 0))
+                               for s in cur["sessions"])
+                new_n = sum(1 for s in cur["sessions"] if (s.get("pre") or 0) < s["bytes"])
+                hist = {"mode": JOB.mode, "job_started": JOB.started_at,
+                        "sessions_total": len(cur["sessions"]), "sessions_new": new_n,
+                        "bytes_total": cur["bytes_total"], "bytes_copied": copied_b,
+                        "ip": cur.get("disk")}
+        # record to the copy-history ledger (outside the lock — file + subprocess I/O);
+        # skip only a cancel that never copied a byte
+        if hist and not (res["status"] == "cancelled" and hist["bytes_copied"] == 0):
+            now = datetime.now()
+            try:
+                history_append(dict(hist, ts=int(time.time()),
+                                    date=now.strftime("%Y-%m-%d"), time=now.strftime("%H:%M:%S"),
+                                    device=res.get("device") or "", card_id=res["card_id"],
+                                    status=res["status"], deleted=res["deleted"],
+                                    dest=res.get("dest"), ssd=ssd_info(cfg["destination"])))
+            except Exception as e:                        # noqa: BLE001 - ledger never kills a copy
+                with JOB.lock:
+                    JOB.append_log(f"[history] could not record slot {res['slot']}: {e}")
         return res
 
     try:
@@ -604,6 +724,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/listdir":
             q = parse_qs(urlparse(self.path).query)
             return self._json(api_listdir(q.get("path", [None])[0]))
+        if path == "/api/history":
+            q = parse_qs(urlparse(self.path).query)
+            g = lambda k: q.get(k, [""])[0]
+            return self._json(api_history(g("device"), g("from"), g("to"), g("q")))
         return self._json({"error": "not found"}, 404)
 
     def do_POST(self):

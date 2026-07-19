@@ -229,6 +229,29 @@
     <div id="anbody"><span class="hint">…</span></div>
     <p class="hint" style="margin:10px 0 0">Built in the background after a copy (one frame/minute per recording) and reported to the dashboard. Independent of the copy job — it keeps working while you copy more recorders.</p>
   </section>
+
+  <!-- COPY HISTORY -->
+  <section class="panel">
+    <h2>7 &middot; Copy history</h2>
+    <div class="row" style="margin-bottom:10px">
+      <select id="histdev" onchange="loadHistory()" title="show only this starcap"
+              style="background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"></select>
+      <span class="hint">from</span>
+      <input id="histfrom" type="date" onchange="loadHistory()" title="start of the date range (leave both empty for all time)"
+             style="background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit">
+      <span class="hint">to</span>
+      <input id="histto" type="date" onchange="loadHistory()" title="end of the date range (leave both empty for all time)"
+             style="background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit">
+      <button class="primary" onclick="loadHistory()">🔍 Search</button>
+      <button onclick="histClear()">✕ Clear</button>
+      <span id="histsum" class="hint"></span>
+    </div>
+    <table>
+      <thead><tr><th>When</th><th>Device</th><th>Copied</th><th>Recordings</th><th>SSD</th><th>Mode</th><th>Status</th></tr></thead>
+      <tbody id="histrows"><tr><td colspan="7" class="hint">Loading…</td></tr></tbody>
+    </table>
+    <p class="hint" style="margin:10px 0 0">Every recorder that finishes a copy job lands here permanently: when it docked, how much NEW data it copied (already-present recordings don't count twice), and which SSD it went to. Pick a starcap from the dropdown and/or a date range — leave the dates empty to see all time.</p>
+  </section>
 </main>
 
 <script>
@@ -572,6 +595,7 @@ async function tick(){
     if(justFinished){
       announce('LAN copy finished. Please check the screen.');
       detect(true);                                         // copy done -> refresh plan/detection
+      loadHistory();                                        // the job just added ledger rows
     }
     else if(!document.hidden && tickN % 2 === 0) detect();  // idle: auto-detect ~every 2s
   }
@@ -698,6 +722,53 @@ function renderProgress(s){
   $('log').scrollTop=$('log').scrollHeight;
 }
 
+// copy-history panel — searchable ledger of every finished per-recorder copy.
+// Device filter: exact-match dropdown (starcap1..100 + anything odd the ledger
+// has seen). Date filter: optional from/to range — both empty = all time.
+let histDevSig = '';
+function initHistDev(extra){
+  const sel = $('histdev');
+  const base = ['', ...Array.from({length:100}, (_,i)=>'starcap'+(i+1))];
+  const seen = new Set(base.map(s=>s.toLowerCase()));
+  const opts = base.slice();
+  for(const d of (extra||[])) if(!seen.has(d.toLowerCase())){ opts.push(d); seen.add(d.toLowerCase()); }
+  const sig = opts.join('|');
+  if(sig === histDevSig) return;          // unchanged — don't reset the user's selection
+  histDevSig = sig;
+  const cur = sel.value;
+  sel.innerHTML = opts.map(o=>`<option value="${o}">${o||'all starcaps'}</option>`).join('');
+  sel.value = opts.includes(cur) ? cur : '';
+}
+function histClear(){ $('histdev').value=''; $('histfrom').value=''; $('histto').value=''; loadHistory(); }
+async function loadHistory(){
+  const dev = encodeURIComponent($('histdev').value), from = $('histfrom').value, to = $('histto').value;
+  let d; try { d = await jget(`/api/history?device=${dev}&from=${from}&to=${to}`); } catch(e){ return; }
+  initHistDev(d.all_devices);
+  const rows = (d.records||[]).map(r=>{
+    const stat = r.status==='ok' ? '<span class="stat-ok">ok</span>'
+      : r.status==='cancelled' ? '<span class="stat-warn">cancelled</span>'
+      : `<span class="stat-bad">${r.status}</span>`;
+    const del = r.deleted ? ' <span title="recordings verified then removed from the pi">·&nbsp;pi&nbsp;wiped</span>' : '';
+    const part = (r.bytes_copied < r.bytes_total)
+      ? ` <span class="hint" title="recorder held ${fmtBytes(r.bytes_total)} total; the rest was already on the SSD from an earlier copy">of ${fmtBytes(r.bytes_total)}</span>` : '';
+    return `<tr>
+      <td class="mono">${r.date||''} ${r.time||''}</td>
+      <td><b>${r.device||r.card_id||'?'}</b>${r.ip?` <span class="hint mono">${r.ip}</span>`:''}</td>
+      <td class="mono">${fmtBytes(r.bytes_copied)}${part}</td>
+      <td class="mono">${r.sessions_new||0} new / ${r.sessions_total||0}</td>
+      <td title="${r.dest||''}">💾 ${(r.ssd&&r.ssd.label)||'?'}</td>
+      <td class="hint">${r.mode||''}${del}</td>
+      <td>${stat}</td></tr>`;
+  });
+  $('histrows').innerHTML = rows.join('')
+    || `<tr><td colspan="7" class="hint">${(d.count===0 && !$('histdev').value && !$('histfrom').value && !$('histto').value)
+        ? 'No copies recorded yet — the ledger starts with the next copy job.'
+        : 'No records match this filter.'}</td></tr>`;
+  $('histsum').textContent = d.count
+    ? `${d.count} record(s) · ${fmtBytes(d.bytes_copied)} copied · ${d.devices} device(s)${d.truncated?' · showing latest 500':''}`
+    : '';
+}
+
 // boot
 async function boot(){
   await loadConfig();
@@ -706,6 +777,7 @@ async function boot(){
   setInterval(tick, 1000);
   pollAnalysis();
   setInterval(pollAnalysis, 3000);
+  loadHistory();
 }
 boot();
 </script>
