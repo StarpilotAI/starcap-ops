@@ -17,3 +17,9 @@ opm-lan/*.log
 
 # golden eMMC/SD clone images — large raw disk images, don't belong in git
 emmc/assets/golden/
+
+# opm-name board log — machine-local history of docked boards
+opm-name/board_registry.json
+opm-name/board_registry.json.tmp
+# opm-lan copy-history ledger — machine-local record of every copy job
+opm-lan/copy_history.jsonl

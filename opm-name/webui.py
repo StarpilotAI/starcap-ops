@@ -9,6 +9,7 @@ write renames it both on the device and on the dashboard.
 Run:   python3 webui.py        →  http://127.0.0.1:8771
 """
 import json
+import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,6 +35,64 @@ _renamed_locally = {}   # ip -> optimistic name, so the table reflects a rename
                         # instantly instead of waiting for the next scan pass
 
 
+# --------------------------------------------------------------------------- #
+# board log — a persistent registry of every board that has ever docked while
+# opm-name was running, keyed by cpu_id (stable across reflashes). The point:
+# when you're later diagnosing a pi that is NOT docked (or won't even boot),
+# its last-known name/version/boot-medium are still on hand here. Stable
+# fields (cpu_id, first_seen) are written once; volatile ones (version, boot
+# medium, last ip, last_seen) refresh on every sighting — all for free, off
+# the same scan the live table already does. Survives restarts in
+# board_registry.json next to this script (machine-local, git-ignored).
+# --------------------------------------------------------------------------- #
+REGISTRY_FILE = SCRIPT_DIR / "board_registry.json"
+REGISTRY = {}           # cpu_id -> {cpu_id, name, hostname, version, boot, last_ip, first_seen, last_seen}
+REG_LOCK = threading.Lock()
+
+
+def _registry_load():
+    global REGISTRY
+    try:
+        REGISTRY = json.loads(REGISTRY_FILE.read_text())
+    except (OSError, ValueError):
+        REGISTRY = {}
+
+
+def _registry_save():
+    tmp = REGISTRY_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(REGISTRY, indent=2, sort_keys=True))
+    tmp.replace(REGISTRY_FILE)          # atomic — a crash mid-write can't eat the log
+
+
+def _registry_note(dev):
+    """Upsert one scanned board; returns True if anything changed (worth saving).
+    Empty/unknown probe values never clobber a previously-known good one.
+    last_seen is quantized to the minute so a docked board doesn't rewrite the
+    file every 4s scan pass."""
+    cpu = dev.get("cpu_id")
+    if not cpu:
+        return False
+    now = int(time.time())
+    e = REGISTRY.setdefault(cpu, {"cpu_id": cpu, "first_seen": now})
+    changed = "last_seen" not in e
+    for k in ("name", "hostname", "version"):
+        if dev.get(k) and e.get(k) != dev[k]:
+            e[k] = dev[k]; changed = True
+    if dev.get("boot") and dev["boot"] != "unknown" and e.get("boot") != dev["boot"]:
+        e["boot"] = dev["boot"]; changed = True
+    if e.get("last_ip") != dev["ip"]:
+        e["last_ip"] = dev["ip"]; changed = True
+    if now - e.get("last_seen", 0) >= 60 or changed:
+        e["last_seen"] = now; changed = True
+    return changed
+
+
+def registry_snapshot():
+    with REG_LOCK:
+        return sorted((dict(e) for e in REGISTRY.values()),
+                      key=lambda e: e.get("last_seen", 0), reverse=True)
+
+
 def scanner_loop():
     global DEVICES, IFACE
     while not _scan_stop.is_set():
@@ -46,6 +105,9 @@ def scanner_loop():
                         d["name"] = over
                 DEVICES = devices
                 IFACE = iface
+            with REG_LOCK:
+                if any([_registry_note(d) for d in devices if d.get("ok")]):
+                    _registry_save()
         except Exception as e:                           # noqa: BLE001
             print(f"[scan] {e}")
         _scan_stop.wait(4)
@@ -61,6 +123,7 @@ def devices_snapshot():
 # --------------------------------------------------------------------------- #
 def api_status():
     return {"devices": devices_snapshot(), "iface": IFACE,
+            "registry": registry_snapshot(),
             "redis_configured": bool(opmname.REDIS_URL and opmname.REDIS_TOKEN)}
 
 
@@ -85,6 +148,11 @@ def api_rename(body):
         for d in DEVICES:
             if d["ip"] == ip:
                 d["name"] = name
+    with REG_LOCK:
+        e = REGISTRY.get(dev["cpu_id"])
+        if e is not None and e.get("name") != name:
+            e["name"] = name
+            _registry_save()
     return {"ok": True, "ip": ip, "cpu_id": dev["cpu_id"], "name": name}
 
 
@@ -93,6 +161,27 @@ def api_buzz(body):
     if not ip:
         return {"ok": False, "error": "ip is required"}
     return opmname.identify_buzz(ip)
+
+
+def api_vnc(body):
+    """Open the board's live desktop — same 🖥️ button opm-lan has, same
+    tools/vnc_into_pi.sh underneath (x11vnc on the pi + the DRM HDMI-force
+    workaround, TigerVNC here, full cleanup on the pi when the window closes).
+    Spawned detached so this request returns immediately; the script lock-guards
+    per IP, so double-clicking while a window is already open is a no-op."""
+    ip = (body.get("ip") or "").strip()
+    with SCAN_LOCK:
+        known = any(d["ip"] == ip and d.get("ok") for d in DEVICES)
+    if not ip or not known:
+        return {"ok": False, "error": "device not found / not online"}
+    script = SCRIPT_DIR.parent / "tools" / "vnc_into_pi.sh"
+    if not script.exists():
+        return {"ok": False, "error": f"missing {script}"}
+    log_path = f"/tmp/vnc_into_pi_{ip.replace('.', '_')}.log"
+    with open(log_path, "ab") as logf:
+        subprocess.Popen(["bash", str(script), ip], stdout=logf, stderr=subprocess.STDOUT,
+                         stdin=subprocess.DEVNULL, start_new_session=True)
+    return {"ok": True}
 
 
 def api_clear_recordings(body):
@@ -152,10 +241,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_buzz(self._body()))
         if path == "/api/clear_recordings":
             return self._json(api_clear_recordings(self._body()))
+        if path == "/api/vnc":
+            return self._json(api_vnc(self._body()))
         return self._json({"error": "not found"}, 404)
 
 
 def main():
+    _registry_load()
     threading.Thread(target=scanner_loop, daemon=True).start()
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"opm-name running at http://{HOST}:{PORT}")

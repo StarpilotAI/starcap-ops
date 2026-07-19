@@ -106,15 +106,31 @@ echo ""
 '''
 
 
-def identify_for_rename(ip, timeout=10):
+def identify_for_rename(ip, timeout=15):
     """Cheap identity probe for the rename table: cpu_id (the rename key) +
-    current device_name (for display). Much lighter than opm-lan's identify()
-    — no recordings walk, no byte counts, nothing this tool doesn't need."""
+    current device_name (for display), plus a recordings tally (sessions +
+    bytes) summed over BOTH locations clear_recordings() wipes — so the UI can
+    show what the 🗑️ button would actually delete. The du is bounded with
+    `timeout` (same trick as opm-lan's identify()) so a huge recordings tree
+    can't blow the SSH timeout and make the board flap offline — a size that
+    couldn't be measured in time just shows as 0."""
     script = (
         f'echo "CPUID=$({_CPU_ID_SCRIPT})"; '
         f'echo "NAME=$(cat ~/.config/starcap/device_name 2>/dev/null)"; '
         f'echo "HOST=$(hostname)"; '
-        f'echo "VER=$(cat ~/orangepi-recorder/stereocam/VERSION 2>/dev/null | head -1)"'
+        f'echo "VER=$(cat ~/orangepi-recorder/stereocam/VERSION 2>/dev/null | head -1)"; '
+        # boot medium: the mmc block device the rootfs lives on tells us —
+        # /sys/block/<dev>/device/type is "MMC" for eMMC, "SD" for an SD card
+        'rd=$(findmnt -n -o SOURCE / 2>/dev/null); '
+        'bd=$(basename "$rd" 2>/dev/null | sed "s/p[0-9]*$//"); '
+        'echo "BOOT=$(cat /sys/block/$bd/device/type 2>/dev/null)"; '
+        'b=0; n=0; '
+        'for rec in "$HOME/orangepi-recorder/recordings/stereo" /media/sdcard/stereo; do '
+        '[ -d "$rec" ] || continue; '
+        'n=$((n + $(find "$rec" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l))); '
+        's=$(timeout 8 du -sb "$rec" 2>/dev/null | cut -f1); b=$((b + ${s:-0})); '
+        'done; '
+        'echo "RECB=$b"; echo "RECN=$n"'
     )
     r = _ssh(ip, script, timeout=timeout)
     if r.returncode != 0 or "CPUID=" not in r.stdout:
@@ -123,11 +139,14 @@ def identify_for_rename(ip, timeout=10):
     cpu_id = grab("CPUID")
     if not cpu_id:
         return {"ip": ip, "ok": False, "error": "couldn't read a stable hardware id (not an RK3588 board?)"}
+    to_int = lambda s: int(s) if str(s).isdigit() else 0
+    boot = {"MMC": "emmc", "SD": "sd"}.get(grab("BOOT").upper(), "unknown")
     return {"ip": ip, "ok": True, "cpu_id": cpu_id, "name": grab("NAME"), "hostname": grab("HOST"),
-            "version": grab("VER")}
+            "version": grab("VER"), "boot": boot,
+            "rec_bytes": to_int(grab("RECB")), "rec_runs": to_int(grab("RECN"))}
 
 
-def discover_for_rename(cfg, timeout=10):
+def discover_for_rename(cfg, timeout=15):
     """Ping-sweep (via opm-lan's own subnet auto-detect) + identify every live IP."""
     ips, iface = opmlan.discover(cfg)
     return [identify_for_rename(ip, timeout=timeout) for ip in ips], iface

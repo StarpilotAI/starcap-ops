@@ -30,6 +30,11 @@
   .badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
   .badge.ok{color:var(--ok);border-color:var(--ok)}
   .badge.bad{color:var(--bad);border-color:var(--bad)}
+  .badge.boot-emmc{color:var(--acc);border-color:var(--acc)}
+  .badge.boot-sd{color:var(--blu);border-color:var(--blu)}
+  .docked{color:var(--ok)}
+  .mut{color:var(--mut)}
+  .panel h2 .sub{text-transform:none;letter-spacing:0;font-weight:400}
   .empty{color:var(--mut);text-align:center;padding:30px 0}
   .flash{font-size:12px;margin-left:8px}
   .flash.ok{color:var(--ok)} .flash.bad{color:var(--bad)}
@@ -49,11 +54,22 @@
     <h2>Docked recorders</h2>
     <table id="tbl">
       <thead>
-        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th></th><th></th><th>New name</th><th></th></tr>
+        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th>Boot</th><th>Recordings</th><th></th><th></th><th></th><th>New name</th><th></th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
     <div class="empty" id="empty" style="display:none">No recorders detected on the wired subnet yet — dock one over ethernet.</div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>Board log <span class="sub mut">— every board this station has ever seen (kept across restarts, for diagnosing undocked pis)</span></h2>
+    <table id="regtbl">
+      <thead>
+        <tr><th></th><th>Name</th><th>cpu_id</th><th>Boot</th><th>Version</th><th>Hostname</th><th>Last IP</th><th>Last seen</th><th>First seen</th></tr>
+      </thead>
+      <tbody id="regrows"></tbody>
+    </table>
+    <div class="empty" id="regempty" style="display:none">Nothing logged yet — the first board you dock gets remembered here.</div>
   </div>
 </main>
 <script>
@@ -67,6 +83,40 @@ const buzzing = {};   // ip -> true while a buzz is in flight (~10-20s) — the 
 const clearing = {};  // ip -> true while a clear-recordings request is in flight
 
 function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function fmtBytes(b){
+  if(!b) return '0 B';
+  const u = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while(b >= 1024 && i < u.length-1){ b /= 1024; i++; }
+  return (i === 0 ? b : b.toFixed(1)) + ' ' + u[i];
+}
+
+// what the 🗑️ would delete: session dirs under both recording locations
+function recLabel(d){
+  if(!d.rec_runs) return '<span style="color:var(--mut)">—</span>';
+  return `${d.rec_runs} session${d.rec_runs === 1 ? '' : 's'} · ${fmtBytes(d.rec_bytes)}`;
+}
+
+function bootBadge(b){
+  if(b === 'emmc') return '<span class="badge boot-emmc">eMMC</span>';
+  if(b === 'sd') return '<span class="badge boot-sd">SD</span>';
+  return '<span class="badge">?</span>';
+}
+
+function ago(ts){
+  if(!ts) return '—';
+  const s = Math.floor(Date.now()/1000 - ts);
+  if(s < 10) return 'now';
+  if(s < 60) return s + 's ago';
+  if(s < 3600) return Math.floor(s/60) + 'm ago';
+  if(s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+function fmtDate(ts){
+  return ts ? new Date(ts*1000).toLocaleString() : '—';
+}
 
 async function rename(ip, btn, flashEl){
   const input = document.getElementById('in-' + ip.replace(/\./g,'_'));
@@ -110,8 +160,22 @@ async function buzz(ip, btn, flashEl){
   btn.disabled = false;
 }
 
-async function clearRecordings(ip, name, btn, flashEl){
-  if(!confirm(`Delete ALL recordings on ${name || ip}? This can't be undone.`)) return;
+async function vncPi(ip, flashEl){
+  flashEl.textContent = '…'; flashEl.className = 'flash';
+  try{
+    const r = await fetch('/api/vnc', {method:'POST', headers:{'Content-Type':'application/json'},
+                                        body: JSON.stringify({ip})});
+    const j = await r.json();
+    flashEl.textContent = j.ok ? '✓ opening' : ('✗ ' + (j.error || 'failed'));
+    flashEl.className = 'flash ' + (j.ok ? 'ok' : 'bad');
+  } catch(e){
+    flashEl.textContent = '✗ ' + e; flashEl.className = 'flash bad';
+  }
+}
+
+async function clearRecordings(ip, name, runs, bytes, btn, flashEl){
+  const what = runs ? `${runs} session${runs === 1 ? '' : 's'}, ${fmtBytes(bytes)}` : 'no sessions detected';
+  if(!confirm(`Delete ALL recordings on ${name || ip}? (${what})\nThis can't be undone.`)) return;
   clearing[ip] = true;
   btn.disabled = true;
   const orig = btn.textContent;
@@ -155,11 +219,16 @@ function render(devices){
       <td class="mono">${ok ? esc(d.hostname||'') : ''}</td>
       <td class="mono">${ok ? esc((d.cpu_id||'').slice(0,12)) : ''}</td>
       <td class="mono">${ok ? esc(d.version||'') : ''}</td>
+      <td title="what the rootfs boots from — eMMC boards record onto an inserted SD card at /media/sdcard">${ok ? bootBadge(d.boot) : ''}</td>
+      <td class="mono" title="sessions + bytes across both recording locations (local dir and /media/sdcard) — what 🗑️ deletes">${ok ? recLabel(d) : ''}</td>
+      <td><button id="vnc-${id}" title="Open this board's live desktop over VNC (a TigerVNC window appears shortly; everything on the pi is cleaned up when you close it)"
+                  ${ok ? '' : 'disabled'} onclick="vncPi('${d.ip}', document.getElementById('vfl-${id}'))">🖥️</button>
+          <span class="flash" id="vfl-${id}"></span></td>
       <td><button id="buzz-${id}" title="Beep this board's buzzer twice (stops+restarts its service briefly, ~10-20s)"
                   ${(ok && !isBuzzing) ? '' : 'disabled'} onclick="buzz('${d.ip}', this, document.getElementById('bfl-${id}'))">${isBuzzing ? '…' : '🔊'}</button>
           <span class="flash" id="bfl-${id}"></span></td>
       <td><button id="clear-${id}" title="Delete all recordings on this board (e.g. dummy field-ready test takes)"
-                  ${(ok && !isClearing) ? '' : 'disabled'} onclick="clearRecordings('${d.ip}', '${nameForJs}', this, document.getElementById('cfl-${id}'))">${isClearing ? '…' : '🗑️'}</button>
+                  ${(ok && !isClearing) ? '' : 'disabled'} onclick="clearRecordings('${d.ip}', '${nameForJs}', ${d.rec_runs||0}, ${d.rec_bytes||0}, this, document.getElementById('cfl-${id}'))">${isClearing ? '…' : '🗑️'}</button>
           <span class="flash" id="cfl-${id}"></span></td>
       <td><input type="text" id="in-${id}" placeholder="new name" value="${esc(val)}"
                   oninput="pending['${d.ip}']=this.value"
@@ -175,6 +244,29 @@ function render(devices){
   }
 }
 
+const regRowsEl = document.getElementById('regrows');
+const regEmptyEl = document.getElementById('regempty');
+
+function renderRegistry(reg, devices){
+  if(!reg.length){ regRowsEl.innerHTML = ''; regEmptyEl.style.display = 'block'; return; }
+  regEmptyEl.style.display = 'none';
+  const dockedNow = new Set((devices||[]).filter(d => d.ok).map(d => d.cpu_id));
+  regRowsEl.innerHTML = reg.map(e => {
+    const docked = dockedNow.has(e.cpu_id);
+    return `<tr>
+      <td title="${docked ? 'docked right now' : 'not currently docked'}">${docked ? '<span class="docked">●</span>' : '<span class="mut">○</span>'}</td>
+      <td>${esc(e.name || '(unnamed)')}</td>
+      <td class="mono" title="${esc(e.cpu_id)}">${esc((e.cpu_id||'').slice(0,12))}</td>
+      <td>${bootBadge(e.boot)}</td>
+      <td class="mono">${esc(e.version||'?')}</td>
+      <td class="mono">${esc(e.hostname||'')}</td>
+      <td class="mono">${esc(e.last_ip||'')}</td>
+      <td class="mono" title="${fmtDate(e.last_seen)}">${docked ? '<span class="docked">now</span>' : ago(e.last_seen)}</td>
+      <td class="mono" title="${fmtDate(e.first_seen)}">${ago(e.first_seen)}</td>
+    </tr>`;
+  }).join('');
+}
+
 async function poll(){
   try{
     const r = await fetch('/api/status');
@@ -182,6 +274,7 @@ async function poll(){
     ifaceEl.textContent = j.iface ? `wired iface: ${j.iface}` : 'no wired subnet detected';
     warnEl.style.display = j.redis_configured ? 'none' : 'block';
     render(j.devices || []);
+    renderRegistry(j.registry || [], j.devices || []);
   } catch(e){ /* transient — next poll will retry */ }
   setTimeout(poll, 2000);
 }
