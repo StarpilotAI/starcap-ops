@@ -4,7 +4,11 @@ This repo is the **copy-station + fleet-operations toolkit** for the StarCap foo
 system. It holds two things:
 
 - **`opm-lan/`** — the LAN copier: pulls recordings off the recorder Orange Pis over
-  ethernet and writes them to an SSD, with a web UI.
+  ethernet and writes them to an SSD, with a web UI. This is a **git submodule** of
+  [StarpilotAI/opm-lan](https://github.com/StarpilotAI/opm-lan) — after `git clone` or
+  `git pull`, run `git submodule update --init` or the folder will be empty (the machine's
+  SSH key/token needs read access to the StarpilotAI org repo). Commit opm-lan changes
+  in that repo, then `git add opm-lan` here to bump the pinned version.
 - **`tools/`** — standalone diagnostics/fixes for the fleet, the copy-station PC, and
   the SSDs (SD-card health, cloud-hours checks, ARP fix, boot-buzzer fix, etc.).
 

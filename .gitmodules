@@ -1,0 +1,3 @@
+[submodule "opm-lan"]
+	path = opm-lan
+	url = git@github.com:StarpilotAI/opm-lan.git
