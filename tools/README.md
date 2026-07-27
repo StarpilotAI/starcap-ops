@@ -1,8 +1,13 @@
 # StarCap drive & cloud tools
 
-Three small, standalone Python scripts for checking StarCap footage. All are
+Small, standalone Python scripts for checking StarCap footage. All are
 **read-only** — they only read; none of them ever uploads, deletes, formats, or
 changes anything on a drive or in the cloud. Safe to run anytime.
+
+> **Before formatting a drive, use `ssd_audit.py`.** It replaces `check_ssd.py`, which
+> needs flags you have to know in advance and reported ~600 GB of false "data loss"
+> across two real drives on 2026-07-27. `check_ssd.py` is kept and fixed, but new checks
+> should use the audit tool.
 
 Copy this whole folder to any PC (Windows / Mac / Linux) and run from a terminal.
 
@@ -24,7 +29,50 @@ each file (`STARCAP_PASSWORD`), or pass it as an environment variable:
 
 ---
 
-## The three tools
+## The tools
+
+### 0. `ssd_audit.py` — is this drive really in the cloud? **(use this before formatting)**
+
+Same question as `check_ssd.py`, but it does not need you to guess anything. It reports,
+per file, whether GCS holds an object of the same name **and** the same byte size.
+
+```bash
+python3 ssd_audit.py "/media/you/STARSSD3"
+python3 ssd_audit.py "/media/you/STARSSD3" --tsv ~/ssd_problems.tsv   # full problem list
+python3 ssd_audit.py "/media/you/STARSSD3" --full                    # try every scheme
+python3 ssd_audit.py "/media/you/STARSSD3" --json                    # for scripts
+```
+
+Exit code **0 = nothing at risk**, **1 = something is not safely in the cloud**, so it
+drops straight into a script.
+
+**Why it doesn't false-alarm.** The GCS key is `<device_id>/<run>/<file>`, and which
+`(device_id, run)` a file was uploaded under depends on which uploader build ran and
+where the folder sat on the drive at that moment — both have changed repeatedly. So the
+tool searches **named schemes** instead of guessing one key: the `_manifest.json` /
+`device_info.json` sidecars, the camera name, the recorder hardware id, the path
+fallback and its doubled-name form, plus any **emptied top-level folder** on the drive
+(a `20-7/`-style dump folder the footage was moved out of — its cloud objects keep the
+old key). It only says "missing" when every scheme comes up empty, and it prints which
+scheme matched so the answer is auditable:
+
+```
+  keying scheme that matched:
+      196 run(s)  sidecar
+       71 run(s)  wrap[20-7]+doubled
+       11 run(s)  path
+```
+
+**Verdicts are split by direction**, because the direction decides what to do:
+
+| verdict | means | do |
+|---|---|---|
+| `ABSENT` | no object under any scheme, no receipt | upload it |
+| `PHANTOM` | absent, but an upload receipt exists — it was MD5-confirmed into GCS once | find the object (`--full`, `--also-prefix <wrapper>`) before re-uploading |
+| `SHORT` | cloud object has **fewer** bytes | drive is the good copy — re-upload |
+| `LARGER` | cloud object has **more** bytes | the **drive** holds a fragment — do **NOT** re-upload from it |
+
+Needs internet + the dashboard password. Writes nothing unless you pass `--tsv`.
 
 ### 1. `check_cloud_hours.py` — how much footage is in the cloud
 Reports the **total video stored in the cloud (TB)** and the **real footage hours**,
@@ -37,7 +85,7 @@ python3 check_cloud_hours.py
 Needs internet + the dashboard password. ffmpeg gives an exact bitrate; without it,
 uses the calibrated 9 GB/hour.
 
-### 2. `check_ssd.py` — is THIS drive (or one folder) safely in the cloud? (check before formatting)
+### 2. `check_ssd.py` — the older drive check (superseded by `ssd_audit.py`)
 Scans a drive, confirms every file has a copy in the cloud (by **name** and
 **byte size**), and tells you whether it's safe to format. Lists anything missing.
 
@@ -109,8 +157,9 @@ py check_drive_hours.py "E:\"                       # Windows
 
 | Tool | Answers | Internet? | Password? | ffmpeg? |
 |------|---------|-----------|-----------|---------|
+| `ssd_audit.py` | is this drive **backed up**? (use this one) | yes | yes | no |
 | `check_cloud_hours.py` | hours/TB **in the cloud** | yes | yes | for exact bitrate |
-| `check_ssd.py` | is this drive **backed up** to the cloud? | yes | yes | no |
+| `check_ssd.py` | older version of `ssd_audit.py` | yes | yes | no |
 | `check_drive_hours.py` | hours/GB **on this drive** | no | no | for exact hours |
 
 ## Notes
