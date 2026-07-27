@@ -121,15 +121,25 @@ def _read_receipts(run_dir, listing, data_files):
 
 
 def scan(drive, use_receipts=True):
-    """-> [run dict] for every folder on the drive that directly holds data files.
+    """-> (runs, scan_errors) for every folder on the drive that directly holds data files.
 
     A run folder is a leaf: once a folder has data files we record it and stop
     descending, so `<device>/<run>/stereo/<files>` yields the stereo folder as the data
     directory with the run/device taken from the path above it.
+
+    EVERY read failure is captured, never swallowed. os.walk's default is to ignore
+    directory errors silently, and the obvious `except OSError: size = 0` turns a file
+    we could not measure into "0 bytes" — which then compares as LARGER (cloud has more)
+    and prints as harmless. On a failing USB enclosure that combination made this tool
+    report "✅ Nothing at risk" after walking only 4 of 24 device folders and recording 7
+    unreadable files as empty (Star_SSD_1, 2026-07-27). A drive we could not fully read
+    must NEVER be able to produce a clean verdict, so:
+      • directory errors land in `scan_errors` and force the verdict to UNKNOWN;
+      • an unstattable file gets size None -> its own UNREADABLE verdict, never 0.
     """
     drive = os.path.abspath(drive)
-    runs = []
-    for root, dirs, files in os.walk(drive):
+    runs, scan_errors = [], []
+    for root, dirs, files in os.walk(drive, onerror=scan_errors.append):
         dirs[:] = [d for d in dirs
                    if d not in SKIP_DIRS and not d.startswith("$") and not d.startswith(".")]
         if root[len(drive):].count(os.sep) >= SCAN_DEPTH:
@@ -143,17 +153,19 @@ def scan(drive, use_receipts=True):
         for f in data:
             try:
                 sizes[f] = os.path.getsize(os.path.join(root, f))
-            except OSError:
-                sizes[f] = 0
+            except OSError as e:
+                sizes[f] = None            # unknown — NOT zero
+                scan_errors.append(e)
         runs.append({
             "dir": root,
             "files": data,
             "sizes": sizes,
-            "bytes": sum(sizes.values()),
+            "bytes": sum(s for s in sizes.values() if s),
+            "unreadable": [f for f, s in sizes.items() if s is None],
             "tokens": _tokens(drive, root),
             "receipts": _read_receipts(root, files, data) if use_receipts else {},
         })
-    return runs
+    return runs, scan_errors
 
 
 def _tokens(drive, run_dir):
@@ -192,6 +204,33 @@ def _tokens(drive, run_dir):
         "hostid": f"{host}-{cpu[:8]}" if host and cpu else None,
         "ts": m.group(0) if m else None,
     }
+
+
+def coverage_shortfall(drive, runs, tolerance=0.90):
+    """-> (scanned_bytes, used_bytes, ok) — did we actually see the whole volume?
+
+    The last line of defence, and the only one that catches a SILENT loss. os.walk only
+    raises when listdir fails outright; a filesystem that returns a PARTIAL directory
+    listing (a flaky USB bridge does exactly this) drops whole subtrees with no error to
+    record, so per-file verdicts and even the scan_errors list can all look fine.
+    Comparing bytes scanned against the filesystem's own used figure catches it: on
+    starpilot_2 (2026-07-27) the audit summed 274 GB, reported 4 read errors, and the
+    volume was 749 GB used — 475 GB had vanished unreported.
+
+    Only meaningful when pointed at a mount root; auditing a subfolder is expected to
+    scan less than the volume holds, so that case returns ok=True.
+    """
+    scanned = sum(r["bytes"] for r in runs)
+    if not os.path.ismount(drive):
+        return scanned, None, True
+    try:
+        st = os.statvfs(drive)
+    except OSError:
+        return scanned, None, True
+    used = (st.f_blocks - st.f_bfree) * st.f_frsize
+    # Non-data files (contact sheets, dotfiles) legitimately go uncounted, hence the
+    # tolerance — but they are megabytes, never a meaningful fraction of a full drive.
+    return scanned, used, used <= 0 or scanned >= used * tolerance
 
 
 def emptied_wrappers(drive, runs):
@@ -327,14 +366,24 @@ def _api(path, body, timeout=180):
 
 
 # ---------------------------------------------------------------- matching
+def countable(run):
+    """Files whose local size we actually know. Unreadable files can neither confirm nor
+    refute a scheme, so they must not drag a correct scheme's score below a full match."""
+    return sum(1 for s in run["sizes"].values() if s is not None)
+
+
 def score(run, have):
-    """-> how many of this run's files the prefix `have` holds at a MATCHING size.
+    """-> how many of this run's KNOWN-SIZE files the prefix `have` holds at a MATCHING
+    size.
 
     A size the endpoint didn't report counts as a match (name-only evidence) rather than
-    as a mismatch — the alternative invents failures out of a reporting gap.
+    as a mismatch — the alternative invents failures out of a reporting gap. A file we
+    could not stat locally is skipped entirely and reported as UNREADABLE instead.
     """
     n = 0
     for f, local in run["sizes"].items():
+        if local is None:
+            continue
         if f in have and (have[f] is None or have[f] == local):
             n += 1
     return n
@@ -404,7 +453,7 @@ def resolve(runs, schemes, cloud, full=False, quiet=False):
         for top, group in groups.items():
             won = []
             for p in sorted(group, key=lambda r: -len(r["files"]))[:PROBE_RUNS]:
-                if _pick(p, keys_for(p, schemes), cloud) == len(p["files"]):
+                if _pick(p, keys_for(p, schemes), cloud) == countable(p):
                     won.append(p["scheme"])
             if won:
                 subsets[top] = [s for s in schemes if s[0] in won]
@@ -415,7 +464,7 @@ def resolve(runs, schemes, cloud, full=False, quiet=False):
         _pick(r, keys_for(r, subsets[r["tokens"]["top"]]), cloud)
 
     # phase 3 — anything the folder's scheme didn't fully cover gets the full sweep
-    weak = [r for r in runs if r["hits"] < len(r["files"])]
+    weak = [r for r in runs if r["hits"] < countable(r)]
     if weak and not full:
         if not quiet:
             print(f"  {len(weak)} run(s) not fully covered — full scheme sweep on those")
@@ -450,7 +499,14 @@ def judge(runs, cloud):
                    "file": f, "ssd_bytes": local, "cloud_bytes": remote,
                    "scheme": r.get("scheme"), "dir": r["dir"],
                    "receipt": rec if rec else ("yes (no path)" if rec == "" else "")}
-            if f not in have:
+            if local is None:
+                # We never read this file's size, so we cannot compare anything. Saying
+                # "0 bytes" here is what let a dying enclosure produce a clean verdict.
+                row["verdict"] = "UNREADABLE"
+                row["risk"] = 0
+                row["note"] = ("could not read this file's size off the drive — status "
+                               "UNKNOWN, not safe. Fix the drive/enclosure and re-run")
+            elif f not in have:
                 row["verdict"] = "PHANTOM" if rec is not None else "ABSENT"
                 row["risk"] = local
                 row["note"] = ("receipt says it was MD5-confirmed into GCS — find the "
@@ -485,13 +541,17 @@ def human(n):
     return f"{n} B"
 
 
-def report(drive, runs, problems, cloud, tsv=None):
+def report(drive, runs, problems, cloud, scan_errors=(), coverage=None, tsv=None):
     n_files = sum(len(r["files"]) for r in runs)
     by = {}
     for p in problems:
         by.setdefault(p["verdict"], []).append(p)
     risk = sum(p["risk"] for p in problems)
     ok = n_files - len(problems) + len(by.get("LARGER", []))
+    # A drive we could not fully read cannot be pronounced safe, whatever the files we
+    # DID read say. Incomplete coverage is a louder finding than any per-file verdict.
+    scanned, used, space_ok = coverage or (None, None, True)
+    incomplete = bool(scan_errors) or bool(by.get("UNREADABLE")) or not space_ok
 
     print("\n" + "=" * 72)
     print(f"  DRIVE            : {drive}")
@@ -501,14 +561,36 @@ def report(drive, runs, problems, cloud, tsv=None):
     for v, label in (("ABSENT", "never confirmed up — upload it"),
                      ("PHANTOM", "had a receipt — object moved or deleted"),
                      ("SHORT", "cloud truncated — drive is the good copy"),
-                     ("LARGER", "drive is a fragment — do NOT re-upload")):
+                     ("LARGER", "drive is a fragment — do NOT re-upload"),
+                     ("UNREADABLE", "could not stat the file — status UNKNOWN")):
         rows = by.get(v, [])
         if rows:
             print(f"  {v:<16} : {len(rows):<6} {label}")
     print(f"  AT RISK          : {human(risk)}   "
           f"(ABSENT/PHANTOM in full + SHORT deltas)")
     print(f"  prefixes listed  : {cloud.n_prefixes} in {cloud.calls} API call(s)")
+    if used:
+        print(f"  VOLUME USED      : {gb(used):.1f} GB used, {gb(scanned):.1f} GB scanned"
+              + ("" if space_ok else
+                 f"   ⚠ {gb(used - scanned):.1f} GB NEVER SEEN"))
+    if incomplete:
+        print(f"  ⚠ COVERAGE       : INCOMPLETE — {len(scan_errors)} read error(s) while "
+              f"scanning, {len(by.get('UNREADABLE', []))} unstattable file(s)"
+              + ("" if space_ok else ", and the byte totals do not add up"))
     print("=" * 72)
+    if incomplete:
+        print("\n  ⚠⚠ THIS RESULT IS NOT TRUSTWORTHY. The drive could not be read in full,")
+        print("     so whole folders may be missing from the counts above and cannot be")
+        print("     distinguished from folders that aren't there. Fix the drive (cable /")
+        print("     power / enclosure) and re-run before acting on ANY of this.")
+        if not space_ok:
+            print(f"     The volume reports {gb(used):.1f} GB used but only {gb(scanned):.1f} "
+                  f"GB was\n     scanned — about {gb(used - scanned):.1f} GB was never even "
+                  f"listed, which the\n     per-file checks below CANNOT see.")
+        for e in list(scan_errors)[:5]:
+            print(f"       {type(e).__name__}: {e}")
+        if len(scan_errors) > 5:
+            print(f"       … and {len(scan_errors) - 5} more read error(s)")
 
     schemes = {}
     for r in runs:
@@ -544,7 +626,11 @@ def report(drive, runs, problems, cloud, tsv=None):
         if by.get("PHANTOM"):
             print("\n  PHANTOMs were MD5-confirmed into GCS once. Before re-uploading, look "
                   "for\n  the object under another prefix (--full, --also-prefix <wrapper>).")
-    if risk:
+    if incomplete:
+        print("\n  ⚠ VERDICT: UNKNOWN — DO NOT FORMAT. Not because anything is proven "
+              "missing,\n    but because the drive was not fully readable, so nothing is "
+              "proven safe.")
+    elif risk:
         print("\n  ⚠ DO NOT FORMAT — see above.")
     elif problems:
         print("\n  ✅ Nothing at risk (only LARGER rows: the cloud copy is the better one).")
@@ -559,7 +645,7 @@ def report(drive, runs, problems, cloud, tsv=None):
             for p in problems:
                 fh.write("\t".join(str(p.get(c, "")) for c in cols) + "\n")
         print(f"\n  📄 report: {tsv}  ({len(problems)} row(s))")
-    return risk == 0
+    return risk == 0 and not incomplete
 
 
 # ---------------------------------------------------------------- main
@@ -593,7 +679,7 @@ def main():
     quiet = args.json
     if not quiet:
         print(f"\nAuditing {drive} …")
-    runs = scan(drive, use_receipts=not args.ignore_receipts)
+    runs, scan_errors = scan(drive, use_receipts=not args.ignore_receipts)
     if not runs:
         print("  No data files found — nothing to audit.")
         return 0
@@ -615,15 +701,22 @@ def main():
         if not runs:
             raise SystemExit(f"no runs resolved to device {args.only!r}")
     problems = judge(runs, cloud)
+    cover = coverage_shortfall(drive, runs)
 
     if args.json:
+        incomplete = (bool(scan_errors) or not cover[2]
+                      or any(p["verdict"] == "UNREADABLE" for p in problems))
         json.dump({"drive": drive, "runs": len(runs),
                    "files": sum(len(r["files"]) for r in runs),
                    "at_risk_bytes": sum(p["risk"] for p in problems),
+                   "coverage_incomplete": incomplete,
+                   "bytes_scanned": cover[0], "bytes_used_on_volume": cover[1],
+                   "scan_errors": [str(e) for e in scan_errors],
                    "problems": problems}, sys.stdout, indent=2)
         print()
-        return 0 if not sum(p["risk"] for p in problems) else 1
-    return 0 if report(drive, runs, problems, cloud, tsv=args.tsv) else 1
+        return 0 if not (sum(p["risk"] for p in problems) or incomplete) else 1
+    return 0 if report(drive, runs, problems, cloud,
+                       scan_errors=scan_errors, coverage=cover, tsv=args.tsv) else 1
 
 
 if __name__ == "__main__":
