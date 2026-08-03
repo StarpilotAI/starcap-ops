@@ -1,16 +1,18 @@
 # CLAUDE.md — StarCap copy-station & fleet ops
 
 This repo is the **copy-station + fleet-operations toolkit** for the StarCap footage
-system. It holds two things:
+system. It holds:
 
-- **`opm-lan/`** — the LAN copier: pulls recordings off the recorder Orange Pis over
-  ethernet and writes them to an SSD, with a web UI. This is a **git submodule** of
-  [StarpilotAI/opm-lan](https://github.com/StarpilotAI/opm-lan) — after `git clone` or
-  `git pull`, run `git submodule update --init` or the folder will be empty (the machine's
-  SSH key/token needs read access to the StarpilotAI org repo). Commit opm-lan changes
-  in that repo, then `git add opm-lan` here to bump the pinned version.
 - **`tools/`** — standalone diagnostics/fixes for the fleet, the copy-station PC, and
   the SSDs (SD-card health, cloud-hours checks, ARP fix, boot-buzzer fix, etc.).
+- **`setup_copy_station.sh`** — provisions a fresh Ubuntu laptop into a copy station.
+
+The **copiers are not here** — both live in the `starcap-dashboard` repo:
+`opm-lan/` (the ethernet path) and `orangepi-manager/` (the SD-card path, "opm").
+This folder used to carry `opm-lan/` as a git submodule of `StarpilotAI/opm-lan`;
+that copy was **deleted on 2026-08-03** because it had drifted well behind the
+dashboard's (it predated the `_transfer.json` landing stamps entirely). Don't
+re-add it — edit the copiers in `starcap-dashboard`.
 
 The goal of this repo is to reproduce the whole copy-station setup on another Ubuntu
 laptop. Read this file first — it explains the moving parts, the network layout, the
@@ -25,7 +27,7 @@ Orange Pi 5 recorders (fleet: starcapNN)   ← 2 USB cameras, IMU, records to SD
         │  (recordings/stereo/<session>/…: stereo_*.mp4, imu.csv, frames.csv, *.json)
         │  dock over ETHERNET
         ▼
-   opm-lan  (this repo)  ── rsync-over-ssh ──▶  SSD drive (exFAT), then →
+   opm-lan  (in starcap-dashboard)  ── rsync-over-ssh ──▶  SSD drive (exFAT), then →
         ▼
    ssd_upload_server → Google Cloud Storage → dashboard (starcap.dev)
 ```
@@ -42,11 +44,11 @@ Orange Pi 5 recorders (fleet: starcapNN)   ← 2 USB cameras, IMU, records to SD
 
 ---
 
-## opm-lan — the LAN copier
+## opm-lan — the LAN copier (lives in `starcap-dashboard/opm-lan`)
 
-- **Run it:** `cd opm-lan && ./start_opm_lan.sh` → web UI on **http://localhost:8770**.
-  The launcher frees port 8770 and (re)starts the server. It is a plain Python process
-  — editing the `.py` does nothing until you restart it.
+- **Run it:** `cd ~/starcap-dashboard/opm-lan && ./start_opm_lan.sh` → web UI on
+  **http://localhost:8770**. The launcher frees port 8770 and (re)starts the server. It
+  is a plain Python process — editing the `.py` does nothing until you restart it.
 - **Stack:** stdlib + PyYAML (optional) + external `sshpass`, `ssh`, `rsync`, `ffmpeg`.
 - **How it works:** discover recorders on the LAN (ping-sweep the subnet) → identify each
   over SSH (reads `device_info.json`) → inventory recordings → rsync each session to the
@@ -57,18 +59,33 @@ Orange Pi 5 recorders (fleet: starcapNN)   ← 2 USB cameras, IMU, records to SD
 - **Progress:** per-session copied bytes are summed for the % (so a destination folder
   that already holds an older copy of that recorder does NOT inflate the bar).
 
-### `opm-lan/config.yaml` — EDIT PER MACHINE
+### What opm-lan shares with opm (and what it doesn't)
+
+opm-lan imports some of opm's modules straight off disk, so a change there lands on
+**both** copiers with no duplication: `transfer.py` (the `_transfer.json` landing
+stamps) and `analysis.py`, which pulls in `contactsheet.py`, `dataquality.py` and
+(lazily) `cloud.py`.
+
+Everything else is a **separate file per copier** and must be changed twice: the copy
+engines (`opm.py` vs `opmlan.py`), `webui.py`, `web/index.html`, and `config.yaml`.
+
+Note the asymmetry: opm imports `transfer` hard at top level, while opm-lan's import is
+lazy inside a `try/except` that only prints `[transfer] landing stamps off: …`. Break a
+shared module and opm fails loudly while opm-lan silently stops stamping.
+
+### `starcap-dashboard/opm-lan/config.yaml` — EDIT PER MACHINE
 - `destination:` — the SSD mount path. **This changes per machine / per drive**
   (e.g. `/media/<user>/<DriveLabel>`). Set it before copying.
 - `ssh.user`/`ssh.password` — recorder login (**`orangepi` / `orangepi`**, fleet-wide).
 - `lan.iface`/`scan_subnet` — leave **empty**; opm-lan auto-detects the wired subnet
   from the copy-station NIC (see networking below).
 - `analysis.password` — the upload password (**`starupload`**).
-- `opm_dir` — path to the dashboard's `orangepi-manager` (only needed for
-  contact-sheet/estimate analysis; adjust or ignore).
+- `opm_dir` — path to `orangepi-manager` (opm). Safe to leave **empty** now that both
+  live in `starcap-dashboard`: opm-lan falls back to the sibling directory, so it still
+  finds opm's shared modules even with no `opm_dir` set.
 
 > ⚠️ `config.yaml` contains the `orangepi` and `starupload` passwords in plaintext.
-> Fine for a private repo, but rotate/redact if this repo is ever shared.
+> Fine for a private repo, but rotate/redact if it is ever shared.
 
 ---
 
@@ -132,9 +149,11 @@ connection name in the nmcli command above.
 2. `sudo ./setup_copy_station.sh` — installs opm-lan's packages (sshpass, rsync,
    ffmpeg, PyYAML, opencv/numpy), shares the wired NIC on `10.77.0.1/24` (see
    Networking), and raises the ARP-cache thresholds. Safe to re-run.
-3. Edit `opm-lan/config.yaml` → set `destination:` to your SSD mount.
-4. `cd opm-lan && ./start_opm_lan.sh` → open http://localhost:8770, dock a recorder over
-   ethernet, and it should appear.
+3. Clone `starcap-dashboard` — it holds both copiers (`opm-lan/` and
+   `orangepi-manager/`).
+4. Edit `starcap-dashboard/opm-lan/config.yaml` → set `destination:` to your SSD mount.
+5. `cd starcap-dashboard/opm-lan && ./start_opm_lan.sh` → open http://localhost:8770,
+   dock a recorder over ethernet, and it should appear.
 
 ---
 
@@ -143,4 +162,5 @@ connection name in the nmcli command above.
   from its `main`; `stereocam` service). Notable recent work: boot-buzzer U-Boot fix, and
   **v1.23.0** = recorders broadcast to the dashboard over a USB modem (not just
   ethernet/WiFi) via a `link_up()` = ethernet ∪ wl* WiFi ∪ USB-modem gate.
-- `starcap-dashboard` — the Next.js dashboard on Vercel.
+- `starcap-dashboard` — the Next.js dashboard on Vercel, **and both copiers**:
+  `opm-lan/` (ethernet) and `orangepi-manager/` (SD card, "opm").
