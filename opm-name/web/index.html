@@ -32,10 +32,16 @@
   .badge.bad{color:var(--bad);border-color:var(--bad)}
   .badge.boot-emmc{color:var(--acc);border-color:var(--acc)}
   .badge.boot-sd{color:var(--blu);border-color:var(--blu)}
+  .badge.wifi-on{color:var(--ok);border-color:var(--ok)}
+  .badge.wifi-weak{color:var(--warn);border-color:var(--warn)}
+  .badge.wifi-off{color:var(--bad);border-color:var(--bad)}
+  .badge.wifi-none{color:var(--mut);border-color:var(--line)}
+  .wifi-ssid{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .docked{color:var(--ok)}
   .mut{color:var(--mut)}
   .panel h2 .sub{text-transform:none;letter-spacing:0;font-weight:400}
   .empty{color:var(--mut);text-align:center;padding:30px 0}
+  .sub2{font-size:11px;color:var(--mut);font-family:system-ui,Segoe UI,Roboto,sans-serif}
   .flash{font-size:12px;margin-left:8px}
   .flash.ok{color:var(--ok)} .flash.bad{color:var(--bad)}
   .warnbar{background:#2a1f0f;border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px}
@@ -54,7 +60,7 @@
     <h2>Docked recorders</h2>
     <table id="tbl">
       <thead>
-        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th>Boot</th><th>Recordings</th><th></th><th></th><th></th><th>New name</th><th></th></tr>
+        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th>Boot</th><th>Wi-Fi</th><th>Recordings</th><th></th><th></th><th></th><th>New name</th><th></th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
@@ -65,7 +71,7 @@
     <h2>Board log <span class="sub mut">— every board this station has ever seen (kept across restarts, for diagnosing undocked pis)</span></h2>
     <table id="regtbl">
       <thead>
-        <tr><th></th><th>Name</th><th>cpu_id</th><th>Boot</th><th>Version</th><th>Hostname</th><th>Last IP</th><th>Last seen</th><th>First seen</th></tr>
+        <tr><th></th><th>Name</th><th>cpu_id</th><th>Board</th><th>Boot</th><th>Wi-Fi</th><th>Version</th><th>Hostname</th><th>Last IP</th><th>Last seen</th><th>First seen</th></tr>
       </thead>
       <tbody id="regrows"></tbody>
     </table>
@@ -92,16 +98,78 @@ function fmtBytes(b){
   return (i === 0 ? b : b.toFixed(1)) + ' ' + u[i];
 }
 
-// what the 🗑️ would delete: session dirs under both recording locations
+// what the 🗑️ would delete: session dirs under every recording location
+// (stereo + multivideo leaves, local dir + /media/sdcard). rec_bytes_known ===
+// false means the du was killed before finishing — say so rather than drawing a
+// stuffed card as "0 B", which is how a 101 GB multivideo tree used to hide.
 function recLabel(d){
+  if(d.rec_bytes_known === false)
+    return `${d.rec_runs || 0} session${d.rec_runs === 1 ? '' : 's'} · <span style="color:var(--warn)"
+      title="the size probe hit its time limit — this tree is big, not empty">size unknown</span>`;
   if(!d.rec_runs) return '<span style="color:var(--mut)">—</span>';
   return `${d.rec_runs} session${d.rec_runs === 1 ? '' : 's'} · ${fmtBytes(d.rec_bytes)}`;
+}
+
+// The identify button is different hardware per board: Orange Pis have the
+// breakout-panel buzzer, NanoPis have no buzzer at all and flash their three
+// onboard status LEDs instead. Label the button for whatever this board has.
+function identifyBtn(d){
+  return d.identify === 'leds'
+    ? {icon:'💡', title:"Flash this board's status LEDs (no buzzer on this hardware) — stops+restarts its service briefly, ~10-20s"}
+    : {icon:'🔊', title:"Beep this board's buzzer twice (stops+restarts its service briefly, ~10-20s)"};
+}
+
+// "FriendlyElec NanoPi R76S" -> "NanoPi R76S": the vendor prefix is the same on
+// every board of a kind, so it's noise in a table you scan down.
+function shortModel(m){
+  return (m||'').replace(/^(FriendlyElec|FriendlyARM|Xunlong|Rockchip)\s+/i, '').trim();
 }
 
 function bootBadge(b){
   if(b === 'emmc') return '<span class="badge boot-emmc">eMMC</span>';
   if(b === 'sd') return '<span class="badge boot-sd">SD</span>';
   return '<span class="badge">?</span>';
+}
+
+// Does this board have a usable radio? A NanoPi R76S has an on-board SDIO
+// RTL8822CS; an Orange Pi 5 has none unless a dongle is fitted, so "none" is a
+// normal answer for half the fleet, not a fault — hence grey, not red.
+//
+// An antenna cannot be detected in software. Signal is the only proxy: a module
+// with no antenna fitted still associates, just far weaker than the distance to
+// the AP should give, so a weak link while docked next to the AP is the tell —
+// drawn amber and labelled as such rather than claiming the wifi is fine.
+//
+// Two scales, deliberately not conflated: dBm when the driver reports dBm, and
+// otherwise /proc/net/wireless's 0-100 link quality (rtl88x2cs reports a positive
+// vendor `level` that is NOT dBm, so it is never shown as one).
+const WIFI_WEAK_DBM = -75;
+const WIFI_WEAK_QUAL = 30;
+function wifiBadge(d){
+  const w = d.wifi, drv = d.wifi_driver ? ` (${d.wifi_driver})` : '';
+  if(!w) return '';
+  if(w === 'none')
+    return `<span class="badge wifi-none" title="No wireless interface — no on-board module and no USB dongle fitted">none</span>`;
+  if(w === 'blocked' || w === 'hard-blocked')
+    return `<span class="badge wifi-off" title="Radio present${drv} but rfkill-${w === 'hard-blocked' ? 'HARD' : 'soft'} blocked — present and dead. ${w === 'hard-blocked' ? 'A hardware switch/firmware block; software cannot clear it' : 'Clear with: sudo rfkill unblock wlan'}">off</span>`;
+  if(w === 'connected'){
+    const dbm  = (typeof d.wifi_dbm === 'number') ? d.wifi_dbm : null;
+    const qual = (typeof d.wifi_quality === 'number') ? d.wifi_quality : null;
+    const weak = dbm !== null ? dbm <= WIFI_WEAK_DBM
+               : qual !== null ? qual <= WIFI_WEAK_QUAL : false;
+    const sig  = dbm !== null ? ` ${dbm}dBm` : qual !== null ? ` ${qual}%` : '';
+    const how  = dbm !== null ? `${dbm} dBm` : qual !== null ? `link quality ${qual}/100` : 'signal unknown';
+    // The SSID goes in the CELL, not only in title=: "can this board actually
+    // pick up wifi" is answered by the name of the network it is on, and a
+    // tooltip you have to hover 30 rows to read does not answer it. Badge stays
+    // the at-a-glance verdict; the SSID is the evidence under it.
+    const ssid = d.wifi_ssid
+      ? `<div class="sub2 wifi-ssid" title="associated network (SSID)">${esc(d.wifi_ssid)}</div>` : '';
+    return `<span class="badge ${weak ? 'wifi-weak' : 'wifi-on'}" title="${esc(d.wifi_dev||'wlan')}${drv} connected to ${esc(d.wifi_ssid||'?')} — ${how}${weak ? '. That is weak: suspect a missing or unseated antenna' : ''}">${weak ? 'weak' : 'on'}${sig}</span>${ssid}`;
+  }
+  if(w === 'ready')
+    return `<span class="badge wifi-weak" title="Radio present and up${drv} but not associated to any network">idle</span>`;
+  return `<span class="badge wifi-weak" title="Radio present${drv} but the interface is down">down</span>`;
 }
 
 function ago(ts){
@@ -150,7 +218,8 @@ async function buzz(ip, btn, flashEl){
     const r = await fetch('/api/buzz', {method:'POST', headers:{'Content-Type':'application/json'},
                                          body: JSON.stringify({ip})});
     const j = await r.json();
-    flashEl.textContent = j.ok ? '✓ buzzed' : ('✗ ' + (j.error || 'failed'));
+    flashEl.textContent = j.ok ? (j.mode === 'leds' ? '✓ flashed' : '✓ buzzed')
+                               : ('✗ ' + (j.error || 'failed'));
     flashEl.className = 'flash ' + (j.ok ? 'ok' : 'bad');
   } catch(e){
     flashEl.textContent = '✗ ' + e; flashEl.className = 'flash bad';
@@ -173,9 +242,15 @@ async function vncPi(ip, flashEl){
   }
 }
 
-async function clearRecordings(ip, name, runs, bytes, btn, flashEl){
-  const what = runs ? `${runs} session${runs === 1 ? '' : 's'}, ${fmtBytes(bytes)}` : 'no sessions detected';
-  if(!confirm(`Delete ALL recordings on ${name || ip}? (${what})\nThis can't be undone.`)) return;
+async function clearRecordings(ip, name, runs, bytes, bytesKnown, btn, flashEl){
+  const size = bytesKnown === false ? 'size unknown (too big to measure in time)' : fmtBytes(bytes);
+  const what = runs ? `${runs} session${runs === 1 ? '' : 's'}, ${size}` : 'no sessions detected';
+  // This clears multivideo too, so it can now be many hours of real footage rather
+  // than a couple of field-readiness test takes — make the operator read the size.
+  const heavy = bytesKnown === false || bytes >= 20 * 1024 * 1024 * 1024;
+  if(!confirm(`Delete ALL recordings on ${name || ip}? (${what})\n`
+              + (heavy ? '\n⚠️ That is a LOT of footage — make sure it has been copied off first.\n' : '')
+              + "\nThis can't be undone.")) return;
   clearing[ip] = true;
   btn.disabled = true;
   const orig = btn.textContent;
@@ -212,23 +287,26 @@ function render(devices){
     const val = pending[d.ip] !== undefined ? pending[d.ip] : '';
     const isBuzzing = !!buzzing[d.ip];
     const isClearing = !!clearing[d.ip];
+    const ident = identifyBtn(d);
     const nameForJs = (d.name || d.ip).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `<tr>
       <td class="mono">${esc(d.ip)}</td>
       <td>${cur}</td>
-      <td class="mono">${ok ? esc(d.hostname||'') : ''}</td>
+      <td class="mono">${ok ? esc(d.hostname||'') : ''}
+          ${ok && d.model ? `<div class="sub2" title="logged in as ${esc(d.user||'?')}">${esc(shortModel(d.model))}</div>` : ''}</td>
       <td class="mono">${ok ? esc((d.cpu_id||'').slice(0,12)) : ''}</td>
       <td class="mono">${ok ? esc(d.version||'') : ''}</td>
       <td title="what the rootfs boots from — eMMC boards record onto an inserted SD card at /media/sdcard">${ok ? bootBadge(d.boot) : ''}</td>
-      <td class="mono" title="sessions + bytes across both recording locations (local dir and /media/sdcard) — what 🗑️ deletes">${ok ? recLabel(d) : ''}</td>
+      <td title="whether this board has a usable wireless radio, and the network it is actually associated to — an antenna itself cannot be detected in software, so a weak signal is the only hint one is missing">${ok ? wifiBadge(d) : ''}</td>
+      <td class="mono" title="sessions + bytes across every recording location — both leaves (stereo, multivideo) in both places (the local dir and /media/sdcard) — which is exactly what 🗑️ deletes">${ok ? recLabel(d) : ''}</td>
       <td><button id="vnc-${id}" title="Open this board's live desktop over VNC (a TigerVNC window appears shortly; everything on the pi is cleaned up when you close it)"
                   ${ok ? '' : 'disabled'} onclick="vncPi('${d.ip}', document.getElementById('vfl-${id}'))">🖥️</button>
           <span class="flash" id="vfl-${id}"></span></td>
-      <td><button id="buzz-${id}" title="Beep this board's buzzer twice (stops+restarts its service briefly, ~10-20s)"
-                  ${(ok && !isBuzzing) ? '' : 'disabled'} onclick="buzz('${d.ip}', this, document.getElementById('bfl-${id}'))">${isBuzzing ? '…' : '🔊'}</button>
+      <td><button id="buzz-${id}" title="${esc(ident.title)}"
+                  ${(ok && !isBuzzing) ? '' : 'disabled'} onclick="buzz('${d.ip}', this, document.getElementById('bfl-${id}'))">${isBuzzing ? '…' : ident.icon}</button>
           <span class="flash" id="bfl-${id}"></span></td>
-      <td><button id="clear-${id}" title="Delete all recordings on this board (e.g. dummy field-ready test takes)"
-                  ${(ok && !isClearing) ? '' : 'disabled'} onclick="clearRecordings('${d.ip}', '${nameForJs}', ${d.rec_runs||0}, ${d.rec_bytes||0}, this, document.getElementById('cfl-${id}'))">${isClearing ? '…' : '🗑️'}</button>
+      <td><button id="clear-${id}" title="Delete all recordings on this board — stereo AND multivideo, local dir and /media/sdcard (dummy field-ready test takes, or a card that needs reclaiming). Can take a minute on a full card."
+                  ${(ok && !isClearing) ? '' : 'disabled'} onclick="clearRecordings('${d.ip}', '${nameForJs}', ${d.rec_runs||0}, ${d.rec_bytes||0}, ${d.rec_bytes_known === false ? 'false' : 'true'}, this, document.getElementById('cfl-${id}'))">${isClearing ? '…' : '🗑️'}</button>
           <span class="flash" id="cfl-${id}"></span></td>
       <td><input type="text" id="in-${id}" placeholder="new name" value="${esc(val)}"
                   oninput="pending['${d.ip}']=this.value"
@@ -257,7 +335,9 @@ function renderRegistry(reg, devices){
       <td title="${docked ? 'docked right now' : 'not currently docked'}">${docked ? '<span class="docked">●</span>' : '<span class="mut">○</span>'}</td>
       <td>${esc(e.name || '(unnamed)')}</td>
       <td class="mono" title="${esc(e.cpu_id)}">${esc((e.cpu_id||'').slice(0,12))}</td>
+      <td title="${esc(e.model||'')}">${esc(shortModel(e.model)) || '<span class="mut">—</span>'}</td>
       <td>${bootBadge(e.boot)}</td>
+      <td>${wifiBadge(e) || '<span class="mut">—</span>'}</td>
       <td class="mono">${esc(e.version||'?')}</td>
       <td class="mono">${esc(e.hostname||'')}</td>
       <td class="mono">${esc(e.last_ip||'')}</td>

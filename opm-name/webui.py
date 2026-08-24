@@ -9,6 +9,7 @@ write renames it both on the device and on the dashboard.
 Run:   python3 webui.py        →  http://127.0.0.1:8771
 """
 import json
+import os
 import subprocess
 import threading
 import time
@@ -21,7 +22,7 @@ import opmname
 HOST = "127.0.0.1"
 SCRIPT_DIR = Path(__file__).resolve().parent
 WEB_DIR = SCRIPT_DIR / "web"
-PORT = 8771
+PORT = int(os.environ.get("OPM_NAME_PORT", "8771"))   # start_opm_name.sh honors this too
 CFG = {"lan": {"iface": "", "scan_subnet": ""}}   # same auto-detect as opm-lan
 
 # --------------------------------------------------------------------------- #
@@ -46,7 +47,7 @@ _renamed_locally = {}   # ip -> optimistic name, so the table reflects a rename
 # board_registry.json next to this script (machine-local, git-ignored).
 # --------------------------------------------------------------------------- #
 REGISTRY_FILE = SCRIPT_DIR / "board_registry.json"
-REGISTRY = {}           # cpu_id -> {cpu_id, name, hostname, version, boot, last_ip, first_seen, last_seen}
+REGISTRY = {}           # cpu_id -> {cpu_id, name, hostname, version, boot, wifi, last_ip, first_seen, last_seen}
 REG_LOCK = threading.Lock()
 
 
@@ -75,9 +76,24 @@ def _registry_note(dev):
     now = int(time.time())
     e = REGISTRY.setdefault(cpu, {"cpu_id": cpu, "first_seen": now})
     changed = "last_seen" not in e
-    for k in ("name", "hostname", "version"):
+    for k in ("name", "hostname", "version", "model", "wifi_driver"):
         if dev.get(k) and e.get(k) != dev[k]:
             e[k] = dev[k]; changed = True
+    # wifi is recorded even when it says "none" — "this board has no radio" is a
+    # real answer worth keeping, unlike an empty probe field. A board whose module
+    # dies must be able to go connected -> none here, so this does not use the
+    # never-clobber rule above.
+    if dev.get("wifi") and e.get("wifi") != dev["wifi"]:
+        e["wifi"] = dev["wifi"]; changed = True
+    # SSID is coupled to `wifi` above, NOT to the never-clobber loop: it is only
+    # meaningful while associated, so a board that drops off the network has to
+    # stop showing the network it used to be on. Otherwise the registry keeps
+    # reporting a live-looking SSID for a radio that is now idle or gone. Guarded
+    # on dev["wifi"] so a failed probe (no wifi key at all) never wipes it.
+    if dev.get("wifi"):
+        ssid = dev.get("wifi_ssid", "") if dev["wifi"] == "connected" else ""
+        if e.get("wifi_ssid", "") != ssid:
+            e["wifi_ssid"] = ssid; changed = True
     if dev.get("boot") and dev["boot"] != "unknown" and e.get("boot") != dev["boot"]:
         e["boot"] = dev["boot"]; changed = True
     if e.get("last_ip") != dev["ip"]:
@@ -174,13 +190,22 @@ def api_vnc(body):
         known = any(d["ip"] == ip and d.get("ok") for d in DEVICES)
     if not ip or not known:
         return {"ok": False, "error": "device not found / not online"}
-    script = SCRIPT_DIR.parent / "tools" / "vnc_into_pi.sh"
-    if not script.exists():
-        return {"ok": False, "error": f"missing {script}"}
+    # ../tools/ in the starcap-ops checkout; ./tools/ in the standalone install,
+    # which ships the script alongside opm-name instead of a whole repo
+    script = next((p for p in (SCRIPT_DIR.parent / "tools" / "vnc_into_pi.sh",
+                               SCRIPT_DIR / "tools" / "vnc_into_pi.sh") if p.exists()), None)
+    if script is None:
+        return {"ok": False, "error": "missing vnc_into_pi.sh"}
     log_path = f"/tmp/vnc_into_pi_{ip.replace('.', '_')}.log"
+    # We already know which login this board answers on (the scan just used it) —
+    # hand it over so the script doesn't re-probe the fleet logins from scratch.
+    env = dict(os.environ)
+    login = opmname.login_for(ip)
+    if login:
+        env["PI_USER"], env["PI_PASS"] = login
     with open(log_path, "ab") as logf:
         subprocess.Popen(["bash", str(script), ip], stdout=logf, stderr=subprocess.STDOUT,
-                         stdin=subprocess.DEVNULL, start_new_session=True)
+                         stdin=subprocess.DEVNULL, start_new_session=True, env=env)
     return {"ok": True}
 
 
