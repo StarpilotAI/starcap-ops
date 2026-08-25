@@ -37,6 +37,7 @@
   .badge.wifi-off{color:var(--bad);border-color:var(--bad)}
   .badge.wifi-none{color:var(--mut);border-color:var(--line)}
   .wifi-ssid{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .paused{color:var(--warn);margin-left:.75rem}
   .docked{color:var(--ok)}
   .mut{color:var(--mut)}
   .panel h2 .sub{text-transform:none;letter-spacing:0;font-weight:400}
@@ -51,6 +52,8 @@
 <header>
   <h1><span class="dot">●</span> opm-name</h1>
   <span class="hint" id="iface">—</span>
+  <span class="hint paused" id="paused" style="display:none"
+        title="auto-refresh is held while you have text selected, so a copy is not yanked out from under you — it resumes the moment you click away">⏸ paused — text selected</span>
 </header>
 <main>
   <div id="warnbar" class="warnbar" style="display:none">
@@ -82,6 +85,7 @@
 const rowsEl = document.getElementById('rows');
 const emptyEl = document.getElementById('empty');
 const ifaceEl = document.getElementById('iface');
+const pausedEl = document.getElementById('paused');
 const warnEl = document.getElementById('warnbar');
 const pending = {};   // ip -> input value the user is actively typing (don't clobber while typing)
 const buzzing = {};   // ip -> true while a buzz is in flight (~10-20s) — the 2s poll
@@ -347,17 +351,52 @@ function renderRegistry(reg, devices){
   }).join('');
 }
 
+// Both tables are redrawn by replacing innerHTML, which destroys and recreates
+// every node — and that silently collapses any text the user has selected. The
+// 2s poll therefore made a cpu_id, IP or SSID impossible to select and copy: the
+// highlight vanished before you could reach Ctrl-C. render() already saves and
+// restores <input> focus for the same reason, but a Selection over ordinary
+// table text has no equivalent to restore (anchor/focus nodes are gone), so the
+// only correct fix is not to redraw while a selection is live.
+//
+// Scoped to selections that actually intersect a table we rewrite: text picked
+// out of the header or a tooltip elsewhere must not freeze the fleet view.
+function selectionInTables(){
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed || !sel.rangeCount) return false;
+  for(let i = 0; i < sel.rangeCount; i++){
+    const r = sel.getRangeAt(i);
+    if(rowsEl.contains(r.commonAncestorContainer) ||
+       regRowsEl.contains(r.commonAncestorContainer)) return true;
+  }
+  return false;
+}
+
 async function poll(){
   try{
     const r = await fetch('/api/status');
     const j = await r.json();
+    // Cheap, non-destructive bits stay live even while paused — they replace
+    // text in nodes nothing can be selected inside.
     ifaceEl.textContent = j.iface ? `wired iface: ${j.iface}` : 'no wired subnet detected';
     warnEl.style.display = j.redis_configured ? 'none' : 'block';
-    render(j.devices || []);
-    renderRegistry(j.registry || [], j.devices || []);
+    const held = selectionInTables();
+    pausedEl.style.display = held ? 'inline' : 'none';
+    if(!held){
+      render(j.devices || []);
+      renderRegistry(j.registry || [], j.devices || []);
+    }
   } catch(e){ /* transient — next poll will retry */ }
   setTimeout(poll, 2000);
 }
+// Redraw the moment the selection is released, so the table is never more than
+// one click stale rather than waiting out the remaining poll interval.
+document.addEventListener('selectionchange', () => {
+  if(!selectionInTables() && pausedEl.style.display !== 'none'){
+    pausedEl.style.display = 'none';
+    poll();
+  }
+});
 poll();
 </script>
 </body>
