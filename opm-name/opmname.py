@@ -639,6 +639,69 @@ def _redis_call(*args):
     return r.stdout
 
 
+def load_authoritative_names():
+    """Every name Redis currently hands out, as {cpu_id: name}.
+
+    This is the SAME hash the dashboard writes and the boards read back on their
+    next heartbeat, so it — not board_registry.json — decides whether a name is
+    already taken. The local registry only knows boards THIS laptop has scanned,
+    which is exactly how two boards ended up both called starcap127.
+    """
+    flat = (json.loads(_redis_call("HGETALL", "starcap:names")) or {}).get("result") or []
+    out = {}
+    for i in range(0, len(flat) - 1, 2):                 # REST returns a flat k,v,k,v list
+        cpu_id, blob = flat[i], flat[i + 1]
+        try:
+            nm = (json.loads(blob) or {}).get("name")
+        except (ValueError, TypeError):
+            nm = blob if isinstance(blob, str) else None  # tolerate a bare-string entry
+        if nm and str(nm).strip():
+            out[cpu_id] = str(nm).strip()
+    return out
+
+
+def name_survey(prefix="starcap"):
+    """How far the `prefix` series has been handed out, so naming a new board is not
+    a guess. Reads the SAME authoritative hash check_rename() does.
+
+    highest  biggest N currently assigned          next  highest + 1, the safe default
+    gaps     numbers BELOW highest nobody holds — free to reuse, not an error
+    strays   assigned names outside the series (WALEEDTEST1, unknown, ...), so a typo
+             that lands outside the numbering is visible instead of silently ignored
+    """
+    names = load_authoritative_names()
+    pat = re.compile(r"^%s(\d+)$" % re.escape(prefix), re.I)
+    nums, strays = set(), []
+    for v in names.values():
+        m = pat.match(v.strip())
+        if m:
+            nums.add(int(m.group(1)))
+        else:
+            strays.append(v.strip())
+    if not nums:
+        return {"count": 0, "highest": None, "next": prefix + "1", "gaps": [],
+                "strays": sorted(strays), "total": len(names)}
+    lo, hi = min(nums), max(nums)
+    return {"count": len(nums), "highest": hi, "next": "%s%d" % (prefix, hi + 1),
+            "gaps": [i for i in range(lo, hi) if i not in nums],
+            "strays": sorted(strays), "total": len(names)}
+
+
+def check_rename(name, cpu_id):
+    """Look before writing. Returns {"taken_by": [cpu_id...], "current_name": str|None}.
+
+    taken_by    other boards already holding this name. Empty when it is free, and
+                empty when the holder IS this board (re-typing a board's own name is
+                a no-op, not a collision).
+    current_name what this board is called today, so the caller can confirm before
+                overwriting a name someone deliberately set.
+    """
+    want = (name or "").strip().lower()
+    names = load_authoritative_names()
+    return {"taken_by": [c for c, n in names.items() if n.lower() == want and c != cpu_id],
+            "current_name": names.get(cpu_id)}
+
+
 def set_authoritative_name(cpu_id, name):
     """Same write name_pi.sh does: HSET into starcap:names, keyed by cpu_id.
     The board picks this up on its next heartbeat (~1s) and self-corrects its

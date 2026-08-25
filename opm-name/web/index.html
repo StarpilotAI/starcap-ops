@@ -52,6 +52,7 @@
 <header>
   <h1><span class="dot">●</span> opm-name</h1>
   <span class="hint" id="iface">—</span>
+  <span class="hint" id="names" title="Read live from the authoritative name table in Redis — the same one the dashboard writes and the boards read back on heartbeat.">—</span>
   <span class="hint paused" id="paused" style="display:none"
         title="auto-refresh is held while you have text selected, so a copy is not yanked out from under you — it resumes the moment you click away">⏸ paused — text selected</span>
 </header>
@@ -85,6 +86,7 @@
 const rowsEl = document.getElementById('rows');
 const emptyEl = document.getElementById('empty');
 const ifaceEl = document.getElementById('iface');
+const namesEl = document.getElementById('names');
 const pausedEl = document.getElementById('paused');
 const warnEl = document.getElementById('warnbar');
 const pending = {};   // ip -> input value the user is actively typing (don't clobber while typing)
@@ -190,7 +192,33 @@ function fmtDate(ts){
   return ts ? new Date(ts*1000).toLocaleString() : '—';
 }
 
-async function rename(ip, btn, flashEl){
+// Turn the server's pre-write check into a question worth answering. Two boards
+// sharing a name is not cosmetic — the dashboard's camera registry is keyed by name,
+// so the second one files its camera under the first one's key and stops being tracked.
+function confirmRename(j){
+  const lines = [];
+  if(j.holders && j.holders.length){
+    lines.push('"' + j.name + '" is ALREADY assigned to ' +
+               (j.holders.length > 1 ? j.holders.length + ' other boards:' : 'another board:'));
+    for(const h of j.holders){
+      lines.push('   cpu ' + String(h.cpu_id).slice(0,12) +
+                 '  · last ip ' + (h.last_ip || '?') +
+                 '  · ' + (h.version ? 'v' + h.version : 'version ?') +
+                 '  · seen ' + fmtDate(h.last_seen));
+    }
+    lines.push('');
+    lines.push('Two boards with the same name will fight over the dashboard registry.');
+  }
+  if(j.current_name){
+    if(lines.length) lines.push('');
+    lines.push('This board is currently named "' + j.current_name + '".');
+  }
+  lines.push('');
+  lines.push('Rename anyway?');
+  return confirm(lines.join('\n'));
+}
+
+async function rename(ip, btn, flashEl, force){
   const input = document.getElementById('in-' + ip.replace(/\./g,'_'));
   const name = input.value.trim();
   if(!name) return;
@@ -198,11 +226,16 @@ async function rename(ip, btn, flashEl){
   flashEl.textContent = '';
   try{
     const r = await fetch('/api/rename', {method:'POST', headers:{'Content-Type':'application/json'},
-                                           body: JSON.stringify({ip, name})});
+                                           body: JSON.stringify({ip, name, force: !!force})});
     const j = await r.json();
     if(j.ok){
       flashEl.textContent = '✓ renamed'; flashEl.className = 'flash ok';
       delete pending[ip];
+    } else if(j.needs_confirm){
+      btn.disabled = false;
+      if(confirmRename(j)) return rename(ip, btn, flashEl, true);   // operator insists
+      flashEl.textContent = '⚠ cancelled — name in use'; flashEl.className = 'flash bad';
+      return;
     } else {
       flashEl.textContent = '✗ ' + (j.error || 'failed'); flashEl.className = 'flash bad';
     }
@@ -379,6 +412,23 @@ async function poll(){
     // Cheap, non-destructive bits stay live even while paused — they replace
     // text in nodes nothing can be selected inside.
     ifaceEl.textContent = j.iface ? `wired iface: ${j.iface}` : 'no wired subnet detected';
+    // Highest number handed out so far + the safe next one, so naming a fresh board
+    // is never a guess. Gaps are shown because they are genuinely free to reuse.
+    const nm = j.names;
+    if(nm && nm.highest != null){
+      let t = `${nm.count} named · highest starcap${nm.highest} · next ${nm.next}`;
+      if(nm.gaps && nm.gaps.length){
+        const g = nm.gaps.slice(0, 6).join(', ');
+        t += ` · free: ${g}${nm.gaps.length > 6 ? ` +${nm.gaps.length - 6}` : ''}`;
+      }
+      namesEl.textContent = t;
+      namesEl.title = `Next safe name: ${nm.next}. Unused numbers below the highest: `
+                    + (nm.gaps && nm.gaps.length ? nm.gaps.join(', ') : 'none')
+                    + (nm.strays && nm.strays.length
+                        ? `. Names outside the series: ${nm.strays.join(', ')}` : '');
+    } else if(nm){
+      namesEl.textContent = 'no starcap names assigned yet · next starcap1';
+    }
     warnEl.style.display = j.redis_configured ? 'none' : 'block';
     const held = selectionInTables();
     pausedEl.style.display = held ? 'inline' : 'none';

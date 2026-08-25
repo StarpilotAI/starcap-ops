@@ -137,9 +137,29 @@ def devices_snapshot():
 # --------------------------------------------------------------------------- #
 # API
 # --------------------------------------------------------------------------- #
+# The name survey costs a Redis HGETALL, and /api/status is polled continuously, so
+# it is cached. Kept deliberately stale-tolerant: on a failed lookup the LAST good
+# survey is returned rather than None, because a blank "next free number" in the header
+# is worse than one that is thirty seconds old.
+_SURVEY = {"at": 0.0, "data": None}
+SURVEY_TTL_S = 30.0
+
+
+def name_survey_cached(force=False):
+    now = time.time()
+    if force or _SURVEY["data"] is None or now - _SURVEY["at"] > SURVEY_TTL_S:
+        try:
+            _SURVEY["data"] = opmname.name_survey()
+            _SURVEY["at"] = now
+        except Exception:                                 # noqa: BLE001
+            pass
+    return _SURVEY["data"]
+
+
 def api_status():
     return {"devices": devices_snapshot(), "iface": IFACE,
             "registry": registry_snapshot(),
+            "names": name_survey_cached(),
             "redis_configured": bool(opmname.REDIS_URL and opmname.REDIS_TOKEN)}
 
 
@@ -155,8 +175,31 @@ def api_rename(body):
         dev = opmname.identify_for_rename(ip)
         if not dev.get("ok"):
             return {"ok": False, "error": dev.get("error", "device not found/reachable")}
+    cpu_id = dev["cpu_id"]
+    # Look before writing. Two boards sharing a name is not cosmetic: the dashboard's
+    # camera<->headset registry is KEYED by name, so the second board silently files
+    # its camera under the first one's key and one of them stops being tracked. The
+    # check is skipped on `force` (the operator confirmed in the UI) and skipped if
+    # Redis cannot be read — a dead lookup must not block a rename that would work.
+    if not body.get("force"):
+        try:
+            pre = opmname.check_rename(name, cpu_id)
+        except Exception:                                 # noqa: BLE001
+            pre = None
+        if pre and (pre["taken_by"] or (pre["current_name"] and pre["current_name"] != name)):
+            holders = []
+            with REG_LOCK:
+                for c in pre["taken_by"]:
+                    e = REGISTRY.get(c) or {}
+                    holders.append({"cpu_id": c, "last_ip": e.get("last_ip"),
+                                    "last_seen": e.get("last_seen"),
+                                    "version": e.get("version"),
+                                    "known": bool(e)})
+            return {"ok": False, "needs_confirm": True, "ip": ip, "name": name,
+                    "cpu_id": cpu_id, "holders": holders,
+                    "current_name": pre["current_name"]}
     try:
-        opmname.set_authoritative_name(dev["cpu_id"], name)
+        opmname.set_authoritative_name(cpu_id, name)
     except Exception as e:                                # noqa: BLE001
         return {"ok": False, "error": str(e)}
     with SCAN_LOCK:
@@ -165,11 +208,12 @@ def api_rename(body):
             if d["ip"] == ip:
                 d["name"] = name
     with REG_LOCK:
-        e = REGISTRY.get(dev["cpu_id"])
+        e = REGISTRY.get(cpu_id)
         if e is not None and e.get("name") != name:
             e["name"] = name
             _registry_save()
-    return {"ok": True, "ip": ip, "cpu_id": dev["cpu_id"], "name": name}
+    name_survey_cached(force=True)      # this rename just moved the highest/gaps
+    return {"ok": True, "ip": ip, "cpu_id": cpu_id, "name": name}
 
 
 def api_buzz(body):
