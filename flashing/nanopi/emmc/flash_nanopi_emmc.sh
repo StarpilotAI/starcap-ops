@@ -374,7 +374,7 @@ if [ -z "$MODE" ]; then
 No board found after 20s. Checklist:
   - cable plugged DIRECTLY into this machine, no USB hub in between
   - cable is a real DATA cable (some are charge-only)
-  - plugged into the board's USB-C OTG/data port (not a power-only port)
+  - plugged into the board's USB-A upgrade port with an A-to-A cable (the M5 uses USB-C)
   - fully unplugged power first, held the MASKROM button, powered up WHILE
     holding it, released ~2-3s after
 Run `lsusb` — a Rockchip device (vendor 2207) should appear once it's right.
@@ -551,7 +551,7 @@ t_reset || true
 
 cat <<EOF
 
-Done. Unplug the USB-C data cable and power-cycle the board — it now boots
+Done. Unplug the A-to-A data cable and power-cycle the board — it now boots
 ${TITLE:-the flashed OS} from eMMC, no SD card involved. The last partition
 (userdata) was sized to fill the rest of the eMMC by the GPT write, and this
 first boot does the image's own first-boot work (filesystem resize, SSH host
