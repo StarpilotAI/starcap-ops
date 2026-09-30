@@ -274,9 +274,9 @@ def api_vnc(body):
         known = any(d["ip"] == ip and d.get("ok") for d in DEVICES)
     if not ip or not known:
         return {"ok": False, "error": "device not found / not online"}
-    # ../tools/ in the starcap-ops checkout; ./tools/ in the standalone install,
+    # ../vnc/ in the starcap-ops checkout; ./tools/ in the standalone install,
     # which ships the script alongside opm-name instead of a whole repo
-    script = next((p for p in (SCRIPT_DIR.parent / "tools" / "vnc_into_pi.sh",
+    script = next((p for p in (SCRIPT_DIR.parent / "vnc" / "vnc_into_pi.sh",
                                SCRIPT_DIR / "tools" / "vnc_into_pi.sh") if p.exists()), None)
     if script is None:
         return {"ok": False, "error": "missing vnc_into_pi.sh"}

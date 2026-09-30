@@ -468,9 +468,9 @@ because it splits the causes cleanly:
      board-specific one — check what it actually targets with:
          $UT_BIN EXF "$LOADER" /tmp/loader-parts
      If it names a different board than the one on your desk, you need that
-     board's image package. To test with Rockchip's generic loader (LPDDR4-2112
-     + LPDDR5-2736) instead, keeping this package's own bootloader for eMMC:
-         sudo $0 --loader "$SCRIPT_DIR/assets/rk3576_spl_loader_v1.12.108.bin"
+     board's image package. Rockchip's generic loader (rk3576_spl_loader
+     v1.12.108) was already tried against err=-7 on 2026-08-01 and was not the
+     fault, so it is no longer shipped; pass one with --loader to try another.
 EOF
     exit 1
   fi

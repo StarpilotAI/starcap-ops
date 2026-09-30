@@ -19,7 +19,7 @@
 # which WAS 1.37.2. That branch merged into main at v1.39.1 and has since tracked
 # forward — both main and feat/wb-and-face-blur are now 1.40.1 — so a BRANCH name
 # can no longer freeze a version. To pin a specific version, pin an immutable
-# tag/commit; the default below now does exactly that.)
+# tag/commit.)
 #
 # TRAP 3: post_update.sh carries RETIRED_BRANCHES (currently " nano_pi ") and
 # DROPS an UPDATE_BRANCH pin whose value is in that list, reverting the board to
@@ -36,25 +36,24 @@
 # never rewrite stereocam.service).
 #
 # Usage:
-#   ./pin_to_branch.sh                                  # auto-find the docked board
-#   ./pin_to_branch.sh --host 10.77.0.66
+#   ./pin_to_branch.sh --branch <ref>                   # auto-find the docked board
+#   ./pin_to_branch.sh --branch <ref> --host 10.77.0.66
 #   ./pin_to_branch.sh --branch main --updates on       # back to stock behaviour
-#   ./pin_to_branch.sh --host 10.77.0.66 --yes
+#   ./pin_to_branch.sh --branch <ref> --host 10.77.0.66 --yes
 #
 #   --host IP        target board (default: sweep the dock subnet for exactly one)
-#   --branch NAME    recorder branch (default: feat/wb-and-face-blur)
+#   --branch REF     recorder branch, tag or commit (REQUIRED - no default)
 #   --repo PATH      local clone to export from (default: ~/orangepi-recorder)
 #   --updates on|off self-updater state afterwards (default: off)
 #   --yes            skip the confirmation prompt
 #   --no-verify      skip the post-deploy recording check
 set -euo pipefail
 
-# Default pins the IMMUTABLE v1.37.2 commit, not a moving branch: the old
-# feat/wb-and-face-blur default drifted to 1.40.1 once it merged into main (see
-# TRAP 2), so a branch name can no longer freeze a version. 32b865f is the commit
-# that released VERSION 1.37.2. Pass --branch main --updates on for stock
-# always-latest behaviour instead.
-BRANCH="32b865f"
+# --branch is REQUIRED. It used to default to 32b865f (v1.37.2), and 1.37.2
+# records 0 frames on the R76S: running this bare shipped a board that could
+# not record. A ref nobody typed on purpose is not a safe default, so there is
+# none. Pass --branch main --updates on for stock always-latest behaviour.
+BRANCH=""
 REPO="$HOME/orangepi-recorder"
 HOST=""
 UPDATES="off"
@@ -78,6 +77,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+[ -n "$BRANCH" ] || { echo "!! --branch is required (e.g. --branch main --updates on). See --help."; exit 1; }
 case "$UPDATES" in on|off) ;; *) echo "--updates must be 'on' or 'off'"; exit 1 ;; esac
 command -v sshpass >/dev/null || { echo "!! sshpass not installed (apt install sshpass)"; exit 1; }
 [ -d "$REPO/.git" ] || { echo "!! $REPO is not a git clone — pass --repo"; exit 1; }
@@ -116,7 +116,7 @@ $SSH "$PI_USER@$HOST" true >/dev/null 2>&1 || { echo "!! cannot ssh to $PI_USER@
 # A branch must be fetched to be current; a tag or commit is immutable and is the
 # only way to freeze a specific VERSION (see TRAP 2 — branch names drift). Try to
 # fetch $BRANCH as a branch; if that fails but it already resolves locally (a tag,
-# or a historical commit like the v1.37.2 pin default), deploy that directly
+# or a historical commit), deploy that directly
 # rather than bailing out.
 echo "== resolving $BRANCH =="
 if git -C "$REPO" fetch origin "$BRANCH" --quiet 2>/dev/null; then

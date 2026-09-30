@@ -145,7 +145,7 @@ for cand in "$(dirname "$REPO_DIR")/starcap-dashboard" "$REAL_HOME/starcap-dashb
   if [ -d "$cand/opm-lan" ]; then DASH_DIR="$cand"; break; fi
 done
 
-chmod +x "$REPO_DIR"/tools/*.sh 2>/dev/null || true
+find "$(dirname "$REPO_DIR")" -path "*/.git" -prune -o -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 if [ -n "$DASH_DIR" ]; then
   chmod +x "$DASH_DIR"/opm-lan/start_opm_lan.sh 2>/dev/null || true
   chown -R "$REAL_USER" "$DASH_DIR/opm-lan" 2>/dev/null || true   # we ran as root

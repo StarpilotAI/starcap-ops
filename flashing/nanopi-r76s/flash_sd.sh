@@ -15,19 +15,23 @@
 #
 # Self-contained: only needs the .zip sitting next to it. Linux only (it uses
 # sgdisk/partprobe/resize2fs). On macOS or Windows use balenaEtcher on the .zip
-# instead, then run expand_sd.sh from any Linux box — without step 4 the board
-# only gets ~1.6 GB of recording space.
+# instead, then run `flash_sd.sh --expand-only /dev/sdX` from any Linux box —
+# without step 4 the board only gets ~1.6 GB of recording space.
 #
 # Usage: sudo ./flash_sd.sh /dev/sdX [--yes] [image.zip|image.img]
+#        sudo ./flash_sd.sh --expand-only /dev/sdX   # steps 4-5 only, on a card
+#                                                    # already written (Etcher, dd)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEV=""
 SRC=""
 AUTO_YES=0
+EXPAND_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --yes|-y) AUTO_YES=1 ;;
+    --expand-only) EXPAND_ONLY=1 ;;
     -h|--help) awk 'NR>1 && !/^#/{exit} NR>1{sub(/^# ?/,""); print}' "$0"; exit 0 ;;
     /dev/*) DEV="$1" ;;
     *) SRC="$1" ;;
@@ -40,6 +44,9 @@ die() { echo "!! $*" >&2; exit 1; }
 # ---------------------------------------------------------------------------
 # Find the image
 # ---------------------------------------------------------------------------
+if [ "$EXPAND_ONLY" -eq 1 ]; then
+  SRC="(none: --expand-only)"; IMG_BYTES=1
+else
 if [ -z "$SRC" ]; then
   SRC="$(ls -1 "$SCRIPT_DIR"/*.img.zip 2>/dev/null | head -1 || true)"
   [ -n "$SRC" ] || SRC="$(ls -1 "$SCRIPT_DIR"/*.img 2>/dev/null | head -1 || true)"
@@ -61,6 +68,7 @@ case "$SRC" in
     ;;
 esac
 [ "${IMG_BYTES:-0}" -gt 0 ] 2>/dev/null || die "couldn't determine the image size in $SRC"
+fi
 
 if [ -z "$DEV" ]; then
   echo "usage: sudo $0 /dev/sdX"
@@ -111,7 +119,9 @@ echo "== source: $SRC  ($((IMG_BYTES/1048576)) MB image) =="
 echo "== target: $DEV  ($((DEV_BYTES/1000000000)) GB, removable) =="
 lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT "$DEV" | sed 's/^/   /'
 
-if [ "$AUTO_YES" -ne 1 ]; then
+if [ "$EXPAND_ONLY" -eq 1 ]; then
+  : # growing the last partition keeps its data; no erase prompt
+elif [ "$AUTO_YES" -ne 1 ]; then
   echo
   echo "!! Everything on $DEV will be destroyed. !!"
   read -r -p "Type 'erase' to continue: " C
@@ -128,6 +138,7 @@ while read -r p; do
   umount "$p" 2>/dev/null && echo "   unmounted $p" || true
 done < <(lsblk -nro NAME,MOUNTPOINT "$DEV" | awk 'NF==2 {print "/dev/"$1}')
 
+if [ "$EXPAND_ONLY" -eq 0 ]; then
 # sgdisk -Z kills the backup GPT too. Without that, a table from a previous
 # larger image survives at the far end of the card and confuses everything.
 echo "== destroying old partition tables and signatures =="
@@ -144,6 +155,7 @@ blockdev --flushbufs "$DEV" 2>/dev/null || true
 sync
 partprobe "$DEV" 2>/dev/null || true
 udevadm settle 2>/dev/null || true
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Grow the last partition to fill the card
@@ -172,7 +184,7 @@ else
   partprobe "$DEV" 2>/dev/null || true
   udevadm settle 2>/dev/null || true
   for _ in $(seq 1 10); do [ -b "$PART" ] && break; sleep 1; done
-  [ -b "$PART" ] || die "$PART never appeared — re-plug the card and run expand_sd.sh"
+  [ -b "$PART" ] || die "$PART never appeared — re-plug the card and run: $0 --expand-only $DEV"
   e2fsck -fy "$PART" || true               # exit 1 just means "found and fixed"
   resize2fs "$PART"
 fi

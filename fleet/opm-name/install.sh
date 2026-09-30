@@ -77,9 +77,9 @@ cp "$SRC/opmname.py" "$SRC/webui.py" "$SRC/start_opm_name.sh" "$APP_DIR/"
 mkdir -p "$APP_DIR/web" "$APP_DIR/tools"
 cp "$SRC/web/index.html" "$APP_DIR/web/"
 chmod +x "$APP_DIR/start_opm_name.sh"
-# tools/ in the zip, ../tools/ when this is run straight out of the starcap-ops
+# tools/ in the zip, ../vnc/ when this is run straight out of the starcap-ops
 # checkout. Only the 🖥️ button needs it, so its absence is a warning, not a stop.
-VNC_SRC="$(ls "$SRC/tools/vnc_into_pi.sh" "$SRC/../tools/vnc_into_pi.sh" 2>/dev/null | head -1 || true)"
+VNC_SRC="$(ls "$SRC/tools/vnc_into_pi.sh" "$SRC/../vnc/vnc_into_pi.sh" 2>/dev/null | head -1 || true)"
 if [ -n "$VNC_SRC" ]; then
   cp "$VNC_SRC" "$APP_DIR/tools/"
   chmod +x "$APP_DIR/tools/vnc_into_pi.sh"

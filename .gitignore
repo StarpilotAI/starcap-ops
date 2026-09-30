@@ -10,16 +10,32 @@ venv/
 # editor / OS
 .DS_Store
 *.swp
+*.bak
+*.bak-*
 
-# opm-lan runtime artifacts (contact sheets, previews, logs)
-opm-lan/_work/
-opm-lan/*.log
+# Tool OUTPUT. Every tool here writes its results into the directory it runs
+# in or next to itself; none of it is source.
+*.zip
+*.tsv
+ssd_sample_check_*.csv
+camera_fingerprints.csv
+board_*.txt
 
-# golden eMMC/SD clone images — large raw disk images, don't belong in git
-emmc/assets/golden/
+# Recordings / takes dropped in for a look. They belong on an SSD, not in git.
+recordings/
+20[0-9][0-9][01][0-9][0-3][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]/
 
-# opm-name board log — machine-local history of docked boards
-opm-name/board_registry.json
-opm-name/board_registry.json.tmp
-# opm-lan copy-history ledger — machine-local record of every copy job
-opm-lan/copy_history.jsonl
+# Flashing: vendor image packages and built images are GBs, and the golden
+# ones are per-release. Keep them next to the script, never in git.
+flashing/*/nanopiIMAGE/
+flashing/*/*.img
+flashing/*/*.img.zst
+flashing/*/*.img.gz
+
+# Machine-local state a tool reads back (kept on disk, never committed)
+fleet/opm-name/board_registry.json
+fleet/opm-name/board_registry.json.tmp
+camera/camfw/fwbench/results/
+camera/camfw/fwbench/discarded/
+camera/camfw/fwidentapp/.last-run.json
+camera/calibcheck/cameras.txt

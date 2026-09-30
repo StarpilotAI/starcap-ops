@@ -641,7 +641,7 @@ def build_fix(info, actions, stamp):
         s.append(
             f"T=$(mktemp)\n"
             f"printf '%s\\n' "
-            f"'# Written by starcap-ops/dock_check.py on {stamp}.' "
+            f"'# Written by starcap-ops/fleet/dock-check/dock_check.py on {stamp}.' "
             f"'# updater.py defaults UPDATE_ENABLE to 1, so unset is NOT off — both are' "
             f"'# set explicitly here so the intent is visible and greppable.' "
             f"'[Service]' 'Environment=UPDATE_BRANCH=main' 'Environment=UPDATE_ENABLE=1' "

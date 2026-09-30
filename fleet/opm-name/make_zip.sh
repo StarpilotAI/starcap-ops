@@ -15,7 +15,7 @@ trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/opm-name/web" "$STAGE/opm-name/tools"
 cp opmname.py webui.py start_opm_name.sh install.sh README.md "$STAGE/opm-name/"
 cp web/index.html "$STAGE/opm-name/web/"
-cp ../tools/vnc_into_pi.sh "$STAGE/opm-name/tools/"
+cp ../vnc/vnc_into_pi.sh "$STAGE/opm-name/tools/"
 chmod +x "$STAGE/opm-name/"{install.sh,start_opm_name.sh} "$STAGE/opm-name/tools/vnc_into_pi.sh"
 
 ZIP="$OUT_DIR/opm-name.zip"

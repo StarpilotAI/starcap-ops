@@ -34,15 +34,15 @@
 # for a dd'd card: the GPT in this file says userdata ends where its payload
 # ends, and systemd-growfs only grows a FILESYSTEM to fill its PARTITION, never
 # the partition itself. So the image is built at its minimum size and the rest
-# of the card is left unallocated. Run expand_sd.sh on the card afterwards to
-# claim it. This matters here: userdata ships with only ~1.6 GB free.
+# of the card is left unallocated. Run `flash_sd.sh --expand-only /dev/sdX` on
+# the card afterwards to claim it. This matters here: userdata ships with only ~1.6 GB free.
 #
 # Usage:
 #   ./build_nanopi_sd_image.sh [-o out.img] [image_dir] [--zip] [--dry-run]
 #
 #   -o PATH     output image (default: ./nanopi-r76s-starcap-sd-<date>.img)
 #   image_dir   package dir containing parameter.txt (default: newest under
-#               ../EMMCNANOPIFINAL/nanopiIMAGE, else ./nanopiIMAGE)
+#               ./nanopiIMAGE)
 #   --zip       also produce PATH.zip containing the image alone — one file, so
 #               balenaEtcher and Raspberry Pi Imager can read it directly
 #   --dry-run   print the plan and exit without writing
@@ -74,7 +74,7 @@ done
 # Locate the image package. Prefer the golden set over the stock vendor one.
 # ---------------------------------------------------------------------------
 if [ -z "$IMAGE_DIR" ]; then
-  for root in "$SCRIPT_DIR/../EMMCNANOPIFINAL/nanopiIMAGE" "$SCRIPT_DIR/nanopiIMAGE"; do
+  for root in "$SCRIPT_DIR/nanopiIMAGE"; do
     [ -d "$root" ] || continue
     IMAGE_DIR="$(find "$root" -maxdepth 2 -name parameter.txt -printf '%T@ %h\n' 2>/dev/null \
                    | sort -rn | head -1 | cut -d' ' -f2-)"
@@ -249,4 +249,4 @@ echo
 echo "Done: $OUT ($(du -h "$OUT" | cut -f1))"
 echo "Flash with balenaEtcher / Raspberry Pi Imager, or:"
 echo "   sudo dd if=$OUT of=/dev/sdX bs=4M status=progress conv=fsync"
-echo "Then reclaim the rest of the card:  sudo ./expand_sd.sh /dev/sdX"
+echo "Then reclaim the rest of the card:  sudo ./flash_sd.sh --expand-only /dev/sdX"
