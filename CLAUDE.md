@@ -76,7 +76,9 @@ shared module and opm fails loudly while opm-lan silently stops stamping.
 ### `starcap-dashboard/opm-lan/config.yaml` — EDIT PER MACHINE
 - `destination:` — the SSD mount path. **This changes per machine / per drive**
   (e.g. `/media/<user>/<DriveLabel>`). Set it before copying.
-- `ssh.user`/`ssh.password` — recorder login (**`orangepi` / `orangepi`**, fleet-wide).
+- `ssh.user`/`ssh.password` — recorder login (**`orangepi` / `orangepi`**). One pair
+  for every board, so a NanoPi R76S (`pi` / `12345`) needs this edited before it
+  can be copied — see Conventions below.
 - `lan.iface`/`scan_subnet` — leave **empty**; opm-lan auto-detects the wired subnet
   from the copy-station NIC (see networking below).
 - `analysis.password` — the upload password (**`starupload`**).
@@ -106,7 +108,55 @@ workaround used to be separate scripts here; the ARP fix is now inlined into
 also dropped as unused.
 
 Most tools SSH to pis with `sshpass -p orangepi ssh orangepi@<ip>`. Sudo on the pi also
-uses the password `orangepi` (feed via `sudo -S`).
+uses the password `orangepi` (feed via `sudo -S`) — but see Conventions: that login is
+the Orange Pi one, and NanoPi boards use `pi` / `12345`.
+
+`opm-name/` (the bulk renamer) also lives in this repo, and `install.sh` +
+`make_zip.sh` there package it as a standalone zip for a laptop with no checkout.
+
+---
+
+## Board firmware state — which tool to reach for
+
+Three tools, three different jobs. Reaching for the wrong one is how a board gets
+frozen or silently regressed:
+
+| Tool | Use it when |
+|---|---|
+| **`dock_check.py`** (repo root) | A board is docked and you want it **current + auto-updating + on main** before it ships. Reports and, on confirmation, fixes. This is the default. |
+| `fleet_branch_check.py` (repo root) | You want a **read-only** sweep of everything docked right now: `.git` present? `UPDATE_*` set? It does **not** check whether the version is current. |
+| `tools/pin_to_branch.sh` | You deliberately want a board **off** latest-main — a canary on a feature branch, or frozen on a commit. Its defaults are `--updates off` and a v1.37.2 commit pin, so it is the opposite of `dock_check.py`. |
+
+`dock_check.py` specifics worth knowing:
+
+- **"Docked" means on this laptop's ethernet, and that link is auto-detected** from the
+  wired interfaces (not hardcoded to `10.77.0`, though that stays the documented copy-station
+  setup). This matters because the UDP roll-call broadcasts out *every* interface, so a
+  recorder on the office WiFi answers it too — and it is not docked. Restarting one of
+  those would stop a take on a board in someone's hands. Verified 2026-08-12: with only
+  WiFi up, the tool refuses and names the down NIC; with `enp2s0` up it saw the docked
+  board and ignored the WiFi one. `--any-link` opts into including WiFi boards, `--host`
+  bypasses discovery, `--subnet` forces a /24.
+- **"Latest" comes from `origin/main` after a fetch, never from the local working
+  tree.** The local clone is routinely many versions behind (checked 2026-08-12: tree
+  at 1.39.5, `origin/main` at 1.49.1), and a yardstick that is behind reports an
+  out-of-date board as fine.
+- It **never copies code**. It fixes config and restarts `stereocam`, and the board
+  self-updates from GitHub — `uploader.py` calls `maybe_update(force=not was_online)`,
+  so the first pass after a restart forces a check. Hand-deploying stays in
+  `pin_to_branch.sh`, and `dock_check.py` prints that command when a board has no
+  route to `api.github.com`.
+- It reads the **effective** environment (`systemctl show`), not a config file, and
+  inventories `stereocam.service.d/*.conf` — drop-ins merge in lexical order, so a
+  leftover `20-pin-commit.conf` silently beats a correct pin. It writes the same
+  `20-pin-main.conf` filename `fleet_branch_check.py --fix` writes, on purpose.
+- It probes **both** logins (`orangepi`/`orangepi`, then `pi`/`12345`), so NanoPi
+  boards are checked too — `fleet_branch_check.py` is key-auth-only and calls them
+  UNREACHABLE.
+- A board it could not inspect is reported UNKNOWN and **never** counted as a pass.
+  Only docked, powered boards answer, so absence proves nothing.
+- No token or no route to GitHub ⇒ autoupdate is a **no-op** even when `UPDATE_ENABLE=1`
+  (`SelfUpdater.maybe_update` returns before any network call), so both are checked.
 
 ---
 
@@ -135,7 +185,19 @@ connection name in the nmcli command above.
 
 ## Conventions / credentials
 
-- Recorder (pi) login: **`orangepi` / `orangepi`** (also the pi's sudo password).
+- Recorder (pi) login — **the fleet is mixed hardware and each kind has its own**
+  (the password is also that board's sudo password):
+
+  | Board | Login | Identify hardware |
+  |---|---|---|
+  | Orange Pi 5 (the deployed fleet) | `orangepi` / `orangepi` | buzzer, pin 15 |
+  | NanoPi R76S | `pi` / `12345` | onboard `sys/wan/lan` LEDs — **no buzzer** |
+
+  Tools that dock arbitrary boards must try both rather than assume: `opm-name`
+  and `tools/vnc_into_pi.sh` do (they probe the logins and cache which one each
+  board answered on). ⚠ **opm-lan does not** — its `config.yaml` carries a single
+  `ssh.user`/`ssh.password`, so copying footage off a NanoPi needs that edited
+  first (or the same auto-detect ported over).
 - Upload password: **`starupload`**. Dashboard password: **`starchild`**.
 - No passwordless sudo anywhere — feed the password to `sudo -S`.
 - Recorders are named by **cpu_id** on the dashboard; the local `~/.config/starcap/

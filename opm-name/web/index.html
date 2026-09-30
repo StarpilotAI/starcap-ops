@@ -37,6 +37,9 @@
   .badge.wifi-off{color:var(--bad);border-color:var(--bad)}
   .badge.wifi-none{color:var(--mut);border-color:var(--line)}
   .wifi-ssid{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge.modem-on{color:var(--ok);border-color:var(--ok)}
+  .badge.modem-idle{color:var(--warn);border-color:var(--warn)}
+  .badge.modem-none{color:var(--mut);border-color:var(--line)}
   .paused{color:var(--warn);margin-left:.75rem}
   .docked{color:var(--ok)}
   .mut{color:var(--mut)}
@@ -52,19 +55,17 @@
 <header>
   <h1><span class="dot">●</span> opm-name</h1>
   <span class="hint" id="iface">—</span>
-  <span class="hint" id="names" title="Read live from the authoritative name table in Redis — the same one the dashboard writes and the boards read back on heartbeat.">—</span>
+  <span class="hint" id="names" title="Read live from the dashboard's authoritative name table — the same one /devices renders and the boards read back on heartbeat.">—</span>
   <span class="hint paused" id="paused" style="display:none"
         title="auto-refresh is held while you have text selected, so a copy is not yanked out from under you — it resumes the moment you click away">⏸ paused — text selected</span>
 </header>
 <main>
-  <div id="warnbar" class="warnbar" style="display:none">
-    ⚠ Redis not configured — set UPSTASH_REDIS_REST_URL/TOKEN or create ~/starcap-dashboard/dashboard/.env.local. Renaming will fail until then.
-  </div>
+  <div id="warnbar" class="warnbar" style="display:none">⚠ <span id="warntext"></span></div>
   <div class="panel">
     <h2>Docked recorders</h2>
     <table id="tbl">
       <thead>
-        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th>Boot</th><th>Wi-Fi</th><th>Recordings</th><th></th><th></th><th></th><th>New name</th><th></th></tr>
+        <tr><th>IP</th><th>Current name</th><th>Hostname</th><th>cpu_id</th><th>Version</th><th>Boot</th><th>Wi-Fi</th><th>Modem</th><th>Recordings</th><th></th><th></th><th></th><th>New name</th><th></th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
@@ -75,7 +76,7 @@
     <h2>Board log <span class="sub mut">— every board this station has ever seen (kept across restarts, for diagnosing undocked pis)</span></h2>
     <table id="regtbl">
       <thead>
-        <tr><th></th><th>Name</th><th>cpu_id</th><th>Board</th><th>Boot</th><th>Wi-Fi</th><th>Version</th><th>Hostname</th><th>Last IP</th><th>Last seen</th><th>First seen</th></tr>
+        <tr><th></th><th>Name</th><th>cpu_id</th><th>Board</th><th>Boot</th><th>Wi-Fi</th><th>Modem</th><th>Version</th><th>Hostname</th><th>Last IP</th><th>Last seen</th><th>First seen</th></tr>
       </thead>
       <tbody id="regrows"></tbody>
     </table>
@@ -89,6 +90,7 @@ const ifaceEl = document.getElementById('iface');
 const namesEl = document.getElementById('names');
 const pausedEl = document.getElementById('paused');
 const warnEl = document.getElementById('warnbar');
+const warnTextEl = document.getElementById('warntext');
 const pending = {};   // ip -> input value the user is actively typing (don't clobber while typing)
 const buzzing = {};   // ip -> true while a buzz is in flight (~10-20s) — the 2s poll
                        // re-render would otherwise reset the button mid-operation
@@ -178,6 +180,46 @@ function wifiBadge(d){
   return `<span class="badge wifi-weak" title="Radio present${drv} but the interface is down">down</span>`;
 }
 
+// Cellular modem. Detected by USB VENDOR id, not by driver or ModemManager —
+// the dongles these boards get fitted with run in router mode and present as a
+// plain USB ethernet interface, so /sys/class/wwan and mmcli both report
+// nothing on a board that has one (see the probe in opmname.py).
+function modemBadge(d){
+  const m = d.modem;
+  if(!m) return '';
+  const what = d.modem_product || d.modem_vendor || d.modem_usb || 'modem';
+  const usb  = d.modem_usb ? ` [${d.modem_usb}]` : '';
+  if(m === 'none')
+    return `<span class="badge modem-none" title="No cellular modem fitted — no USB modem from any known vendor, and no wwan/QMI control node">none</span>`;
+  if(m === 'online'){
+    const net = d.modem_internet;      // true / false / null(= not tested)
+    const where = `${esc(what)}${usb} on ${esc(d.modem_dev||'?')} (${esc(d.modem_driver||'?')})`;
+    // The verdict people actually want is "can this board get online", NOT "is a
+    // dongle plugged in". A router-mode dongle brings its LAN up and serves a
+    // default route with no SIM in it, so link + route look identical whether or
+    // not there is any service behind them. Reachability is tested through the
+    // modem device itself and is what decides the colour here.
+    if(net === true)
+      return `<span class="badge modem-on" title="${where} — reached the internet THROUGH the modem${d.modem_gw ? ` (gateway ${esc(d.modem_gw)})` : ''}">online</span>`
+           + `<div class="sub2" title="a packet went out the modem and came back">internet ok</div>`;
+    if(net === false){
+      // Split by how far the packet got: the two failures need different repairs.
+      const gwOk = d.modem_gw_ok;
+      return `<span class="badge modem-idle" title="${where} — link is up but NOTHING is reachable through it. ${gwOk ? `Its gateway ${esc(d.modem_gw||'')} answers, so the dongle itself is alive but has no cellular service — check SIM, credit and coverage` : `Its gateway ${d.modem_gw ? esc(d.modem_gw)+' ' : ''}does not even answer — the dongle itself is not responding`}">no net</span>`
+           + `<div class="sub2" title="${gwOk ? 'dongle answers, no service behind it' : 'dongle is not answering'}">${gwOk ? 'no service' : 'gw down'}</div>`;
+    }
+    // Never claim internet we did not verify.
+    const route = d.modem_route
+      ? `<div class="sub2" title="carrying a default route, but reachability was not tested">has route</div>` : '';
+    return `<span class="badge modem-on" title="${where} — link up; internet was NOT tested (no curl/ping, or the probe was cut short)">on</span>${route}`;
+  }
+  if(m === 'present')
+    return `<span class="badge modem-idle" title="${esc(what)} present as a wwan/QMI control node but with no network interface up — fitted, not connected">idle</span>`;
+  if(m === 'ready')
+    return `<span class="badge modem-idle" title="${esc(what)}${usb} interface is up but has no carrier — fitted, no cellular link (check SIM/antenna/coverage)">idle</span>`;
+  return `<span class="badge modem-idle" title="${esc(what)}${usb} present but its interface is down">down</span>`;
+}
+
 function ago(ts){
   if(!ts) return '—';
   const s = Math.floor(Date.now()/1000 - ts);
@@ -229,7 +271,12 @@ async function rename(ip, btn, flashEl, force){
                                            body: JSON.stringify({ip, name, force: !!force})});
     const j = await r.json();
     if(j.ok){
-      flashEl.textContent = '✓ renamed'; flashEl.className = 'flash ok';
+      // `taken_from` means this name was ON another board and has just been taken off it,
+      // leaving that one unnamed. Normally empty; when it is not, saying so here is the
+      // only chance the operator gets to notice.
+      const took = (j.taken_from || []).length;
+      flashEl.textContent = took ? `✓ renamed — taken off ${took} other board${took > 1 ? 's' : ''}` : '✓ renamed';
+      flashEl.className = 'flash ok';
       delete pending[ip];
     } else if(j.needs_confirm){
       btn.disabled = false;
@@ -335,6 +382,7 @@ function render(devices){
       <td class="mono">${ok ? esc(d.version||'') : ''}</td>
       <td title="what the rootfs boots from — eMMC boards record onto an inserted SD card at /media/sdcard">${ok ? bootBadge(d.boot) : ''}</td>
       <td title="whether this board has a usable wireless radio, and the network it is actually associated to — an antenna itself cannot be detected in software, so a weak signal is the only hint one is missing">${ok ? wifiBadge(d) : ''}</td>
+      <td title="whether a cellular modem is fitted and linked. Detected by USB vendor id: these dongles run in router mode and present as plain USB ethernet, so ModemManager and /sys/class/wwan see nothing on a board that has one">${ok ? modemBadge(d) : ''}</td>
       <td class="mono" title="sessions + bytes across every recording location — both leaves (stereo, multivideo) in both places (the local dir and /media/sdcard) — which is exactly what 🗑️ deletes">${ok ? recLabel(d) : ''}</td>
       <td><button id="vnc-${id}" title="Open this board's live desktop over VNC (a TigerVNC window appears shortly; everything on the pi is cleaned up when you close it)"
                   ${ok ? '' : 'disabled'} onclick="vncPi('${d.ip}', document.getElementById('vfl-${id}'))">🖥️</button>
@@ -375,6 +423,7 @@ function renderRegistry(reg, devices){
       <td title="${esc(e.model||'')}">${esc(shortModel(e.model)) || '<span class="mut">—</span>'}</td>
       <td>${bootBadge(e.boot)}</td>
       <td>${wifiBadge(e) || '<span class="mut">—</span>'}</td>
+      <td>${modemBadge(e) || '<span class="mut">—</span>'}</td>
       <td class="mono">${esc(e.version||'?')}</td>
       <td class="mono">${esc(e.hostname||'')}</td>
       <td class="mono">${esc(e.last_ip||'')}</td>
@@ -428,8 +477,28 @@ async function poll(){
                         ? `. Names outside the series: ${nm.strays.join(', ')}` : '');
     } else if(nm){
       namesEl.textContent = 'no starcap names assigned yet · next starcap1';
+    } else {
+      // No survey at all: the table could not be read even once. It used to be
+      // impossible to tell that apart from "nothing named yet" — both showed the
+      // placeholder dash — and a header that quietly stops answering is how you end up
+      // guessing the next number and naming two boards the same thing.
+      const err = (j.dashboard || {}).error;
+      namesEl.textContent = err ? 'name list unavailable — cannot ask the dashboard' : '—';
+      namesEl.title = err || '';
     }
-    warnEl.style.display = j.redis_configured ? 'none' : 'block';
+    // A name lives on the DASHBOARD, so being unable to reach it is the one condition
+    // that makes this page's main job impossible — scanning, buzzing and wiping still work.
+    const dash = j.dashboard || {};
+    if(dash.ok === false){
+      // The error already says WHICH failure it is (unreachable, refused, or a dashboard
+      // too old to have the endpoint), so don't wrap it in a diagnosis of our own.
+      warnTextEl.textContent = `Renaming is unavailable — ${dash.error || 'unknown error'}. `
+                             + `The name is written on the dashboard (${dash.url || '?'}), not on the board, `
+                             + 'so nothing here can rename a unit until this clears.';
+      warnEl.style.display = 'block';
+    } else {
+      warnEl.style.display = 'none';
+    }
     const held = selectionInTables();
     pausedEl.style.display = held ? 'inline' : 'none';
     if(!held){

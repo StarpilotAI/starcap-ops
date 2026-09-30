@@ -6,15 +6,31 @@ auto-detect, same ping-sweep) so it behaves identically to opm-lan for "what's
 currently docked", and falls back to its own equivalent sweep when it isn't (the
 standalone/zip install). The fleet is mixed hardware — Orange Pi 5 and NanoPi
 R76S recorders, different logins and different identify hardware — so every SSH
-here goes through _ssh(), which works out per-board which login answers. Renaming
-itself is the same mechanism as tools/name_pi.sh: read the board's cpu_id over
-SSH, then HSET the name straight into the same Upstash Redis `starcap:names`
-hash the dashboard's setName()/API route uses. That's the dashboard's single
-source of truth for names (keyed by cpu_id, stable across reflashes) — the
-recorder itself self-syncs its local ~/.config/starcap/device_name from there
-on its next heartbeat (~1s cadence), so writing to Redis is sufficient to
-rename it "on the device and on the dashboard" in one step; nothing needs to be
-SSHed onto the board to set a name directly.
+here goes through _ssh(), which works out per-board which login answers.
+
+RENAMING GOES THROUGH THE DASHBOARD, and has to. Read the board's cpu_id over SSH,
+then POST it to the dashboard's station endpoint, /api/ingest/starcap-name, which
+writes the name through the same `bothWrites("machines", …)` pair the dashboard's
+own rename button uses: authoritative in Postgres, mirrored into Redis. cpu_id is
+the key because it survives a reflash, and because that endpoint needs nothing
+else — this tool's whole job is naming a board that has just been flashed and has
+never reached the internet, which the device_id-keyed route cannot do. The
+recorder then self-syncs its local ~/.config/starcap/device_name from the reply to
+its next heartbeat (~1s cadence), so one call renames it "on the device and on the
+dashboard" in one step; nothing needs to be SSHed onto the board to set a name.
+
+WHAT NOT TO GO BACK TO. This used to write the name itself — one `HSET
+starcap:names <cpu_id>` into Upstash, which really was the whole rename before the
+migration (same as the old tools/name_pi.sh). Names live in Postgres now: the
+dashboard's `devices` read is flipped to SQL and `machines` writes are
+SQL-authoritative, so that HSET lands in a store nothing reads. It failed
+SILENTLY and in both directions — /devices showed the board unnamed, the heartbeat
+reply (built from the same flipped table) never carried the name so the recorder
+kept its old one, and the operator had to name it a second time by hand. Nothing
+back-syncs Redis→SQL and drift-watch only compares row COUNTS, so re-naming an
+already-named board was invisible even to the monitor. Any future "just write it
+directly" shortcut has the same shape: if the dashboard is not the writer, the
+fleet and the dashboard disagree and nobody is told.
 """
 import functools
 import json
@@ -25,6 +41,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -85,35 +102,63 @@ LOGINS = _fleet_logins()
 _LOGIN_CACHE = {}                    # ip -> (user, password) that last authenticated
 _LOGIN_LOCK = threading.Lock()       # the webui probes from a scanner thread + request threads
 
-# Where the dashboard's Redis credentials come from, in order: the environment,
-# the dashboard checkout's own .env.local (the copy station), then
+# Which dashboard to name boards on, and with what station password. In order: the
+# environment, opm-lan's own station config (a copy station already reports footage
+# and dock arrivals with exactly this url+password, so there is nothing new to
+# configure there), then the dashboard checkout's .env.local, then
 # ~/.config/opm-name/env — which is what the standalone installer writes, since a
-# laptop that only has opm-name has no dashboard checkout to read them out of.
+# laptop that only has opm-name has neither of the first two.
+#
+# THE DEFAULT HOST IS starcap.dev, NOT projects.starcap.dev. The projects host is
+# the read-only SQL dashboard and refuses every write (dashboard lib/hostMode.ts),
+# while `/api/*` on starcap.dev is deliberately never redirected precisely because
+# machines post to it. `starupload` is the station secret opm-lan ships with, which
+# the dashboard's ingestAuthGuard accepts.
+_DEFAULT_DASHBOARD_URL = "https://starcap.dev"
+_DEFAULT_STATION_PASSWORD = "starupload"
+
 _ENV_FILES = [
     Path.home() / "starcap-dashboard" / "dashboard" / ".env.local",
     Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "opm-name" / "env",
 ]
 
 
-def _load_redis_creds():
-    url = os.environ.get("UPSTASH_REDIS_REST_URL")
-    tok = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
-    if url and tok:
-        return url, tok
+def _env_file_value(key):
+    """First non-empty `KEY=value` for `key` across _ENV_FILES, or None."""
+    pat = re.compile(r'^\s*(?:export\s+)?%s=(.*)$' % re.escape(key))
     for env_file in _ENV_FILES:
         if not env_file.is_file():
             continue
-        for line in env_file.read_text().splitlines():
-            m = re.match(r'^\s*(?:export\s+)?UPSTASH_REDIS_REST_URL=(.*)$', line)
-            if m: url = url or m.group(1).strip().strip('"').strip("'")
-            m = re.match(r'^\s*(?:export\s+)?UPSTASH_REDIS_REST_TOKEN=(.*)$', line)
-            if m: tok = tok or m.group(1).strip().strip('"').strip("'")
-        if url and tok:
-            break
-    return url, tok
+        try:
+            lines = env_file.read_text().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            m = pat.match(line)
+            if m:
+                v = m.group(1).strip().strip('"').strip("'")
+                if v:
+                    return v
+    return None
 
 
-REDIS_URL, REDIS_TOKEN = _load_redis_creds()
+def _load_dashboard_target():
+    """(url, password) for the dashboard's station API — see the note above."""
+    url = (os.environ.get("STARCAP_DASHBOARD_URL") or os.environ.get("OPM_DASHBOARD_URL") or "").strip()
+    pw = (os.environ.get("STARCAP_PASSWORD") or os.environ.get("OPM_UPLOAD_PASSWORD") or "").strip()
+    if opmlan is not None and not (url and pw):
+        try:
+            an = (opmlan.load_config() or {}).get("analysis") or {}
+            url = url or str(an.get("dashboard_url") or "").strip()
+            pw = pw or str(an.get("password") or "").strip()
+        except Exception:                # noqa: BLE001 — an unreadable station config is not fatal
+            pass
+    url = url or _env_file_value("STARCAP_DASHBOARD_URL") or ""
+    pw = pw or _env_file_value("STARCAP_PASSWORD") or ""
+    return (url or _DEFAULT_DASHBOARD_URL).rstrip("/"), (pw or _DEFAULT_STATION_PASSWORD)
+
+
+DASHBOARD_URL, DASHBOARD_PASSWORD = _load_dashboard_target()
 
 
 def login_for(ip):
@@ -431,6 +476,111 @@ def identify_for_rename(ip, timeout=25):
         'done; '
         'echo "WIFIRF=$b"; '
         'fi; '
+        # modem: is a cellular modem fitted, and is it carrying traffic? Same
+        # question as wifi, but almost nothing that SOUNDS right actually works
+        # here. Measured on starcap30 (Orange Pi 5) with a ZTE 19d2:1405 fitted:
+        #
+        #   /sys/class/wwan      empty        mmcli            not installed
+        #   /dev/cdc-wdm*        none         ModemManager     inactive
+        #   /dev/ttyUSB*         none         qmi_wwan/option  not in /proc/modules
+        #
+        # ...because that dongle runs in ROUTER mode: it NATs internally and hands
+        # the board a plain USB ethernet interface (cdc_ether, its own DHCP on
+        # 192.168.0.x). cdc_ether is built INTO these kernels, not a module, so
+        # even the /proc/modules check reads "no". Anything written against
+        # ModemManager reports "no modem" on a board that has one — the same trap
+        # as `iw` not being installed cost the wifi probe above.
+        #
+        # So: walk each netdev up to its USB parent and read the VENDOR id. The
+        # USB id is the discriminator, NOT the driver — an ordinary USB-to-RJ45
+        # adapter is cdc_ether too, and calling that a modem would be worse than
+        # missing one. Modems in QMI/MBIM mode expose no netdev until they are
+        # connected, so the wwan/cdc-wdm/ttyUSB paths are still checked as a
+        # fallback; this board simply is not in that mode.
+        'md=""; mdrv=""; mid=""; mven=""; mprod=""; '
+        'for n in /sys/class/net/*; do '
+        'i=$(basename "$n"); [ "$i" = lo ] && continue; '
+        'd=$(readlink -f "$n/device" 2>/dev/null); '
+        # climb to the nearest ancestor carrying idVendor — that IS the USB device
+        'v=""; while [ -n "$d" ] && [ "$d" != / ]; do '
+        '[ -f "$d/idVendor" ] && { v=$(cat "$d/idVendor"); break; }; d=$(dirname "$d"); done; '
+        '[ -n "$v" ] || continue; '
+        'case "$v" in '
+        # ZTE, Quectel, Huawei, SIMCom, Qualcomm, Sierra, Fibocom, Alcatel/TCT,
+        # Telit, u-blox — the vendors that actually ship the dongles/M.2 cards
+        # these boards get fitted with.
+        '19d2|2c7c|12d1|1e0e|05c6|1199|2cb7|1bbb|1bc7|1546) ;; '
+        '*) continue ;; esac; '
+        'md=$i; mid="$v:$(cat "$d/idProduct" 2>/dev/null)"; '
+        'mven=$(cat "$d/manufacturer" 2>/dev/null); mprod=$(cat "$d/product" 2>/dev/null); '
+        'mdrv=$(basename "$(readlink -f "$n/device/driver" 2>/dev/null)" 2>/dev/null); '
+        'echo "MODEMCARR=$(cat "$n/carrier" 2>/dev/null)"; '
+        'echo "MODEMSTATE=$(cat "$n/operstate" 2>/dev/null)"; '
+        'break; done; '
+        # QMI/MBIM fallback: a control node or a wwan port means a modem is present
+        # even with no netdev up yet. Only consulted when the scan above found none,
+        # so a router-mode dongle is never double-reported.
+        'if [ -z "$md" ]; then '
+        'for c in /sys/class/wwan/* /dev/cdc-wdm*; do [ -e "$c" ] || continue; '
+        'md="$(basename "$c")"; mdrv="wwan"; break; done; fi; '
+        'echo "MODEMDEV=$md"; echo "MODEMDRV=$mdrv"; echo "MODEMID=$mid"; '
+        'echo "MODEMVEN=$mven"; echo "MODEMPROD=$mprod"; '
+        # Is it actually a way OUT, or just fitted? The modem's equivalent of the
+        # SSID: a default route on its interface is proof it carries traffic. It is
+        # normally the BACKUP route (higher metric) while the board is docked on
+        # ethernet, so presence is what matters here, not which one wins.
+        '[ -n "$md" ] && echo "MODEMROUTE=$(ip route show default 2>/dev/null '
+        '| grep -c " dev $md ")" || echo "MODEMROUTE=0"; '
+        # ...and does it actually REACH anything? A route is not internet. A
+        # router-mode dongle brings its LAN side up and hands out a DHCP lease with
+        # a default route whether or not it has a SIM, credit, or any signal at all,
+        # so "has route" is satisfied by a dongle that is completely dead to the
+        # network. Only a packet that comes back proves otherwise.
+        #
+        # Every test here is BOUND TO THE MODEM DEVICE (ping -I <ifname>, curl
+        # --interface = SO_BINDTODEVICE), which forces egress out that device
+        # regardless of the routing table. Without that the test is worthless while
+        # the board is docked: eth0 has internet and metric 100, so an unbound probe
+        # succeeds through ethernet and reports a dead modem as working.
+        #
+        # Two hops, because they fail differently and the difference is the repair:
+        #   gateway reachable, internet not -> dongle alive, no cellular service
+        #                                      (SIM/credit/coverage)
+        #   gateway unreachable             -> the dongle itself is not answering
+        #
+        # Targets are RAW IPs so DNS is never in the path — a modem with working
+        # data but broken DNS must not read as offline. Budgeted tight (<=3 s each,
+        # hard-capped by `timeout`) and only ever run on a board that HAS a modem,
+        # so the boards that do not have one pay nothing. Empty MODEMNET means
+        # "could not test", which is not the same answer as "no internet".
+        'if [ -n "$md" ]; then '
+        'gw=$(ip route show default dev "$md" 2>/dev/null | awk \'{print $3; exit}\'); '
+        'echo "MODEMGW=$gw"; '
+        # Reachability FIRST, and the gateway only if it fails. A working modem
+        # then costs ~0.2 s (measured) and never pays for the gateway hop at all,
+        # because reaching the far side already proves the near side.
+        # ping is a SUBSTITUTE for curl, never a second opinion: running both on
+        # failure cost 7.1 s (3.1 + 4.0, measured), and this budget is shared with
+        # the 10 s du below inside one 25 s SSH timeout — overrun it and boards
+        # flap offline in the table, which is the bug this ordering avoids.
+        'n=""; '
+        'if command -v curl >/dev/null 2>&1; then '
+        'timeout 4 curl -s --interface "$md" --max-time 3 -o /dev/null http://1.1.1.1/ '
+        '>/dev/null 2>&1 && n=1 || n=0; '
+        # Only when curl is absent. TCP is likelier to be allowed than ICMP (some
+        # carriers drop ICMP outright), so curl's verdict is the trusted one.
+        'else timeout 4 ping -I "$md" -c 1 -W 3 1.1.1.1 >/dev/null 2>&1 && n=1 || n=0; fi; '
+        'echo "MODEMNET=$n"; '
+        # Only meaningful once we know there is no internet: it separates "the
+        # dongle answers but has no service (SIM/credit/coverage)" from "the
+        # dongle itself is dead". A local gateway replies in milliseconds or not
+        # at all, so 1 s is generous.
+        'g=0; '
+        'if [ "$n" != "1" ] && [ -n "$gw" ]; then '
+        'timeout 2 ping -I "$md" -c 1 -W 1 "$gw" >/dev/null 2>&1 && g=1; '
+        'else [ "$n" = "1" ] && g=1; fi; '
+        'echo "MODEMGWOK=$g"; '
+        'fi; '
         # boot medium: the mmc block device the rootfs lives on tells us —
         # /sys/block/<dev>/device/type is "MMC" for eMMC, "SD" for an SD card.
         # The NanoPi image boots an OVERLAY root (lowerdir=/root over
@@ -508,6 +658,22 @@ def identify_for_rename(ip, timeout=25):
         wifi = "ready"
     else:
         wifi = "down"
+    # Same shape as `wifi`: one word for "can this board get a cellular link".
+    # "none" is a real answer, not a failure — most boards have no modem fitted,
+    # and the table needs to show that as a fact rather than a blank.
+    modem_dev = grab("MODEMDEV")
+    if not modem_dev:
+        modem = "none"
+    elif grab("MODEMDRV") == "wwan":
+        # Found only via a control node: the hardware is there, but with no netdev
+        # there is nothing to ask about carrier, so do not claim it is working.
+        modem = "present"
+    elif grab("MODEMCARR") == "1":
+        modem = "online"
+    elif grab("MODEMSTATE") in ("up", "dormant"):
+        modem = "ready"
+    else:
+        modem = "down"
     return {"ip": ip, "ok": True, "cpu_id": cpu_id, "name": grab("NAME"), "hostname": grab("HOST"),
             "version": grab("VER"), "boot": boot, "model": model, "identify": identify,
             # wifi capability: `wifi` is the verdict, the rest is for the tooltip.
@@ -518,6 +684,18 @@ def identify_for_rename(ip, timeout=25):
             # quality is the honest number. Never present them as the same thing.
             "wifi_dbm": (lvl if lvl is not None and lvl < 0 else None),
             "wifi_quality": qual,
+            # modem capability: `modem` is the verdict, the rest is the tooltip.
+            # modem_route is the "is it actually a way out" signal — see the probe.
+            "modem": modem, "modem_dev": modem_dev, "modem_driver": grab("MODEMDRV"),
+            "modem_usb": grab("MODEMID"), "modem_vendor": grab("MODEMVEN"),
+            "modem_product": grab("MODEMPROD"),
+            "modem_route": grab("MODEMROUTE") not in ("", "0"),
+            # Reachability, tested THROUGH the modem device (see the probe).
+            # True/False/None where None means "could not test" — a modem we
+            # failed to probe must not be reported as one with no internet.
+            "modem_internet": {"1": True, "0": False}.get(grab("MODEMNET")),
+            "modem_gw": grab("MODEMGW"),
+            "modem_gw_ok": grab("MODEMGWOK") == "1",
             "user": (login_for(ip) or ("", ""))[0],
             # empty RECB = the du was killed before it finished. Pass that through as
             # None + known=False so the UI can say "size unknown" instead of "0 B" —
@@ -624,37 +802,73 @@ def clear_recordings(ip, timeout=180):
     return {"ok": True}
 
 
-def _redis_call(*args):
-    if not (REDIS_URL and REDIS_TOKEN):
-        raise RuntimeError("missing UPSTASH_REDIS_REST_URL/TOKEN — set env vars or "
-                            "create ~/starcap-dashboard/dashboard/.env.local")
-    r = subprocess.run(
-        ["curl", "-sS", "-X", "POST", REDIS_URL,
-         "-H", f"Authorization: Bearer {REDIS_TOKEN}",
-         "-H", "Content-Type: application/json",
-         "-d", json.dumps(list(args))],
-        capture_output=True, text=True, timeout=10)
-    if r.returncode != 0:
-        raise RuntimeError(r.stderr.strip() or "curl failed")
-    return r.stdout
+_NAME_API = "/api/ingest/starcap-name"
+
+
+def _refusal(e, path):
+    """An HTTP refusal as one line an operator can act on.
+
+    A route the dashboard HAS answers in JSON (`{"error": …}`), and that message is the
+    useful one — pass it through as written. A route it does NOT have answers with the
+    Next 404 PAGE: an entire HTML document, which as an error string is useless and long
+    enough to bury the only thing it actually means — that this dashboard is running a
+    build from before station renaming existed. So HTML is never quoted back; the
+    diagnosis is."""
+    body = (e.read() or b"").decode(errors="replace").strip()
+    msg = ""
+    if not body.startswith("<"):
+        try:
+            msg = str((json.loads(body) or {}).get("error") or "").strip()
+        except ValueError:
+            msg = body
+    if not msg:
+        if e.code == 404:
+            msg = (f"no {path} on this dashboard — it is running a build from before "
+                   "station renaming; deploy the dashboard, then rename again")
+        else:
+            msg = str(e.reason or "refused, with no message")
+    return f"dashboard {e.code}: {msg[:220]}"
+
+
+def _dashboard_call(method, path, body=None, timeout=15):
+    """One call to the dashboard's station API, as parsed JSON.
+
+    Raises RuntimeError carrying the dashboard's OWN message on anything but a 2xx, so a
+    refusal the operator can act on ("unauthorized", "read_only") reaches them verbatim
+    instead of arriving as a blank failure. urllib rather than curl (which the Redis call
+    used): the reply has to be parsed either way, and a bench laptop is not guaranteed to
+    have curl installed."""
+    data = None
+    headers = {"x-starcap-password": DASHBOARD_PASSWORD}
+    if body is not None:
+        data = json.dumps(body).encode()
+        headers["content-type"] = "application/json"
+    req = urllib.request.Request(DASHBOARD_URL + path, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = (r.read() or b"{}").decode(errors="replace")
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(_refusal(e, path)) from None
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"cannot reach {DASHBOARD_URL} — {e.reason}") from None
+    try:
+        return json.loads(raw or "{}") or {}
+    except ValueError:
+        raise RuntimeError(f"dashboard sent non-JSON: {raw.strip()[:120]}") from None
 
 
 def load_authoritative_names():
-    """Every name Redis currently hands out, as {cpu_id: name}.
+    """Every name the dashboard currently hands out, as {cpu_id: name}.
 
-    This is the SAME hash the dashboard writes and the boards read back on their
-    next heartbeat, so it — not board_registry.json — decides whether a name is
-    already taken. The local registry only knows boards THIS laptop has scanned,
-    which is exactly how two boards ended up both called starcap127.
+    Straight off the table /devices renders and the heartbeat pushes down, so it — not
+    board_registry.json — decides whether a name is already taken. The local registry
+    only knows boards THIS laptop has scanned, which is exactly how two boards ended up
+    both called starcap127.
     """
-    flat = (json.loads(_redis_call("HGETALL", "starcap:names")) or {}).get("result") or []
+    names = (_dashboard_call("GET", _NAME_API) or {}).get("names") or {}
     out = {}
-    for i in range(0, len(flat) - 1, 2):                 # REST returns a flat k,v,k,v list
-        cpu_id, blob = flat[i], flat[i + 1]
-        try:
-            nm = (json.loads(blob) or {}).get("name")
-        except (ValueError, TypeError):
-            nm = blob if isinstance(blob, str) else None  # tolerate a bare-string entry
+    for cpu_id, entry in names.items():
+        nm = entry.get("name") if isinstance(entry, dict) else entry
         if nm and str(nm).strip():
             out[cpu_id] = str(nm).strip()
     return out
@@ -662,7 +876,7 @@ def load_authoritative_names():
 
 def name_survey(prefix="starcap"):
     """How far the `prefix` series has been handed out, so naming a new board is not
-    a guess. Reads the SAME authoritative hash check_rename() does.
+    a guess. Reads the SAME authoritative table check_rename() does.
 
     highest  biggest N currently assigned          next  highest + 1, the safe default
     gaps     numbers BELOW highest nobody holds — free to reuse, not an error
@@ -703,9 +917,14 @@ def check_rename(name, cpu_id):
 
 
 def set_authoritative_name(cpu_id, name):
-    """Same write name_pi.sh does: HSET into starcap:names, keyed by cpu_id.
-    The board picks this up on its next heartbeat (~1s) and self-corrects its
-    own local device_name to match — this one write is the whole rename."""
-    now_ms = int(time.time() * 1000)
-    entry = json.dumps({"name": name, "updated_at": now_ms})
-    return _redis_call("HSET", "starcap:names", cpu_id, entry)
+    """Rename this headset — on the dashboard now, and on the board itself on its next
+    heartbeat (~1s), when it self-corrects its local device_name from the reply.
+
+    Returns the dashboard's answer, which is worth reading rather than discarding:
+    `assigned_name` is the name as actually STORED (it is normalised server-side),
+    `previous_name` is what this board was called, and `taken_from` lists other boards
+    that held this name and have just lost it. That last one is not decoration —
+    `starcaps.name` is unique, so the dashboard resolves a clash by taking the name off
+    the other board, and that is the one consequence the operator cannot see from the
+    bench. An empty `name` clears the entry, returning the board to unnamed."""
+    return _dashboard_call("POST", _NAME_API, {"cpu_id": cpu_id, "name": name})

@@ -11,9 +11,14 @@
 # instance per IP; a second launch for the same IP that's still open is a no-op.
 #
 # Handles both states we've seen on the fleet:
-#   - a real logged-in desktop session (uses the orangepi user's own ~/.Xauthority)
-#   - just the LightDM login greeter, nobody logged in yet (uses lightdm's root auth
-#     file instead, via sudo on the pi)
+#   - a real logged-in desktop session (uses the login user's own ~/.Xauthority)
+#   - nobody logged in yet, just the display manager's greeter (uses the X server's
+#     own auth file instead, via sudo on the pi)
+#
+# Login: the fleet is mixed hardware with a different stock login per board type
+# (Orange Pi 5 = orangepi/orangepi, NanoPi R76S = pi/12345), so it tries each in
+# turn and uses whichever authenticates. PI_USER + PI_PASS skip the probe — which
+# is how opm-name calls it, since its scan already knows.
 #
 # Known root cause of the "solid black desktop, just a moving cursor" symptom on
 # this fleet: the Mali/Panfork GPU's compositor only initializes real scanout once
@@ -29,9 +34,7 @@
 set -euo pipefail
 
 IP="${1:?usage: $0 <pi-ip>}"
-SSH_USER=orangepi
-SSH_PASS=orangepi
-VNC_PASS=orangepi
+FLEET_LOGINS=("orangepi:orangepi" "pi:12345")     # user:password, tried in order
 
 LOCK_DIR="${TMPDIR:-/tmp}/vnc_into_pi"
 mkdir -p "$LOCK_DIR"
@@ -53,6 +56,22 @@ ssh_pi() { SSHPASS="$SSH_PASS" sshpass -e ssh -o StrictHostKeyChecking=accept-ne
 
 echo "== clearing any stale SSH host key for $IP (SD-card swaps change it) =="
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$IP" >/dev/null 2>&1 || true
+
+# Which login does this board answer on? Skipped entirely when the caller
+# already knows (opm-name passes PI_USER/PI_PASS from its scan).
+SSH_USER="${PI_USER:-}"
+SSH_PASS="${PI_PASS:-}"
+if [ -z "$SSH_USER" ] || [ -z "$SSH_PASS" ]; then
+  echo "== working out the login for $IP =="
+  for login in "${FLEET_LOGINS[@]}"; do
+    SSH_USER="${login%%:*}"; SSH_PASS="${login#*:}"
+    if ssh_pi true >/dev/null 2>&1; then break; fi
+    SSH_USER=""; SSH_PASS=""
+  done
+  [ -n "$SSH_USER" ] || { echo "couldn't log in to $IP with any known fleet login"; exit 1; }
+fi
+echo "   login: $SSH_USER"
+VNC_PASS="$SSH_PASS"       # ≤8 chars, as classic VNC auth requires — both fleet passwords are
 
 echo "== setting up x11vnc on $IP =="
 ssh_pi "VNC_PASS='$VNC_PASS' SUDO_PASS='$SSH_PASS' bash -s" <<'REMOTE'
@@ -86,9 +105,16 @@ if [ -s ~/.Xauthority ]; then
     -rfbport 5900 -xcomposite -bg -o ~/x11vnc.log < /dev/null > /dev/null 2>&1 &
   disown
 else
-  echo "no one logged in yet — using the LightDM greeter's session instead"
+  # No ~/.Xauthority — either nobody's logged in (greeter only) or the display
+  # manager keeps the cookie for them. Ask the running X server itself where its
+  # auth file is instead of guessing a path: the fleet is not all LightDM
+  # (/var/run/lightdm/root/:0) — the NanoPi image runs SDDM, whose cookie is a
+  # random /run/sddm/xauth_XXXXXX. Reading it needs root either way.
+  XAUTH=$(pgrep -af Xorg 2>/dev/null | grep -o -- "-auth [^ ]*" | head -1 | cut -d' ' -f2)
+  [ -n "$XAUTH" ] || XAUTH=/var/run/lightdm/root/:0
+  echo "no ~/.Xauthority — using the X server's own auth file ($XAUTH)"
   echo "$SUDO_PASS" | sudo -S bash -c \
-    "nohup x11vnc -display :0 -auth /var/run/lightdm/root/:0 -forever -shared -rfbauth /home/$USER/.vnc/passwd -rfbport 5900 -xcomposite -bg -o /home/$USER/x11vnc.log < /dev/null > /dev/null 2>&1 &"
+    "nohup x11vnc -display :0 -auth '$XAUTH' -forever -shared -rfbauth /home/$USER/.vnc/passwd -rfbport 5900 -xcomposite -bg -o /home/$USER/x11vnc.log < /dev/null > /dev/null 2>&1 &"
 fi
 ok=0
 for _ in $(seq 1 10); do

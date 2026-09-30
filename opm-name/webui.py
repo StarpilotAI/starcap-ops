@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 opm-name web UI — dock recorders over ethernet, see them appear live with their
-IP, and type a name next to each one. Renaming writes straight into the
-dashboard's authoritative name store (same mechanism as tools/name_pi.sh) — the
-board self-syncs its own local name from there on its next heartbeat, so one
-write renames it both on the device and on the dashboard.
+IP, and type a name next to each one. Renaming POSTs to the dashboard's station
+endpoint, which is the only thing that may write a name (see opmname.py's header
+for what happens when a tool writes the store itself) — the board then self-syncs
+its own local name from the reply to its next heartbeat, so one call renames it
+both on the device and on the dashboard.
 
 Run:   python3 webui.py        →  http://127.0.0.1:8771
 """
@@ -47,7 +48,7 @@ _renamed_locally = {}   # ip -> optimistic name, so the table reflects a rename
 # board_registry.json next to this script (machine-local, git-ignored).
 # --------------------------------------------------------------------------- #
 REGISTRY_FILE = SCRIPT_DIR / "board_registry.json"
-REGISTRY = {}           # cpu_id -> {cpu_id, name, hostname, version, boot, wifi, last_ip, first_seen, last_seen}
+REGISTRY = {}           # cpu_id -> {cpu_id, name, hostname, version, boot, wifi, modem, last_ip, first_seen, last_seen}
 REG_LOCK = threading.Lock()
 
 
@@ -76,7 +77,8 @@ def _registry_note(dev):
     now = int(time.time())
     e = REGISTRY.setdefault(cpu, {"cpu_id": cpu, "first_seen": now})
     changed = "last_seen" not in e
-    for k in ("name", "hostname", "version", "model", "wifi_driver"):
+    for k in ("name", "hostname", "version", "model", "wifi_driver",
+              "modem_usb", "modem_vendor", "modem_product"):
         if dev.get(k) and e.get(k) != dev[k]:
             e[k] = dev[k]; changed = True
     # wifi is recorded even when it says "none" — "this board has no radio" is a
@@ -94,6 +96,25 @@ def _registry_note(dev):
         ssid = dev.get("wifi_ssid", "") if dev["wifi"] == "connected" else ""
         if e.get("wifi_ssid", "") != ssid:
             e["wifi_ssid"] = ssid; changed = True
+    # modem follows the same rule as wifi: "none" is a real answer worth storing,
+    # and a board whose dongle is pulled must be able to go online -> none, so it
+    # is not subject to the never-clobber loop above.
+    if dev.get("modem") and e.get("modem") != dev["modem"]:
+        e["modem"] = dev["modem"]; changed = True
+    # Coupled to `modem` for the same reason wifi_ssid is coupled to `wifi`: a
+    # default route only means anything while the modem is up, so a board that
+    # loses it must stop advertising one. Guarded on dev["modem"] so a failed
+    # probe never wipes what we knew.
+    if dev.get("modem"):
+        route = bool(dev.get("modem_route")) if dev["modem"] == "online" else False
+        if e.get("modem_route", False) != route:
+            e["modem_route"] = route; changed = True
+        # Internet is tri-state and stored as such: None ("could not test") must
+        # never be flattened into False, or a modem we simply failed to reach
+        # would be recorded as one with no service — the exact wrong repair.
+        net = dev.get("modem_internet") if dev["modem"] == "online" else None
+        if e.get("modem_internet") != net:
+            e["modem_internet"] = net; changed = True
     if dev.get("boot") and dev["boot"] != "unknown" and e.get("boot") != dev["boot"]:
         e["boot"] = dev["boot"]; changed = True
     if e.get("last_ip") != dev["ip"]:
@@ -137,11 +158,12 @@ def devices_snapshot():
 # --------------------------------------------------------------------------- #
 # API
 # --------------------------------------------------------------------------- #
-# The name survey costs a Redis HGETALL, and /api/status is polled continuously, so
+# The name survey costs one dashboard read, and /api/status is polled continuously, so
 # it is cached. Kept deliberately stale-tolerant: on a failed lookup the LAST good
 # survey is returned rather than None, because a blank "next free number" in the header
-# is worse than one that is thirty seconds old.
-_SURVEY = {"at": 0.0, "data": None}
+# is worse than one that is thirty seconds old. The failure is REMEMBERED though — it is
+# the only signal that renaming is currently impossible (see api_status).
+_SURVEY = {"at": 0.0, "data": None, "error": None}
 SURVEY_TTL_S = 30.0
 
 
@@ -151,16 +173,25 @@ def name_survey_cached(force=False):
         try:
             _SURVEY["data"] = opmname.name_survey()
             _SURVEY["at"] = now
-        except Exception:                                 # noqa: BLE001
-            pass
+            _SURVEY["error"] = None
+        except Exception as e:                            # noqa: BLE001
+            _SURVEY["error"] = str(e)[:200]
     return _SURVEY["data"]
 
 
 def api_status():
+    survey = name_survey_cached()
     return {"devices": devices_snapshot(), "iface": IFACE,
             "registry": registry_snapshot(),
-            "names": name_survey_cached(),
-            "redis_configured": bool(opmname.REDIS_URL and opmname.REDIS_TOKEN)}
+            "names": survey,
+            # "Can we reach the dashboard" replaced "are the Redis credentials set" as the
+            # one thing worth a warning bar, because the dashboard is now the only writer
+            # of names: a bench with no route to it can still scan, buzz and wipe boards,
+            # but cannot rename one. Reported off the survey poll rather than a health
+            # check of its own — that poll is already a real read of the very table a
+            # rename writes to.
+            "dashboard": {"url": opmname.DASHBOARD_URL,
+                          "ok": _SURVEY["error"] is None, "error": _SURVEY["error"]}}
 
 
 def api_rename(body):
@@ -179,8 +210,8 @@ def api_rename(body):
     # Look before writing. Two boards sharing a name is not cosmetic: the dashboard's
     # camera<->headset registry is KEYED by name, so the second board silently files
     # its camera under the first one's key and one of them stops being tracked. The
-    # check is skipped on `force` (the operator confirmed in the UI) and skipped if
-    # Redis cannot be read — a dead lookup must not block a rename that would work.
+    # check is skipped on `force` (the operator confirmed in the UI) and skipped if the
+    # table cannot be read — a dead lookup must not block a rename that would work.
     if not body.get("force"):
         try:
             pre = opmname.check_rename(name, cpu_id)
@@ -199,21 +230,30 @@ def api_rename(body):
                     "cpu_id": cpu_id, "holders": holders,
                     "current_name": pre["current_name"]}
     try:
-        opmname.set_authoritative_name(cpu_id, name)
+        res = opmname.set_authoritative_name(cpu_id, name)
     except Exception as e:                                # noqa: BLE001
         return {"ok": False, "error": str(e)}
+    # Show the name the DASHBOARD stored, not the one that was typed: it is normalised
+    # server-side, and the optimistic row below is the whole reason a rename that went
+    # nowhere used to look like it had worked.
+    stored = res.get("assigned_name") or name
     with SCAN_LOCK:
-        _renamed_locally[ip] = name
+        _renamed_locally[ip] = stored
         for d in DEVICES:
             if d["ip"] == ip:
-                d["name"] = name
+                d["name"] = stored
     with REG_LOCK:
         e = REGISTRY.get(cpu_id)
-        if e is not None and e.get("name") != name:
-            e["name"] = name
+        if e is not None and e.get("name") != stored:
+            e["name"] = stored
             _registry_save()
     name_survey_cached(force=True)      # this rename just moved the highest/gaps
-    return {"ok": True, "ip": ip, "cpu_id": cpu_id, "name": name}
+    return {"ok": True, "ip": ip, "cpu_id": cpu_id, "name": stored,
+            "previous_name": res.get("previous_name"),
+            # Boards that just LOST this name (normally none). Surfaced because the
+            # dashboard resolves a duplicate by taking the name off the other unit, and
+            # that is the one outcome invisible from the bench.
+            "taken_from": res.get("taken_from") or []}
 
 
 def api_buzz(body):
@@ -320,9 +360,7 @@ def main():
     threading.Thread(target=scanner_loop, daemon=True).start()
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"opm-name running at http://{HOST}:{PORT}")
-    if not (opmname.REDIS_URL and opmname.REDIS_TOKEN):
-        print("!! UPSTASH_REDIS_REST_URL/TOKEN not found — renaming will fail until "
-              "these are set (env vars, or ~/starcap-dashboard/dashboard/.env.local)")
+    print(f"   renaming through {opmname.DASHBOARD_URL} (override: STARCAP_DASHBOARD_URL)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
