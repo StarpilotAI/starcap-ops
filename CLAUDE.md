@@ -13,10 +13,16 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 - **`inventory/`**: whoholds
 - **`lib/install_common.sh`**: the helper every `install.sh` sources
 
-Not here on purpose (removed 2026-09-30): board flashing (NanoPi R76S and Orange Pi,
-SD and eMMC) lives with its images in the `FLASH …` folders on the Desktop; the SSD
-cloud-verify / hours / drive-health tools and the opm SD launcher were retired after
-the opm-lan rework.
+- **`flashing/`**: the ONLY board flashing: `nanopi/{emmc,sd,rebuild}`,
+  `opi/{emmc,sd,rescue,spi-recovery}` (`~/Desktop/flashing` is a link to it). Git holds
+  the scripts, loaders, docs and small partitions; the five big images (~30 GB) are
+  gitignored and live in the PRIVATE bucket `gs://starpilot-starcap-flashing`.
+  `IMAGES.sha256` is the manifest; `fetch_images.sh` downloads + verifies + restores
+  mtimes (the flash scripts pick the NEWEST image beside them, so keep one per folder).
+  The images carry `stereocam/update_token`: never make the bucket or an object public.
+
+Not here on purpose: the SSD cloud-verify / hours / drive-health tools and the opm SD
+launcher were retired after the opm-lan rework (2026-09-30).
 
 Conventions for adding a tool: give it its own folder under the right group, with an
 `install.sh` that sources `../../lib/install_common.sh` and declares its deps with

@@ -31,7 +31,7 @@ network layout, the logins, and a fresh-laptop checklist.
 | grade a board's true fps / snapshot its hardware | `fleet/board-grading/` | `measure-fps <ip> <label> 90`, `board-fingerprint <ip>` |
 | silence the boot beep, fix the timezone, check a camera's USB link | `fleet/pi-fixes/` | see its `install.sh` output |
 | turn an SD card into plain ext4 storage | `storage/sd-format/` | `format-sd-storage` |
-| flash a board (NanoPi or Orange Pi, SD or eMMC) | not here | the `FLASH …` folders on the Desktop, images included |
+| flash a board (NanoPi or Orange Pi, SD or eMMC) | `flashing/` | see its [README](flashing/README.md); images via `flashing/fetch_images.sh` |
 | live-tune a camera's v4l2 controls in the browser | `camera/camrig/` | `camrig` launcher |
 | see a DECXIN live at native resolution | `camera/camrig/` | `CamView` launcher, or press ± |
 | tell which firmware family a DECXIN camera is on | `camera/camfw/` | `Camera Firmware` / `Camera Firmware LAN` launchers |
@@ -47,6 +47,7 @@ network layout, the logins, and a fresh-laptop checklist.
 station/      the laptop's dock ethernet port
 fleet/        tools that talk to boards over the dock ethernet
 storage/      SD cards plugged into the laptop
+flashing/     every board image + flash script (images: private bucket, not git)
 camera/       DECXIN stereo cameras on the bench
 inventory/    who has what, and board records
 lib/          install_common.sh, shared by every install.sh

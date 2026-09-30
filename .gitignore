@@ -34,3 +34,12 @@ camera/camfw/fwidentapp/.last-run.json
 camera/calibcheck/cameras.txt
 camera/camrig/presets.json
 camera/camrig/.venv/
+
+# The five big flashing images (~30 GB) live in the private bucket, not git.
+# flashing/IMAGES.sha256 is the manifest; flashing/fetch_images.sh restores them.
+flashing/nanopi/emmc/nanopiIMAGE/*/rootfs.img
+flashing/nanopi/emmc/nanopiIMAGE/*/userdata.img
+flashing/nanopi/sd/*.img.zip
+flashing/opi/emmc/*.img
+flashing/opi/sd/*.img.gz
+*.part
