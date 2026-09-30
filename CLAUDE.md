@@ -8,11 +8,15 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 - **`station/`**: the copy-station laptop (`setup_copy_station.sh`, the opm launcher)
 - **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
   opm-name, starcapfinder, vnc, board-grading, pi-fixes)
-- **`storage/`**: SSDs and SD cards on the laptop (ssd-verify, drive-health, sd-format)
-- **`flashing/`**: NanoPi R76S and Orange Pi 5 flashing
-- **`camera/`**: DECXIN bench tools (camfw, lensfocus, calibcheck, fingerprint)
-- **`inventory/`**: vin-tracker, whoholds
+- **`storage/`**: sd-format (turn an SD card into plain storage for a board)
+- **`camera/`**: DECXIN bench tools (camrig + CamView, camfw, lensfocus, calibcheck, fingerprint)
+- **`inventory/`**: whoholds
 - **`lib/install_common.sh`**: the helper every `install.sh` sources
+
+Not here on purpose (removed 2026-09-30): board flashing (NanoPi R76S and Orange Pi,
+SD and eMMC) lives with its images in the `FLASH …` folders on the Desktop; the SSD
+cloud-verify / hours / drive-health tools and the opm SD launcher were retired after
+the opm-lan rework.
 
 Conventions for adding a tool: give it its own folder under the right group, with an
 `install.sh` that sources `../../lib/install_common.sh` and declares its deps with
@@ -106,8 +110,7 @@ shared module and opm fails loudly while opm-lan silently stops stamping.
 ## Tools that ssh into boards
 
 `fleet/opm-name`, `fleet/dock-check` and `fleet/vnc` probe **both** fleet logins.
-The older one-shot scripts (`fleet/pi-fixes/fix_boot_buzzer.sh`, `fix_timezone.sh`,
-`inventory/vin-tracker/vin_check.sh`) only know the Orange Pi login
+The older one-shot scripts (`fleet/pi-fixes/fix_boot_buzzer.sh`, `fix_timezone.sh`) only know the Orange Pi login
 `orangepi`/`orangepi`, and `fleet/board-grading/board_fingerprint.sh` only knows the
 NanoPi one `pi`/`12345`. Sudo on the pi uses the same password, fed with `sudo -S`.
 

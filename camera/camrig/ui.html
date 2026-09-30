@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>camrig — camera control panel</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c232d; --line:#2a323d;
+    --fg:#e6edf3; --dim:#8b98a5; --dim2:#5c6773;
+    --accent:#3fb6d8; --accent2:#f0a33c; --good:#4cc38a; --bad:#e5534b;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
+  h1 span{color:var(--accent)}
+  button,select,input{font:inherit;color:var(--fg)}
+  button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+    padding:5px 10px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:#1d4c5c;border-color:#2b7590}
+  button.primary:hover{background:#236075}
+  button.danger:hover{border-color:var(--bad);color:var(--bad)}
+  select{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 7px}
+  input[type=number]{background:#0c1015;border:1px solid var(--line);border-radius:6px;
+    padding:3px 5px;width:74px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=number]:focus{outline:none;border-color:var(--accent)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+
+  /* ---- top bar ---- */
+  header{display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+    padding:9px 14px;background:var(--panel);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:20}
+  .grow{flex:1}
+  .toggle{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;color:var(--dim)}
+  .toggle input{accent-color:var(--accent);width:14px;height:14px;margin:0}
+  .toggle:hover{color:var(--fg)}
+  .toggle.dead{opacity:.4;cursor:not-allowed}
+  #count{color:var(--dim2);font-size:11.5px}
+  .qual{display:flex;align-items:center;gap:5px;color:var(--dim2);font-size:11px}
+  .qual select{padding:3px 5px;font-size:11px}
+  #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);
+    padding:9px 15px;border-radius:8px;z-index:50;opacity:0;pointer-events:none;
+    transition:opacity .25s;max-width:70vw;box-shadow:0 8px 26px #0009}
+  #toast.show{opacity:1}
+  #toast.err{border-left-color:var(--bad)}
+
+  /* ---- layout: one panel per camera, wraps as cameras are added ---- */
+  #rig{display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));
+    gap:12px;padding:12px;align-items:start}
+  #none{padding:60px 20px;text-align:center;color:var(--dim2)}
+  #none b{display:block;color:var(--dim);font-size:14px;margin-bottom:6px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;min-width:0}
+  .ptop{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+    padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .ptag{display:inline-flex;align-items:center;justify-content:center;
+    width:19px;height:19px;border-radius:5px;background:#1d4c5c;color:var(--accent);
+    font-weight:700;font-size:11px;flex:none}
+  .pname{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;max-width:210px}
+  .ppath{color:var(--dim2)}
+  .ptop select{max-width:190px}
+
+  /* ---- video ---- */
+  .stage{position:relative;background:#05070a;display:flex;align-items:center;
+    justify-content:center;min-height:150px}
+  /* Fit is a VIEWING choice, not the only one. max-width:100% silently showed a 4000 px
+     frame at ~29% on a 1180 px window, which looks exactly like a soft camera and is not -
+     it is the browser resampling. zoom!=fit turns the stage into a pannable 1:1 viewport. */
+  .stage img{display:block;max-width:100%;height:auto}
+  .stage.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;
+    cursor:grab;max-height:78vh}
+  .stage.zoomed.drag{cursor:grabbing}
+  .stage.zoomed img{max-width:none;width:auto;height:auto;image-rendering:pixelated}
+  .stage .placeholder{color:var(--dim2);padding:46px 18px;text-align:center;font-size:12px}
+  .stage .placeholder b{color:var(--dim);display:block;margin-bottom:5px;font-size:13px}
+  .badge{position:absolute;top:7px;left:7px;background:#000a;backdrop-filter:blur(3px);
+    border-radius:6px;padding:3px 7px;font-size:10.5px;color:#cfe;
+    font-variant-numeric:tabular-nums;pointer-events:none}
+  .badge.right{left:auto;right:7px;color:var(--accent2)}
+  /* recording indicator, so a rolling capture is obvious from across the room */
+  .badge.rec{top:auto;bottom:7px;left:7px;color:#ffdad6;background:#3b0f0dcc;
+    border:1px solid #e5534b55;display:flex;align-items:center;gap:5px}
+  .badge.rec::before{content:"";width:7px;height:7px;border-radius:50%;
+    background:var(--bad);animation:blink 1.2s steps(1,end) infinite}
+  @keyframes blink{50%{opacity:.12}}
+  .xhair{position:absolute;inset:0;pointer-events:none;opacity:.5}
+  .xhair::before,.xhair::after{content:"";position:absolute;background:#3fb6d855}
+  .xhair::before{left:50%;top:0;bottom:0;width:1px}
+  .xhair::after{top:50%;left:0;right:0;height:1px}
+  /* seam marking the boundary between the two eyes of a stereo frame */
+  .seam{position:absolute;top:0;bottom:0;left:50%;width:1px;
+    background:repeating-linear-gradient(#f0a33c99 0 6px,transparent 6px 12px);
+    pointer-events:none}
+
+  /* ---- metrics ---- */
+  .metrics{display:flex;flex-wrap:wrap;gap:1px;background:var(--line)}
+  .metric{flex:1;min-width:88px;background:var(--panel);padding:5px 8px}
+  .metric .k{font-size:9.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.5px}
+  .metric .v{font-size:14px;font-variant-numeric:tabular-nums;margin-top:1px}
+  .metric .v.warn{color:var(--accent2)} .metric .v.bad{color:var(--bad)}
+  .metric .v.good{color:var(--good)}
+
+  /* ---- controls ---- */
+  .ctrls{padding:4px 0 8px}
+  .gname{padding:9px 11px 4px;font-size:9.5px;letter-spacing:1px;
+    text-transform:uppercase;color:var(--dim2)}
+  .row{display:grid;grid-template-columns:150px 1fr 80px;gap:9px;align-items:center;
+    padding:3px 11px}
+  .row:hover{background:#ffffff06}
+  .row.off{opacity:.42}
+  .row .nm{font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;cursor:help}
+  .row .nm.moved{color:var(--fg)}
+  .row .nm.moved::before{content:"●";color:var(--accent2);font-size:8px;
+    vertical-align:middle;margin-right:4px}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;
+    height:16px;margin:0}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:#0c1015;
+    border:1px solid var(--line)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+    border-radius:50%;background:var(--accent);margin-top:-5.5px;border:none;cursor:grab}
+  input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:#0c1015;
+    border:1px solid var(--line)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+    background:var(--accent);border:none;cursor:grab}
+  input[type=range]:disabled::-webkit-slider-thumb{background:var(--dim2)}
+  input[type=range]:disabled::-moz-range-thumb{background:var(--dim2)}
+  .sw{position:relative;width:38px;height:19px;background:#0c1015;border:1px solid var(--line);
+    border-radius:11px;cursor:pointer;transition:.15s;justify-self:start}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;
+    border-radius:50%;background:var(--dim2);transition:.15s}
+  .sw.on{background:#1d4c5c;border-color:var(--accent)}
+  .sw.on::after{left:20px;background:var(--accent)}
+  .row select{width:100%}
+  .fix{font-size:9.5px;padding:2px 6px;border-color:var(--accent2);color:var(--accent2)}
+  /* full-width note for a control we cannot render as a widget */
+  .unsupported{grid-column:2/4;font-size:10.5px;color:var(--dim2);font-style:italic}
+  /* inline mini-label that sits in the third column beside a switch/dropdown */
+  .hint{font-size:10.5px;color:var(--dim2)}
+  .pbot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+    padding:9px 11px;border-top:1px solid var(--line);background:var(--panel2)}
+  .pbot button{font-size:11.5px;padding:4px 8px}
+  .pbot select.codec{font-size:11px;padding:3px 5px;max-width:160px}
+  button.rec{font-variant-numeric:tabular-nums}
+  button.rec.on{background:#5c1f1c;border-color:var(--bad);color:#ffdad6}
+  button.rec.on:hover:not(:disabled){background:#6f2621;border-color:var(--bad);color:#fff}
+  .note{padding:6px 11px;font-size:11px;color:var(--accent2);background:#f0a33c14;
+    border-bottom:1px solid var(--line)}
+  .err{padding:7px 11px;font-size:11.5px;color:var(--bad);background:#e5534b14;
+    border-bottom:1px solid var(--line)}
+  .err b{display:block;margin-bottom:2px}
+</style>
+
+<header>
+  <h1>cam<span>rig</span></h1>
+  <button id="rescan">⟳ Rescan</button>
+  <span id="count"></span>
+  <label class="toggle" id="linkwrap"
+         title="Mirror every control change onto every other connected camera">
+    <input type="checkbox" id="link"> Link all cameras
+  </label>
+  <label class="toggle" title="Draw a centre crosshair on every preview">
+    <input type="checkbox" id="cross"> Crosshair
+  </label>
+  <span class="grow"></span>
+  <button id="opendir" title="Open the folder recordings are saved to">📁 Recordings</button>
+  <span class="qual">preview
+    <select id="pw" title="How wide the preview is sent to the browser. 'native' sends the
+sensor's own pixels with no downscale — what you see is then exactly what a recording gets,
+at the cost of a lot more bandwidth and browser decode work.">
+      <option value="640">640px</option>
+      <option value="900" selected>900px</option>
+      <option value="1280">1280px</option>
+      <option value="1920">1920px</option>
+      <option value="2560">2560px</option>
+      <option value="0">native (no downscale)</option>
+    </select>
+    <select id="pf" title="Caps how many frames are pushed to the browser. It cannot exceed
+what the capture pipeline actually delivers — see the fps metric under each preview.">
+      <option value="8">≤ 8 fps</option>
+      <option value="15" selected>≤ 15 fps</option>
+      <option value="25">≤ 25 fps</option>
+      <option value="60">≤ 60 fps</option>
+    </select>
+    <select id="pz" title="How the preview is DISPLAYED. 'fit' shrinks the frame to the
+window - on a 4000 px camera in a 1200 px window that is 30% scale, which looks soft because
+the browser is resampling, not because the lens is. 1:1 shows the sensor's own pixels and the
+view becomes pannable, like RealSense Viewer.">
+      <option value="fit" selected>fit to window</option>
+      <option value="1">1:1 pixels</option>
+      <option value="2">2:1 (zoom in)</option>
+    </select>
+    <select id="pq" title="JPEG quality of the preview stream. The camera already delivers
+MJPEG, so anything below ~95 re-compresses an already-compressed frame and the preview looks
+softer than the recording of the same moment.">
+      <option value="55">q55</option>
+      <option value="72" selected>q72</option>
+      <option value="90">q90</option>
+      <option value="95">q95</option>
+      <option value="100">q100 (no extra loss)</option>
+    </select>
+  </span>
+</header>
+
+<div id="rig"></div>
+<div id="none" hidden><b>no cameras found</b>plug a camera in — camrig picks it up on its own</div>
+<div id="toast"></div>
+
+<script>
+// ---------------------------------------------------------------- plumbing
+const $ = s => document.querySelector(s);
+const api = async (path, body) => {
+  const r = await fetch(path, body ? {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  } : {});
+  const j = await r.json().catch(() => ({error: 'bad response from server'}));
+  if (j.error) toast(j.error, true);
+  return j;
+};
+let toastTimer;
+function toast(msg, bad) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show' + (bad ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', bad ? 5200 : 2600);
+}
+const fmtDur = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const fmtSize = b => b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : Math.round(b / 1e6) + ' MB';
+
+/** Report a finished recording — including the ones that stopped themselves. */
+function reportRec(rec) {
+  const what = `${rec.file} · ${fmtDur(rec.seconds)} · ${rec.frames} frames · ${fmtSize(rec.bytes)}`;
+  if (rec.error) return toast(`recording stopped: ${rec.error} — kept ${what}`, true);
+  // Frames written / header fps is how long the file claims to be. Short of the
+  // wall clock means the encoder never kept up and the clip plays sped up.
+  if (rec.drift > 0.15)
+    return toast(`saved ${what}, but the encoder fell behind — it plays about `
+      + `${Math.round(rec.drift * 100)}% fast. Try a lower-fps capture mode.`, true);
+  toast(`saved ${what} → ${rec.path}`);
+}
+
+/** Report a multi-control apply. Warnings mean an auto mode owns the control. */
+function reportApply(r, label) {
+  const errs = r.errors || [], warns = r.warnings || [];
+  if (errs.length) toast(`${label}: ${errs.join('; ')}`, true);
+  else if (warns.length) toast(`${label} — auto mode still owns ${warns.length} control(s)`);
+  else toast(label);
+}
+
+// Controls whose "inactive" state is caused by an auto-mode control. Value is
+// the setting the gate needs for the dependent control to become writable.
+const GATES = {
+  exposure_time_absolute:    {gate: 'auto_exposure',              need: 1, word: 'Manual Mode'},
+  exposure_absolute:         {gate: 'exposure_auto',              need: 1, word: 'Manual Mode'},
+  focus_absolute:            {gate: 'focus_automatic_continuous', need: 0, word: 'auto-focus off'},
+  white_balance_temperature: {gate: 'white_balance_automatic',    need: 0, word: 'auto-WB off'},
+  iso_sensitivity:           {gate: 'iso_sensitivity_auto',       need: 0, word: 'auto-ISO off'},
+};
+const AUTO_NAMES = Object.values(GATES).map(g => [g.gate, g.need]);
+// Frames wider than this ratio are treated as two eyes side by side.
+// Mirrors STEREO_RATIO in camrig.py.
+const STEREO_RATIO = 2.2;
+
+let DEVICES = [];      // last full device scan
+let PANELS = [];       // one Panel per camera, same order as DEVICES
+let PRESETS = {};
+let CONFIG = {recdir: '', codecs: [], default_codec: 'avc1'};
+
+// ------------------------------------------------------------------- panel
+/**
+ * One panel == one physical camera.
+ *
+ * A stereo camera exposes a single v4l2 control set for its whole side-by-side
+ * frame, so there is exactly one control stack here no matter how many lenses
+ * the thing has. The eye selector only chooses what to *look* at.
+ */
+class Panel {
+  constructor(dev, label) {
+    this.dev = dev;
+    this.label = label;
+    this.eye = 'full';              // full | left | right  (view only)
+    this.mode = null;
+    this.wasRec = false;            // so a self-stopped recording gets reported once
+    this.controls = [];
+    this.status = null;
+    this.dirty = new Set();         // controls the user is actively dragging
+    this.pending = {};              // per-control throttle timers
+    this.el = document.createElement('div');
+    this.el.className = 'panel';
+    this.el.innerHTML = `
+      <div class="ptop">
+        <span class="ptag"></span>
+        <span class="pname"></span>
+        <code class="ppath"></code>
+        <select class="mode" title="capture format / resolution / fps"></select>
+        <select class="eye" title="which part of the frame to show — view only, not a control"></select>
+        <button class="go primary">Open</button>
+      </div>
+      <div class="msg"></div>
+      <div class="stage"><div class="placeholder"><b>no live view</b>hit Open</div></div>
+      <div class="metrics"></div>
+      <div class="ctrls"></div>
+      <div class="pbot">
+        <button class="manual" title="Switch exposure / focus / white-balance off auto so the sliders bite">Go full manual</button>
+        <button class="reset">Reset defaults</button>
+        <button class="snap">Snapshot</button>
+        <button class="rec">● Record</button>
+        <select class="codec"></select>
+        <button class="clone">⇄ Clone</button>
+        <span class="grow"></span>
+        <select class="presets"><option value="">— presets —</option></select>
+        <button class="pload">Load</button>
+        <button class="psave">Save as…</button>
+        <button class="pdel danger">Del</button>
+        <button class="copy" title="Copy an equivalent v4l2-ctl one-liner">⧉ cmd</button>
+      </div>`;
+    this.q = s => this.el.querySelector(s);
+    this.wire();
+  }
+
+  get index() { return PANELS.indexOf(this) + 1; }
+  get isOpen() { return !!(this.status && this.status.open); }
+  /** Other cameras that could receive a settings clone. */
+  get others() { return PANELS.filter(p => p !== this && p.dev); }
+
+  wire() {
+    this.q('.eye').onchange = e => { this.eye = e.target.value; this.showStream(); this.renderMetrics(); };
+    this.q('.mode').onchange = e => {
+      this.mode = e.target.value ? JSON.parse(e.target.value) : null;
+      if (this.isOpen) this.open();
+    };
+    this.q('.go').onclick = () => this.isOpen ? this.close() : this.open();
+    this.q('.reset').onclick = async () => {
+      const r = await api('/api/reset', {dev: this.dev});
+      if (r.controls) { this.controls = r.controls; this.renderControls(); }
+      reportApply(r, 'reset to hardware defaults');
+    };
+    this.q('.manual').onclick = () => this.goManual();
+    this.q('.clone').onclick = () => this.cloneToOthers();
+    this.q('.snap').onclick = async () => {
+      const r = await api(`/snapshot?dev=${encodeURIComponent(this.dev)}&eye=${this.eye}`);
+      if (r.ok) toast(`saved ${r.size} → ${r.path}`);
+    };
+    this.q('.rec').onclick = () => this.toggleRec();
+    this.q('.psave').onclick = async () => {
+      const name = prompt('Preset name:');
+      if (!name) return;
+      const r = await api('/api/preset/save', {dev: this.dev, name});
+      if (r.presets) { PRESETS = r.presets; refreshPresets(); toast(`saved preset "${name}"`); }
+    };
+    this.q('.pload').onclick = async () => {
+      const name = this.q('.presets').value;
+      if (!name) return toast('pick a preset first', true);
+      const r = await api('/api/apply', {dev: this.dev, values: PRESETS[name]});
+      if (r.controls) { this.controls = r.controls; this.renderControls(); }
+      reportApply(r, `applied "${name}"`);
+    };
+    this.q('.pdel').onclick = async () => {
+      const name = this.q('.presets').value;
+      if (!name) return;
+      const r = await api('/api/preset/delete', {name});
+      if (r.presets) { PRESETS = r.presets; refreshPresets(); toast(`deleted "${name}"`); }
+    };
+    this.q('.copy').onclick = () => {
+      const vals = this.controls.filter(c => c.writable && c.value !== null)
+        .map(c => `${c.name}=${c.value}`).join(',');
+      const cmd = `v4l2-ctl -d ${this.dev} --set-ctrl ${vals}`;
+      navigator.clipboard.writeText(cmd).then(() => toast('v4l2-ctl command copied'),
+        () => toast(cmd, true));
+    };
+  }
+
+  // -- selects -----------------------------------------------------------
+  fillHeader() {
+    const d = DEVICES.find(x => x.path === this.dev) || {};
+    this.q('.ptag').textContent = this.index;
+    this.q('.pname').textContent = this.label;
+    this.q('.pname').title = this.label;
+    // Identical cameras share a name, so show the USB port too — it is the only
+    // thing that ties a panel to a specific physical unit.
+    const path = this.dev.replace('/dev/', '');
+    this.q('.ppath').textContent = d.port ? `${path} · ${d.port}` : path;
+    this.q('.ppath').title = d.bus
+      ? `${this.dev} on USB port ${d.bus}` : this.dev;
+  }
+
+  fillModes() {
+    const d = DEVICES.find(x => x.path === this.dev);
+    const sel = this.q('.mode');
+    if (!d || !d.formats) { sel.innerHTML = '<option value="">—</option>'; return; }
+    const opts = [];
+    for (const m of d.formats)
+      for (const f of (m.fps.length ? m.fps : [0]))
+        opts.push({width: m.width, height: m.height, fps: f, fourcc: m.fourcc});
+    const prev = this.mode && JSON.stringify(this.mode);
+    sel.innerHTML = opts.map(o =>
+      `<option value='${JSON.stringify(o)}'>${o.fourcc} ${o.width}×${o.height}` +
+      `${o.fps ? ' ' + o.fps + 'fps' : ''}</option>`).join('') || '<option value="">—</option>';
+    // keep the user's chosen mode across a rescan
+    const keep = [...sel.options].findIndex(o => o.value === prev);
+    sel.selectedIndex = keep >= 0 ? keep : 0;
+    this.mode = sel.value ? JSON.parse(sel.value) : null;
+  }
+
+  /** Stereo is a property of the frame geometry, so it is knowable from the
+   *  selected mode before the camera is ever opened. Trust the live frame once
+   *  we have one. */
+  get stereo() {
+    const st = this.status || {};
+    if (st.open) return !!st.stereo;
+    return !!(this.mode && this.mode.height && this.mode.width / this.mode.height > STEREO_RATIO);
+  }
+
+  fillEyes() {
+    const stereo = this.stereo;
+    const sel = this.q('.eye');
+    const eyes = stereo
+      ? [['full', 'Both eyes'], ['left', 'Left eye only'], ['right', 'Right eye only']]
+      : [['full', 'Full frame']];
+    sel.innerHTML = eyes.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+    if (!eyes.some(([v]) => v === this.eye)) this.eye = 'full';
+    sel.value = this.eye;
+    sel.disabled = !stereo;
+  }
+
+  fillCodecs() {
+    const sel = this.q('.codec'), keep = sel.value;
+    sel.innerHTML = (CONFIG.codecs || [])
+      .map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+    sel.value = keep || CONFIG.default_codec || '';
+    if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+    sel.title = 'Recording format. MP4 (H.264) is about a quarter the size and plays in '
+      + 'anything, including a browser. MJPG stores every frame as its own JPEG — no '
+      + 'interframe smearing of fine detail, but roughly 300 MB per minute at 4000×1200.';
+  }
+
+  /** Load this camera's controls and current status. */
+  async refresh() {
+    this.fillHeader();
+    this.fillModes();
+    this.fillCodecs();
+    const r = await api(`/api/controls?dev=${encodeURIComponent(this.dev)}`);
+    this.controls = r.controls || [];
+    this.status = r.status;
+    this.fillEyes();
+    this.renderControls();
+    this.renderMeta();
+    // Don't restart a stream that is already running — refresh() also runs for
+    // existing panels when another camera is plugged in.
+    if (this.isOpen && !this.q('.stage img')) this.showStream();
+  }
+
+  // -- open / close -----------------------------------------------------
+  async open() {
+    this.q('.go').disabled = true;
+    this.q('.go').textContent = '…';
+    const r = await api('/api/open', Object.assign({dev: this.dev}, this.mode || {}));
+    this.q('.go').disabled = false;
+    this.status = r.status;
+    if (r.controls) this.controls = r.controls;
+    this.fillEyes();
+    this.renderControls();
+    this.renderMeta();
+    if (r.ok) this.showStream();
+    else this.q('.stage').innerHTML =
+      '<div class="placeholder"><b>could not open</b>see the message above</div>';
+    return r.ok;
+  }
+
+  async close() {
+    const img = this.q('.stage img');
+    if (img) img.src = '';           // drop the stream connection first
+    const r = await api('/api/close', {dev: this.dev});
+    this.status = r.status;
+    this.q('.stage').innerHTML = '<div class="placeholder"><b>closed</b>hit Open to resume</div>';
+    this.renderMeta();
+  }
+
+  showStream() {
+    if (!this.isOpen) return;
+    const p = new URLSearchParams({
+      dev: this.dev, eye: this.eye,
+      w: $('#pw').value, fps: $('#pf').value, q: $('#pq').value,
+      t: Date.now()                  // bust the cache on re-open
+    });
+    const st = this.status;
+    const eyeLabel = this.eye === 'full' ? '' : ` · ${this.eye} only`;
+    // On a both-eyes view, mark where one lens ends and the other begins.
+    const seam = (this.eye === 'full' && st.stereo) ? '<div class="seam"></div>' : '';
+    this.applyZoom();
+    this.q('.stage').innerHTML = `
+      <img src="/stream?${p}" alt="live view">
+      ${seam}
+      ${$('#cross').checked ? '<div class="xhair"></div>' : ''}
+      <div class="badge">${st.width}×${st.height} ${st.fourcc}${eyeLabel}</div>
+      <div class="badge right fpsb">—</div>`;
+    this.renderRec();                // the REC badge lives in the stage we just rebuilt
+  }
+
+  // -- recording ---------------------------------------------------------
+  get rec() { return (this.status && this.status.rec) || null; }
+  get recording() { return !!(this.rec && this.rec.active); }
+
+  async toggleRec() {
+    const btn = this.q('.rec');
+    btn.disabled = true;
+    if (this.recording) {
+      const r = await api('/api/record/stop', {dev: this.dev});
+      this.wasRec = false;                  // this path does the reporting
+      if (r.status) this.status = r.status;
+      if (r.rec) reportRec(r.rec);
+    } else {
+      const r = await api('/api/record/start', {
+        dev: this.dev, eye: this.eye, codec: this.q('.codec').value});
+      if (r.ok) {
+        this.status = r.status;
+        this.wasRec = true;
+        toast(`recording ${r.rec.fps} fps → ${r.rec.file}`);
+      }
+    }
+    btn.disabled = false;
+    this.renderRec();
+  }
+
+  /**
+   * Paint the Record button and the on-frame REC badge from the polled status,
+   * and report a recording that stopped on its own (disk full, camera pulled).
+   */
+  applyZoom() {
+    // 1:1 means the <img> keeps its natural size and the stage scrolls around it. Drag to
+    // pan, because a 4000 px frame in a 1200 px window is mostly off-screen by design.
+    const z = $('#pz') ? $('#pz').value : 'fit';
+    const st = this.q('.stage');
+    if (!st) return;
+    st.classList.toggle('zoomed', z !== 'fit');
+    const img = st.querySelector('img');
+    if (img) img.style.transform = (z === '2') ? 'scale(2)' : '';
+    if (img) img.style.transformOrigin = 'top left';
+    if (z !== 'fit' && !st._pan) {
+      st._pan = true;
+      let down = false, sx = 0, sy = 0, ox = 0, oy = 0;
+      st.addEventListener('mousedown', e => {
+        down = true; st.classList.add('drag');
+        sx = e.clientX; sy = e.clientY; ox = st.scrollLeft; oy = st.scrollTop;
+        e.preventDefault();
+      });
+      window.addEventListener('mouseup', () => { down = false; st.classList.remove('drag'); });
+      window.addEventListener('mousemove', e => {
+        if (!down) return;
+        st.scrollLeft = ox - (e.clientX - sx);
+        st.scrollTop = oy - (e.clientY - sy);
+      });
+    }
+  }
+
+  renderRec() {
+    const rec = this.rec, on = this.recording;
+    const btn = this.q('.rec');
+    btn.disabled = !this.isOpen;
+    btn.classList.toggle('on', on);
+    btn.textContent = on ? `■ Stop ${fmtDur(rec.seconds)}` : '● Record';
+    btn.title = on
+      ? `Recording to ${rec.path} — click to stop and finalize the file`
+      : `Record full-resolution video to ${CONFIG.recdir || 'the recordings folder'}`
+        + (this.eye === 'full' ? '' : ` (${this.eye} eye only)`);
+    this.q('.codec').disabled = on;
+
+    // The badge lives in the stage, which showStream() rebuilds — so add it
+    // here rather than in that template, and let this be the only owner.
+    const stage = this.q('.stage');
+    let b = this.q('.recbadge');
+    if (on && stage.querySelector('img')) {
+      if (!b) {
+        b = document.createElement('div');
+        b.className = 'badge rec recbadge';
+        stage.append(b);
+      }
+      const eye = rec.eye === 'full' ? (this.stereo ? 'both eyes' : 'full frame') : rec.eye + ' eye';
+      b.textContent = `REC ${fmtDur(rec.seconds)} · ${eye} · ${fmtSize(rec.bytes)}`;
+    } else if (b) {
+      b.remove();
+    }
+
+    // Tracking `on` here (not just at start) means a recording still counts as
+    // ours after a browser reload, and still gets reported when it ends.
+    if (on) this.wasRec = true;
+    else if (this.wasRec) {                 // ended without the button
+      this.wasRec = false;
+      if (rec) reportRec(rec);
+    }
+  }
+
+  // -- readouts ---------------------------------------------------------
+  renderMeta() {
+    const st = this.status;
+    this.q('.go').textContent = this.isOpen ? 'Close' : 'Open';
+    this.q('.go').className = this.isOpen ? 'go' : 'go primary';
+    this.q('.snap').disabled = !this.isOpen;
+    this.renderRec();
+
+    let html = '';
+    if (st && st.error) {
+      const hint = /busy/.test(st.error)
+        ? 'Close that app (or run <code>fuser -k ' + this.dev + '</code>) and hit Open again.'
+        : 'Try Rescan, or replug the camera.';
+      html += `<div class="err"><b>${st.error}</b>${hint}</div>`;
+    }
+    this.q('.msg').innerHTML = html;
+
+    // Clone target depends on how many other cameras are attached.
+    const others = this.others;
+    const cl = this.q('.clone');
+    cl.textContent = others.length === 1
+      ? `⇄ Clone → ${others[0].index}` : '⇄ Clone to all';
+    cl.disabled = !others.length;
+    cl.title = !others.length
+      ? 'Nothing to clone to — only one camera is connected'
+      : others.length === 1
+        ? `Copy every control value onto ${others[0].label} (${others[0].dev})`
+        : `Copy every control value onto the other ${others.length} cameras`;
+
+    this.renderMetrics();
+  }
+
+  renderMetrics() {
+    const st = this.status;
+    if (!st || !st.open) { this.q('.metrics').innerHTML = ''; return; }
+    const m = st.metrics || {};
+    // Two different fps numbers get confused constantly, so show both in one
+    // cell: what we really deliver, and what the mode dropdown asked the camera for.
+    const target = st.fps_target ? ' / ' + Math.round(st.fps_target) : '';
+    const cells = [['fps real/mode',
+                    (st.fps_actual ? st.fps_actual.toFixed(1) : '—') + target,
+                    st.fps_actual && st.fps_target && st.fps_actual < st.fps_target * 0.6 ? 'warn' : '',
+                    'Left = frames camrig is actually delivering (trust this one). '
+                    + 'Right = the rate requested from the camera in the mode dropdown. '
+                    + 'They diverge when decoding the frames is the bottleneck, not the USB link.']];
+    if (m.brightness !== undefined)
+      cells.push(['brightness', m.brightness,
+                  m.brightness < 35 ? 'warn' : m.brightness > 215 ? 'warn' : 'good']);
+    if (m.contrast !== undefined) cells.push(['contrast', m.contrast, '']);
+    // When zoomed into one eye, report that eye's sharpness — the whole-frame
+    // number is dominated by whichever half has more detail in view.
+    const eyeSharp = this.eye === 'left' ? m.left_sharpness
+                   : this.eye === 'right' ? m.right_sharpness : undefined;
+    if (eyeSharp !== undefined && eyeSharp !== null)
+      cells.push(['sharpness ' + this.eye[0].toUpperCase(), eyeSharp, '']);
+    else if (m.sharpness !== undefined) cells.push(['sharpness', m.sharpness, '']);
+    if (m.clipped !== undefined)
+      cells.push(['clipped %', m.clipped, m.clipped > 5 ? 'bad' : m.clipped > 1 ? 'warn' : 'good']);
+    if (m.lr_ratio != null) {
+      const off = Math.abs(Math.log(m.lr_ratio));
+      cells.push(['L∕R sharp', m.lr_ratio, off > 0.7 ? 'bad' : off > 0.35 ? 'warn' : 'good',
+        'Left-eye sharpness divided by right-eye. Only meaningful when both eyes '
+        + 'frame similar detail — a pattern in one eye alone will skew it hard.']);
+    }
+    this.q('.metrics').innerHTML = cells.map(([k, v, cls, tip]) =>
+      `<div class="metric"${tip ? ` title="${tip}"` : ''}><div class="k">${k}</div>` +
+      `<div class="v ${cls}">${v}</div></div>`).join('');
+    const f = this.q('.fpsb');
+    if (f) f.textContent = (st.fps_actual || 0).toFixed(1) + ' fps';
+  }
+
+  // -- control widgets --------------------------------------------------
+  renderControls() {
+    const box = this.q('.ctrls');
+    if (!this.controls.length) {
+      box.innerHTML = `<div class="gname">controls</div>
+        <div class="row"><span class="unsupported">no controls reported</span></div>`;
+      return;
+    }
+    let html = '', group = null;
+    for (const c of this.controls) {
+      if (c.group !== group) { group = c.group; html += `<div class="gname">${group}</div>`; }
+      html += this.rowHTML(c);
+    }
+    box.innerHTML = html;
+    this.bindRows();
+  }
+
+  rowHTML(c) {
+    const inactive = c.flags.includes('inactive');
+    const off = inactive || !c.writable;
+    const moved = c.value !== null && c.default !== null && c.value !== c.default;
+    const tip = `${c.name} · ${c.type}` +
+      (c.min !== null ? ` · range ${c.min}…${c.max} step ${c.step}` : '') +
+      (c.default !== null ? ` · default ${c.default}` : '') +
+      (c.flags.length ? ` · ${c.flags.join(', ')}` : '');
+    let widget;
+    if (!c.writable) {
+      widget = `<span class="unsupported">not adjustable here (${c.flags.join(', ') || c.type})</span>`;
+    } else if (c.type === 'bool') {
+      widget = `<div class="sw ${c.value ? 'on' : ''}" data-sw="${c.name}"></div>
+                <span class="hint">${c.value ? 'on' : 'off'}</span>`;
+    } else if (c.type === 'menu') {
+      widget = `<select data-menu="${c.name}" ${off ? 'disabled' : ''}>${
+        c.menu.map(o => `<option value="${o.value}" ${o.value === c.value ? 'selected' : ''}>${o.label}</option>`).join('')
+      }</select><span class="hint"></span>`;
+    } else {
+      const g = inactive && GATES[c.name];
+      widget = `<input type="range" data-r="${c.name}" min="${c.min}" max="${c.max}"
+                  step="${c.step}" value="${c.value}" ${off ? 'disabled' : ''}>
+        <span style="display:flex;gap:5px;align-items:center;justify-content:flex-end">
+          <input type="number" data-n="${c.name}" min="${c.min}" max="${c.max}"
+            step="${c.step}" value="${c.value}" ${off ? 'disabled' : ''}>
+          ${g ? `<button class="fix" data-fix="${c.name}" title="Set ${g.gate} to ${g.word}">unlock</button>` : ''}
+        </span>`;
+    }
+    return `<div class="row ${off ? 'off' : ''}" data-row="${c.name}">
+      <span class="nm ${moved ? 'moved' : ''}" title="${tip}">${c.name}</span>${widget}</div>`;
+  }
+
+  bindRows() {
+    const el = this.el;
+    el.querySelectorAll('[data-r]').forEach(r => {
+      const name = r.dataset.r;
+      const num = el.querySelector(`[data-n="${name}"]`);
+      r.oninput = () => { num.value = r.value; this.dirty.add(name); this.push(name, r.value, true); };
+      r.onchange = () => { this.dirty.delete(name); this.push(name, r.value); };
+      num.onchange = () => {
+        const c = this.controls.find(x => x.name === name);
+        let v = Math.min(c.max, Math.max(c.min, Number(num.value) || 0));
+        num.value = v; r.value = v; this.push(name, v);
+      };
+    });
+    el.querySelectorAll('[data-sw]').forEach(s => {
+      s.onclick = () => {
+        const c = this.controls.find(x => x.name === s.dataset.sw);
+        this.push(s.dataset.sw, c.value ? 0 : 1);
+      };
+    });
+    el.querySelectorAll('[data-menu]').forEach(m => {
+      m.onchange = () => this.push(m.dataset.menu, m.value);
+    });
+    el.querySelectorAll('[data-fix]').forEach(b => {
+      b.onclick = () => {
+        const g = GATES[b.dataset.fix];
+        this.push(g.gate, g.need);
+      };
+    });
+  }
+
+  /** Send one control change. Throttled while dragging so v4l2-ctl keeps up. */
+  push(name, value, throttle) {
+    if (throttle) {
+      if (this.pending[name]) { this.pending[name].value = value; return; }
+      this.pending[name] = {value};
+      setTimeout(() => {
+        const v = this.pending[name].value;
+        delete this.pending[name];
+        this.send(name, v);
+      }, 70);
+      return;
+    }
+    delete this.pending[name];
+    this.send(name, value);
+  }
+
+  async send(name, value) {
+    const r = await api('/api/set', {dev: this.dev, name, value});
+    if (!r.ok && r.message) toast(`${name}: ${r.message}`, true);
+    if (r.controls) { this.controls = r.controls; this.repaint(); }
+    if ($('#link').checked) {
+      for (const other of this.others) {
+        const o = await api('/api/set', {dev: other.dev, name, value});
+        if (o.controls) { other.controls = o.controls; other.repaint(); }
+      }
+    }
+  }
+
+  /** Refresh widgets from this.controls without clobbering an active drag. */
+  repaint() {
+    const el = this.el;
+    let structural = false;
+    for (const c of this.controls) {
+      const row = el.querySelector(`[data-row="${c.name}"]`);
+      if (!row) { structural = true; break; }
+      const off = c.flags.includes('inactive') || !c.writable;
+      row.classList.toggle('off', off);
+      const nm = row.querySelector('.nm');
+      if (nm) nm.classList.toggle('moved',
+        c.value !== null && c.default !== null && c.value !== c.default);
+      const r = row.querySelector('[data-r]'), n = row.querySelector('[data-n]');
+      if (r) {
+        r.disabled = n.disabled = off;
+        if (!this.dirty.has(c.name)) { r.value = c.value; n.value = c.value; }
+      }
+      const sw = row.querySelector('[data-sw]');
+      if (sw) {
+        sw.classList.toggle('on', !!c.value);
+        const lab = row.querySelector('.hint');
+        if (lab) lab.textContent = c.value ? 'on' : 'off';
+      }
+      const mn = row.querySelector('[data-menu]');
+      if (mn) { mn.value = c.value; mn.disabled = off; }
+    }
+    if (structural) this.renderControls();
+  }
+
+  /** Copy every writable control value onto the other camera(s). */
+  async cloneToOthers() {
+    const others = this.others;
+    if (!others.length) return toast('only one camera connected — nothing to clone to', true);
+    const values = {};
+    for (const c of this.controls)
+      if (c.writable && c.value !== null) values[c.name] = c.value;
+    let bad = 0;
+    for (const other of others) {
+      const r = await api('/api/apply', {dev: other.dev, values});
+      if (r.controls) { other.controls = r.controls; other.renderControls(); }
+      if ((r.errors || []).length) bad++;
+    }
+    toast(bad ? `cloned with issues onto ${bad} of ${others.length} camera(s)`
+              : `cloned ${Object.keys(values).length} settings onto ${others.length} camera(s)`, !!bad);
+  }
+
+  /** Flip every auto/priority control off so the manual sliders actually bite. */
+  async goManual() {
+    const have = new Map(this.controls.map(c => [c.name, c]));
+    const values = {};
+    for (const [gate, need] of AUTO_NAMES) if (have.has(gate)) values[gate] = need;
+    if (!Object.keys(values).length) return toast('this camera has no auto modes to turn off');
+    const r = await api('/api/apply', {dev: this.dev, values});
+    if (r.controls) { this.controls = r.controls; this.renderControls(); }
+    reportApply(r, 'manual: ' + Object.keys(values).join(', '));
+  }
+}
+
+// ------------------------------------------------------------------ wiring
+function refreshPresets() {
+  for (const p of PANELS) {
+    const sel = p.q('.presets'), keep = sel.value;
+    sel.innerHTML = '<option value="">— presets —</option>' +
+      Object.keys(PRESETS).map(k => `<option value="${k}">${k}</option>`).join('');
+    sel.value = keep in PRESETS ? keep : '';
+  }
+}
+
+/** Header bits that depend on how many cameras are attached. */
+function refreshGlobals() {
+  const n = PANELS.length;
+  $('#count').textContent = n ? `${n} camera${n === 1 ? '' : 's'}` : '';
+  $('#none').hidden = n > 0;
+  const solo = n < 2;
+  $('#linkwrap').classList.toggle('dead', solo);
+  $('#link').disabled = solo;
+  if (solo) $('#link').checked = false;
+  $('#linkwrap').title = solo
+    ? 'Needs at least two cameras'
+    : 'Mirror every control change onto every other connected camera';
+  for (const p of PANELS) { p.fillHeader(); p.renderMeta(); }
+}
+
+/**
+ * Reconcile the panel list with the attached cameras: keep panels whose device
+ * is still present (so tuning is not lost), drop the ones that vanished, add
+ * panels for anything new, then re-order to match.
+ */
+async function scan(opts) {
+  opts = opts || {};
+  const r = await api('/api/devices');
+  DEVICES = r.devices || [];
+  const paths = DEVICES.map(d => d.path);
+
+  for (const p of PANELS.filter(p => !paths.includes(p.dev))) {
+    p.el.remove();
+    if (!opts.silent) toast(`${p.label} (${p.dev}) disconnected`, true);
+  }
+  PANELS = PANELS.filter(p => paths.includes(p.dev));
+
+  const fresh = [];
+  for (const d of DEVICES) {
+    let p = PANELS.find(x => x.dev === d.path);
+    if (!p) { p = new Panel(d.path, d.label); PANELS.push(p); fresh.push(p); }
+    else p.label = d.label;
+  }
+  // keep DOM order aligned with device order, but only touch the DOM if it
+  // actually differs — re-appending would jog every running preview
+  PANELS.sort((a, b) => paths.indexOf(a.dev) - paths.indexOf(b.dev));
+  const cur = [...$('#rig').children], want = PANELS.map(p => p.el);
+  if (cur.length !== want.length || want.some((el, i) => cur[i] !== el))
+    $('#rig').append(...want);
+
+  await Promise.all(PANELS.map(p => p.refresh()));
+  refreshPresets();
+  refreshGlobals();
+
+  // Auto-open new cameras, but never steal one another app is holding.
+  for (const p of fresh) {
+    const d = DEVICES.find(x => x.path === p.dev);
+    if (d && !(d.busy_by || []).length && !p.isOpen) await p.open();
+  }
+  refreshGlobals();
+
+  const busy = DEVICES.filter(d => (d.busy_by || []).length);
+  if (busy.length)
+    toast(`${busy[0].path} is held by ${busy[0].busy_by.join(', ')} — close it to capture`, true);
+  else if (fresh.length && !opts.silent)
+    toast(`${fresh.length} camera${fresh.length === 1 ? '' : 's'} added`);
+}
+
+$('#rescan').onclick = () => scan();
+$('#opendir').onclick = async () => {
+  const r = await api('/api/reveal', {});
+  if (r.ok) toast(`opened ${r.path}`);
+};
+$('#cross').onchange = () => { for (const p of PANELS) p.showStream(); };
+for (const id of ['#pw', '#pf', '#pq'])
+  $(id).onchange = () => { for (const p of PANELS) p.showStream(); };
+// Zoom is display-only, so it must NOT tear down and re-open the stream - that drops the
+// connection and restarts the camera pipeline for what is a CSS change.
+$('#pz').onchange = () => { for (const p of PANELS) p.applyZoom(); };
+
+// One shared poll keeps every panel's fps/metrics live without eating the
+// browser's per-host connection budget (each live view already holds one).
+setInterval(async () => {
+  const devs = PANELS.map(p => p.dev);
+  if (!devs.length) return;
+  const r = await fetch('/api/status?devs=' + encodeURIComponent(devs.join(',')))
+    .then(x => x.json()).catch(() => null);
+  if (!r || !r.status) return;
+  for (const p of PANELS) {
+    if (!r.status[p.dev]) continue;
+    const was = p.isOpen, prevStereo = p.status && p.status.stereo;
+    p.status = r.status[p.dev];
+    if (p.status.stereo !== prevStereo) p.fillEyes();
+    if (was !== p.isOpen) p.renderMeta(); else { p.renderMetrics(); p.renderRec(); }
+    const hasImg = !!p.q('.stage img');
+    if (p.isOpen && !hasImg) p.showStream();
+    else if (!p.isOpen && hasImg)
+      p.q('.stage').innerHTML = '<div class="placeholder"><b>closed</b>hit Open to resume</div>';
+  }
+}, 1000);
+
+// Auto-driven values (exposure under auto-exposure, WB temperature) drift on
+// their own — refresh so the sliders show what the hardware is really doing.
+setInterval(async () => {
+  for (const p of PANELS) {
+    if (p.dirty.size) continue;
+    const r = await fetch('/api/controls?dev=' + encodeURIComponent(p.dev))
+      .then(x => x.json()).catch(() => null);
+    if (r && r.controls) { p.controls = r.controls; p.repaint(); }
+  }
+}, 2500);
+
+// Notice a camera being plugged in or pulled out without the user hitting
+// Rescan. The quick list skips format enumeration, so this stays cheap.
+setInterval(async () => {
+  const r = await fetch('/api/devices?quick=1').then(x => x.json()).catch(() => null);
+  if (!r || !r.devices) return;
+  const now = r.devices.map(d => d.path).join(',');
+  const have = PANELS.map(p => p.dev).join(',');
+  if (now !== have) await scan();
+}, 4000);
+
+// Debug handle: poke at the panels from the browser console, e.g. PANELS[0].controls.
+// A getter, because scan() rebuilds the array and a plain copy would go stale.
+Object.defineProperty(window, 'PANELS', {get: () => PANELS});
+(async () => {
+  const [cfg, pre] = await Promise.all([api('/api/config'), api('/api/presets')]);
+  if (cfg && cfg.codecs) CONFIG = cfg;
+  PRESETS = pre.presets || {};
+  $('#opendir').title = `Open ${CONFIG.recdir} — where Record saves its files`;
+  await scan({silent: true});
+})();
+</script>
