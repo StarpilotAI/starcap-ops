@@ -3,7 +3,7 @@
 #
 #   ./install.sh                 list the tools
 #   ./install.sh all             install every tool
-#   ./install.sh camfw lensfocus install just these (by folder name)
+#   ./install.sh camfw vnc       install just these (by folder name)
 #   NO_APT=1 ./install.sh all    only report missing apt packages
 #
 # Each tool folder has its own install.sh and can be installed on its own; this

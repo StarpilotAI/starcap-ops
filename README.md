@@ -35,8 +35,6 @@ network layout, the logins, and a fresh-laptop checklist.
 | live-tune a camera's v4l2 controls in the browser | `camera/camrig/` | `camrig` launcher |
 | see a DECXIN live at native resolution | `camera/camrig/` | `CamView` launcher, or press ± |
 | tell which firmware family a DECXIN camera is on | `camera/camfw/` | `Camera Firmware` / `Camera Firmware LAN` launchers |
-| A/B-test a camera firmware for frame jitter | `camera/camfw/` | `Firmware Jitter Bench` launcher |
-| hand-focus a lens barrel | `camera/lensfocus/` | `Lens Barrel Focus` launcher |
 | check which cameras are calibrated and uploaded | `camera/calibcheck/` | `Calibration Upload Check` launcher |
 | check a camera's JPEGs will pass the RK hardware decoder | `camera/fingerprint/` | `camera-fingerprint` |
 | see who has held a camera | `inventory/whoholds/` | `whoholds <camera>` |

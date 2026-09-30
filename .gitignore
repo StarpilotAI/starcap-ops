@@ -28,8 +28,6 @@ recordings/
 # Machine-local state a tool reads back (kept on disk, never committed)
 fleet/opm-name/board_registry.json
 fleet/opm-name/board_registry.json.tmp
-camera/camfw/fwbench/results/
-camera/camfw/fwbench/discarded/
 camera/camfw/fwidentapp/.last-run.json
 camera/calibcheck/cameras.txt
 camera/camrig/presets.json
