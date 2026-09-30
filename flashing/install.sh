@@ -35,7 +35,7 @@ fi
 missing="$(grep -v '^#' "$HERE/IMAGES.sha256" | while read -r _ bytes _ path; do
   [ -f "$HERE/$path" ] && [ "$(stat -c %s "$HERE/$path")" = "$bytes" ] || echo "    $path"; done)"
 if [ -n "$missing" ]; then
-  echo "  images missing (get them with ./fetch_images.sh after 'gcloud auth login'):"
+  echo "  images missing (download from the 'StarCap flashing images' Drive folder, then ./fetch_images.sh --from ~/Downloads):"
   echo "$missing"
 else
   echo "  images: all 5 present"

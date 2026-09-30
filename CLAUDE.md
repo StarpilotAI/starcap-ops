@@ -16,10 +16,12 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 - **`flashing/`**: the ONLY board flashing: `nanopi/{emmc,sd,rebuild}`,
   `opi/{emmc,sd,rescue,spi-recovery}` (`~/Desktop/flashing` is a link to it). Git holds
   the scripts, loaders, docs and small partitions; the five big images (~30 GB) are
-  gitignored and live in the PRIVATE bucket `gs://starpilot-starcap-flashing`.
-  `IMAGES.sha256` is the manifest; `fetch_images.sh` downloads + verifies + restores
-  mtimes (the flash scripts pick the NEWEST image beside them, so keep one per folder).
-  The images carry `stereocam/update_token`: never make the bucket or an object public.
+  gitignored and live in the Google Drive folder "StarCap flashing images" (shared with
+  starpilot.ai only). `IMAGES.sha256` is the manifest; `fetch_images.sh --from <dir>`
+  places browser downloads, plain `fetch_images.sh` uses rclone; both verify sha256 and
+  restore mtimes (the flash scripts pick the NEWEST image beside them, so keep one per
+  folder). The images carry `stereocam/update_token`: never share the folder as
+  "Anyone with the link".
 
 Not here on purpose: the SSD cloud-verify / hours / drive-health tools and the opm SD
 launcher were retired after the opm-lan rework (2026-09-30).

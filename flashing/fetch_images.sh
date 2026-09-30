@@ -2,50 +2,57 @@
 # fetch_images.sh — get the flashing images that git does not carry.
 #
 # The scripts, loaders, docs and small partitions of flashing/ are in git. The
-# five big images (~30 GB) are not: they live in a PRIVATE Cloud Storage bucket,
+# five big images (~30 GB) are not: they live in the Google Drive folder
+# "StarCap flashing images" (shared with starpilot.ai only; link in README.md),
 # and IMAGES.sha256 (committed) says exactly which bytes belong where.
 #
-#   ./fetch_images.sh                 download every missing or wrong image
-#   ./fetch_images.sh nanopi/sd       only the images under these folders
-#   ./fetch_images.sh --check         verify local images against the manifest (full sha256)
-#   ./fetch_images.sh --upload        push local images the bucket does not have yet
+#   ./fetch_images.sh --from ~/Downloads   place images you downloaded from the
+#                                          Drive link (searched by name + size)
+#   ./fetch_images.sh                      download missing images with rclone
+#   ./fetch_images.sh nanopi/sd            only the images under these folders
+#   ./fetch_images.sh --check              full sha256 check of the local images
+#   ./fetch_images.sh --upload             push local images the Drive lacks (rclone)
 #
-# Every download is checked against the manifest before it replaces anything, and
+# Nothing replaces a file until it matches the manifest's sha256, and every image
 # gets its recorded mtime back: the flash scripts pick the NEWEST image beside
 # them, so dates are part of correctness here, not cosmetics.
 #
-# Needs the Google Cloud CLI logged in as someone with access to the bucket:
-#   gcloud auth login
-# FLASH_BUCKET overrides the bucket (default below).
+# rclone needs a one-time login:  rclone config create gdrive drive scope=drive
+# FLASH_REMOTE overrides the rclone path (default below).
 #
 # THESE IMAGES CONTAIN stereocam/update_token, a GitHub token with admin + push on
-# the recorder repo. The bucket must stay private. Never make an object public or
-# hand out a signed URL to anyone outside the team.
+# the recorder repo. Share the Drive folder with starpilot.ai only, never
+# "Anyone with the link".
 
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="$HERE/IMAGES.sha256"
-BUCKET="${FLASH_BUCKET:-gs://starpilot-starcap-flashing}"
+REMOTE="${FLASH_REMOTE:-gdrive:StarCap flashing images}"
 
-GCLOUD="$(command -v gcloud || true)"
-[ -n "$GCLOUD" ] || [ ! -x "$HOME/google-cloud-sdk/bin/gcloud" ] || GCLOUD="$HOME/google-cloud-sdk/bin/gcloud"
+RCLONE="$(command -v rclone || true)"
+[ -n "$RCLONE" ] || [ ! -x "$HOME/.local/bin/rclone" ] || RCLONE="$HOME/.local/bin/rclone"
 
-MODE=fetch; FILTERS=()
-for a in "$@"; do
-  case "$a" in
+MODE=fetch; FILTERS=(); FROM=""
+while [ $# -gt 0 ]; do
+  case "$1" in
     --check)  MODE=check ;;
     --upload) MODE=upload ;;
-    -h|--help) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) FILTERS+=("${a%/}") ;;
+    --from)   MODE=place; FROM="${2:?--from needs a folder}"; shift ;;
+    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) FILTERS+=("${1%/}") ;;
   esac
+  shift
 done
 
 [ -f "$MANIFEST" ] || { echo "!! no $MANIFEST"; exit 1; }
-if [ "$MODE" != check ] && [ -z "$GCLOUD" ]; then
-  echo "!! needs the Google Cloud CLI (gcloud). Install: https://cloud.google.com/sdk/docs/install"
-  echo "   then log in once:  gcloud auth login"
+if { [ "$MODE" = fetch ] || [ "$MODE" = upload ]; } && [ -z "$RCLONE" ]; then
+  echo "!! no rclone. Either download the images from the Drive link in README.md and run"
+  echo "     $0 --from ~/Downloads"
+  echo "   or install rclone (https://rclone.org/install/) and log in once:"
+  echo "     rclone config create gdrive drive scope=drive"
   exit 1
 fi
+[ "$MODE" != place ] || [ -d "$FROM" ] || { echo "!! not a folder: $FROM"; exit 1; }
 
 wanted() {
   [ ${#FILTERS[@]} -eq 0 ] && return 0
@@ -54,6 +61,16 @@ wanted() {
 }
 
 sha_ok() { [ -f "$1" ] && [ "$(sha256sum "$1" | cut -d' ' -f1)" = "$2" ]; }
+
+# --from: the Drive web UI flattens folders, so look for the manifest's relative
+# path first, then any file with the same name AND byte size.
+find_in_from() {
+  local path="$1" bytes="$2" c
+  [ -f "$FROM/$path" ] && { echo "$FROM/$path"; return; }
+  while IFS= read -r c; do
+    [ "$(stat -c %s "$c")" = "$bytes" ] && { echo "$c"; return; }
+  done < <(find "$FROM" -type f -name "$(basename "$path")" 2>/dev/null)
+}
 
 fail=0; did=0
 while read -r sha bytes mtime path; do
@@ -74,7 +91,7 @@ while read -r sha bytes mtime path; do
       fi
       echo "  fetching $path ($((bytes/1000000)) MB)"
       mkdir -p "$(dirname "$local_f")"
-      if ! "$GCLOUD" storage cp "$BUCKET/$path" "$local_f.part"; then
+      if ! "$RCLONE" copyto "$REMOTE/$path" "$local_f.part" --progress </dev/null 2> >(grep -v client_id >&2); then
         echo "  !! download failed: $path"; rm -f "$local_f.part"; fail=1; continue
       fi
       if ! sha_ok "$local_f.part" "$sha"; then
@@ -83,15 +100,27 @@ while read -r sha bytes mtime path; do
       mv "$local_f.part" "$local_f" && touch -d "@$mtime" "$local_f"
       echo "  ok       $path"; did=$((did+1))
       ;;
+    place)
+      if [ -f "$local_f" ] && [ "$(stat -c %s "$local_f")" = "$bytes" ]; then
+        echo "  have     $path"; continue
+      fi
+      src="$(find_in_from "$path" "$bytes")"
+      if [ -z "$src" ]; then echo "  not in $FROM: $(basename "$path") ($bytes bytes)"; fail=1; continue; fi
+      echo "  checking $src"
+      if ! sha_ok "$src" "$sha"; then echo "  !! sha256 mismatch, not used: $src"; fail=1; continue; fi
+      mkdir -p "$(dirname "$local_f")"
+      mv "$src" "$local_f" && touch -d "@$mtime" "$local_f"
+      echo "  ok       $path"; did=$((did+1))
+      ;;
     upload)
-      if "$GCLOUD" storage ls "$BUCKET/$path" >/dev/null 2>&1; then
-        echo "  in bucket $path"; continue
+      if "$RCLONE" lsf "$REMOTE/$path" </dev/null 2>/dev/null | grep -q .; then
+        echo "  on Drive $path"; continue
       fi
       if ! sha_ok "$local_f" "$sha"; then
         echo "  !! local copy missing or not the manifest's bytes, not uploading: $path"; fail=1; continue
       fi
       echo "  uploading $path ($((bytes/1000000)) MB)"
-      "$GCLOUD" storage cp "$local_f" "$BUCKET/$path" || { echo "  !! upload failed: $path"; fail=1; continue; }
+      "$RCLONE" copyto "$local_f" "$REMOTE/$path" --drive-chunk-size 256M </dev/null 2> >(grep -v client_id >&2) || { echo "  !! upload failed: $path"; fail=1; continue; }
       did=$((did+1))
       ;;
   esac

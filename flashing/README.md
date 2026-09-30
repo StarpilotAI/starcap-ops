@@ -1,11 +1,15 @@
 # Flashing — the only board images and scripts we use
 
-The five big images are not in git. On a fresh checkout:
+The five big images are not in git. They are in the Google Drive folder
+**StarCap flashing images** (shared with starpilot.ai accounts only). On a fresh checkout:
 
-    ./install.sh              # packages + the Desktop shortcut; lists missing images
-    gcloud auth login         # once, with your starpilot.ai account
-    ./fetch_images.sh         # or: ./fetch_images.sh nanopi/sd   (just one folder)
-    ./fetch_images.sh --check # full sha256 proof against IMAGES.sha256
+    ./install.sh                         # packages + the Desktop shortcut; lists missing images
+    # download the images from the Drive folder in a browser, then:
+    ./fetch_images.sh --from ~/Downloads # checks each one, puts it in place, fixes its date
+    ./fetch_images.sh --check            # full sha256 proof against IMAGES.sha256
+
+With rclone logged in (`rclone config create gdrive drive scope=drive`), plain
+`./fetch_images.sh` downloads them directly (`./fetch_images.sh nanopi/sd` for one folder).
 
 
 | board | medium | folder | run |
