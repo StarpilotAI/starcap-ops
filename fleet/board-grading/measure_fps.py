@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""Two-point fps over a board's :8080/api/status frame counter.
+
+    measure_fps.py <board-ip> <label> <seconds>
+"""
 import json, sys, time, urllib.request
 IP=sys.argv[1]; LABEL=sys.argv[2]; SECS=float(sys.argv[3])
 def st(): return json.load(urllib.request.urlopen(f"http://{IP}:8080/api/status", timeout=5))

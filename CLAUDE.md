@@ -1,11 +1,23 @@
 # CLAUDE.md — StarCap copy-station & fleet ops
 
 This repo is the **copy-station + fleet-operations toolkit** for the StarCap footage
-system. It holds:
+system. One folder per tool, grouped by job, each with its own `install.sh`
+(`./install.sh` at the root lists them; [`README.md`](README.md) is the
+"which tool when" index):
 
-- **`tools/`** — standalone diagnostics/fixes for the fleet, the copy-station PC, and
-  the SSDs (SD-card health, cloud-hours checks, ARP fix, boot-buzzer fix, etc.).
-- **`setup_copy_station.sh`** — provisions a fresh Ubuntu laptop into a copy station.
+- **`station/`**: the copy-station laptop (`setup_copy_station.sh`, the opm launcher)
+- **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
+  opm-name, starcapfinder, vnc, board-grading, pi-fixes)
+- **`storage/`**: SSDs and SD cards on the laptop (ssd-verify, drive-health, sd-format)
+- **`flashing/`**: NanoPi R76S and Orange Pi 5 flashing
+- **`camera/`**: DECXIN bench tools (camfw, lensfocus, calibcheck, fingerprint)
+- **`inventory/`**: vin-tracker, whoholds
+- **`lib/install_common.sh`**: the helper every `install.sh` sources
+
+Conventions for adding a tool: give it its own folder under the right group, with an
+`install.sh` that sources `../../lib/install_common.sh` and declares its deps with
+`need_cmd`/`need_py`. Resolve every path relative to the script, never
+`/home/waleed/...`. Gitignore whatever it writes.
 
 The **copiers are not here** — both live in the `starcap-dashboard` repo:
 `opm-lan/` (the ethernet path) and `orangepi-manager/` (the SD-card path, "opm").
@@ -91,41 +103,32 @@ shared module and opm fails loudly while opm-lan silently stops stamping.
 
 ---
 
-## tools/  (run from the copy-station, mostly SSH into pis)
+## Tools that ssh into boards
 
-| Tool | What it does |
-|---|---|
-| `check_ssd.py` | Verify an SSD's recordings against the cloud — layout/wrapper-proof (handles weird nested folders via `--any-key`; `--also-device`). The authoritative "is this footage actually uploaded" check. |
-| `check_cloud_hours.py` / `check_drive_hours.py` | Tally recorded hours from the cloud vs a drive (hours come from opm contact sheets, not raw uploads). |
-| `fix_boot_buzzer.sh` | Silence the recorders' long boot BEEP. Patches the pi's U-Boot boot script (`/boot/boot.cmd`→`boot.scr`) to drive the buzzer GPIO (pin15/GPIO0_D4) low before Linux starts. Idempotent; `--scan` hits the whole /24; `--reboot` optional. |
-| `vnc_into_pi.sh <ip>` | VNC into a recorder's live desktop over ethernet (also wired into opm-lan as a "🖥️ VNC" button per online recorder). Installs/starts `x11vnc`, works around this fleet's Mali GPU driver needing a DRM-forced HDMI connector to render anything, opens TigerVNC fullscreen, and cleans everything up on the pi when you close the viewer. |
+`fleet/opm-name`, `fleet/dock-check` and `fleet/vnc` probe **both** fleet logins.
+The older one-shot scripts (`fleet/pi-fixes/fix_boot_buzzer.sh`, `fix_timezone.sh`,
+`inventory/vin-tracker/vin_check.sh`) only know the Orange Pi login
+`orangepi`/`orangepi`, and `fleet/board-grading/board_fingerprint.sh` only knows the
+NanoPi one `pi`/`12345`. Sudo on the pi uses the same password, fed with `sudo -S`.
 
-ARP-cache thresholds (raising the PC's `gc_thresh` so a /24 ping-sweep doesn't evict
-live pis — fixes pis flickering in/out of opm-lan) and the UGREEN USB-SATA UAS
-workaround used to be separate scripts here; the ARP fix is now inlined into
-`setup_copy_station.sh` (see below), and the UGREEN workaround was dropped as unused.
-`sdcard_health.sh` / `sdcard_probe.sh` (SD-card read-speed/health profiling) were
-also dropped as unused.
-
-Most tools SSH to pis with `sshpass -p orangepi ssh orangepi@<ip>`. Sudo on the pi also
-uses the password `orangepi` (feed via `sudo -S`) — but see Conventions: that login is
-the Orange Pi one, and NanoPi boards use `pi` / `12345`.
-
-`opm-name/` (the bulk renamer) also lives in this repo, and `install.sh` +
-`make_zip.sh` there package it as a standalone zip for a laptop with no checkout.
+`fleet/opm-name/`'s `install.sh` + `make_zip.sh` package it as a standalone zip for a
+laptop with no checkout. It is the one installer that copies the app out of the repo
+(to `~/.local/share/opm-name`); the others point launchers at the checkout.
 
 ---
 
 ## Board firmware state — which tool to reach for
 
-Three tools, three different jobs. Reaching for the wrong one is how a board gets
-frozen or silently regressed:
+Two tools, opposite jobs. Reaching for the wrong one is how a board gets frozen or
+silently regressed:
 
 | Tool | Use it when |
 |---|---|
-| **`dock_check.py`** (repo root) | A board is docked and you want it **current + auto-updating + on main** before it ships. Reports and, on confirmation, fixes. This is the default. |
-| `fleet_branch_check.py` (repo root) | You want a **read-only** sweep of everything docked right now: `.git` present? `UPDATE_*` set? It does **not** check whether the version is current. |
-| `tools/pin_to_branch.sh` | You deliberately want a board **off** latest-main — a canary on a feature branch, or frozen on a commit. Its defaults are `--updates off` and a v1.37.2 commit pin, so it is the opposite of `dock_check.py`. |
+| **`fleet/dock-check/dock_check.py`** | A board is docked and you want it **current + auto-updating + on main** before it ships. Reports and, on confirmation, fixes. This is the default. |
+| `fleet/pin-to-branch/pin_to_branch.sh` | You deliberately want a board **off** latest-main: a canary on a feature branch, or frozen on a commit. `--branch` is required (its old default, v1.37.2, records 0 frames on the R76S) and `--updates` defaults to off, so it is the opposite of `dock_check.py`. |
+
+(`fleet_branch_check.py`, the read-only sweep, was deleted on 2026-09-30: `dock_check.py`
+reports the same things, and it was key-auth only, so every NanoPi read UNREACHABLE.)
 
 `dock_check.py` specifics worth knowing:
 
@@ -149,10 +152,9 @@ frozen or silently regressed:
 - It reads the **effective** environment (`systemctl show`), not a config file, and
   inventories `stereocam.service.d/*.conf` — drop-ins merge in lexical order, so a
   leftover `20-pin-commit.conf` silently beats a correct pin. It writes the same
-  `20-pin-main.conf` filename `fleet_branch_check.py --fix` writes, on purpose.
+  `20-pin-main.conf` filename the old `fleet_branch_check.py --fix` wrote, on purpose.
 - It probes **both** logins (`orangepi`/`orangepi`, then `pi`/`12345`), so NanoPi
-  boards are checked too — `fleet_branch_check.py` is key-auth-only and calls them
-  UNREACHABLE.
+  boards are checked too.
 - A board it could not inspect is reported UNKNOWN and **never** counted as a pass.
   Only docked, powered boards answer, so absence proves nothing.
 - No token or no route to GitHub ⇒ autoupdate is a **no-op** even when `UPDATE_ENABLE=1`
@@ -175,7 +177,7 @@ nmcli connection modify <wired-conn> ipv4.method shared ipv4.addresses 10.77.0.1
 
 - Verify: `ip -br addr show <iface>` → `10.77.0.1/24`. If NM regenerates the connection
   (netplan), re-apply and consider persisting it properly.
-- Also raise ARP thresholds so the sweep doesn't evict pis — `setup_copy_station.sh`
+- Also raise ARP thresholds so the sweep doesn't evict pis. `station/setup_copy_station.sh`
   does this (writes `/etc/sysctl.d/99-arp-cache.conf`, raises `gc_thresh1/2/3`).
 
 On a **fresh laptop** the wired NIC name differs (e.g. `eno1`, `enp*`) — set the right
@@ -190,11 +192,11 @@ connection name in the nmcli command above.
 
   | Board | Login | Identify hardware |
   |---|---|---|
-  | Orange Pi 5 (the deployed fleet) | `orangepi` / `orangepi` | buzzer, pin 15 |
+  | Orange Pi 5 | `orangepi` / `orangepi` | buzzer, pin 15 |
   | NanoPi R76S | `pi` / `12345` | onboard `sys/wan/lan` LEDs — **no buzzer** |
 
-  Tools that dock arbitrary boards must try both rather than assume: `opm-name`
-  and `tools/vnc_into_pi.sh` do (they probe the logins and cache which one each
+  Tools that dock arbitrary boards must try both rather than assume: `opm-name`,
+  `dock-check` and `vnc_into_pi.sh` do (they probe the logins and cache which one each
   board answered on). ⚠ **opm-lan does not** — its `config.yaml` carries a single
   `ssh.user`/`ssh.password`, so copying footage off a NanoPi needs that edited
   first (or the same auto-detect ported over).
@@ -208,7 +210,7 @@ connection name in the nmcli command above.
 ## Setup on a fresh Ubuntu laptop (checklist)
 
 1. Clone this repo.
-2. `sudo ./setup_copy_station.sh` — installs opm-lan's packages (sshpass, rsync,
+2. `sudo station/setup_copy_station.sh`: installs opm-lan's packages (sshpass, rsync,
    ffmpeg, PyYAML, opencv/numpy), shares the wired NIC on `10.77.0.1/24` (see
    Networking), and raises the ARP-cache thresholds. Safe to re-run.
 3. Clone `starcap-dashboard` — it holds both copiers (`opm-lan/` and
@@ -216,6 +218,7 @@ connection name in the nmcli command above.
 4. Edit `starcap-dashboard/opm-lan/config.yaml` → set `destination:` to your SSD mount.
 5. `cd starcap-dashboard/opm-lan && ./start_opm_lan.sh` → open http://localhost:8770,
    dock a recorder over ethernet, and it should appear.
+6. `./install.sh all` in this repo for the rest of the tools.
 
 ---
 

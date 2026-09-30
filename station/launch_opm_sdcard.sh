@@ -6,7 +6,7 @@
 # (apt install + venv/pip setup), so a fixed short delay isn't reliable.
 set -uo pipefail
 
-OPM_DIR="/home/waleed/starcap-dashboard/orangepi-manager"
+OPM_DIR="${STARCAP_DASHBOARD:-$HOME/starcap-dashboard}/orangepi-manager"
 PORT="${OPM_PORT:-8765}"
 
 cd "$OPM_DIR" || { echo "missing $OPM_DIR"; read -rp "press enter to close..."; exit 1; }
