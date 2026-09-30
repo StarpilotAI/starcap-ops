@@ -87,7 +87,8 @@ rename silently did nothing and had to be redone by hand in the dashboard.
    over the wire. Most "it's not showing up" is impatience.
 2. `ip -br addr show <wired-iface>` — want `10.77.0.1/24`. If it says anything
    else, the wired NIC isn't sharing: `./install.sh --network`, or
-   `nmcli connection up opm-lan`.
+   `nmcli connection up starcap-dock`. `setup_dock_lan.sh --check` shows the
+   port state and which boards answer on which login.
 3. **Another network profile stealing the port.** This is the one that wastes an
    afternoon. Docking a recorder bounces the ethernet carrier, and on every
    bounce NetworkManager re-picks the highest-priority autoconnect profile for
@@ -96,7 +97,7 @@ rename silently did nothing and had to be redone by hand in the dashboard.
 
    ```bash
    nmcli -f NAME,TYPE,DEVICE,ACTIVE connection show     # who's on the wired NIC?
-   nmcli -f connection.autoconnect-priority connection show opm-lan
+   nmcli -f connection.autoconnect-priority connection show starcap-dock
    ```
 
    `install.sh --network` sets this up correctly (dock profile at priority 100,

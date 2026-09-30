@@ -5,7 +5,7 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 (`./install.sh` at the root lists them; [`README.md`](README.md) is the
 "which tool when" index):
 
-- **`station/`**: the copy-station laptop (`setup_copy_station.sh`, the opm launcher)
+- **`station/`**: `setup_dock_lan.sh`, which makes a laptop's ethernet port accept docked boards
 - **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
   opm-name, starcapfinder, vnc, board-grading, pi-fixes)
 - **`storage/`**: sd-format (turn an SD card into plain storage for a board)
@@ -173,15 +173,20 @@ default), a docked pi's gateway collides with the PC's → the PC can't ARP-reso
 → can't copy it. So the copy-station's wired NIC is moved off that subnet:
 
 ```bash
-# put the wired NIC on 10.77.0.1/24 (NAT-share so pis get internet too)
-nmcli connection modify <wired-conn> ipv4.method shared ipv4.addresses 10.77.0.1/24
-# docked pis then get 10.77.0.x; opm-lan auto-detects this subnet.
+sudo station/setup_dock_lan.sh [iface]   # set it up / repair it; safe to re-run
+station/setup_dock_lan.sh --check        # no root: port state + which boards answer on which login
 ```
 
-- Verify: `ip -br addr show <iface>` → `10.77.0.1/24`. If NM regenerates the connection
-  (netplan), re-apply and consider persisting it properly.
-- Also raise ARP thresholds so the sweep doesn't evict pis. `station/setup_copy_station.sh`
-  does this (writes `/etc/sysctl.d/99-arp-cache.conf`, raises `gc_thresh1/2/3`).
+It shares the port on `10.77.0.1/24` as the NM profile **`starcap-dock`** (an old
+`opm-lan` / `PI-Dock` profile on that port gets renamed), pins it to autoconnect
+priority 100, turns autoconnect off for any other profile **on the same port** (a
+DHCP-client profile winning a replug is how a docked board silently never gets an IP),
+and raises the ARP thresholds (`/etc/sysctl.d/99-arp-cache.conf`) so the /24 sweep
+doesn't evict live boards. `fleet/opm-name/install.sh --network` runs the same script.
+
+- Verify: `ip -br addr show <iface>` → `10.77.0.1/24`.
+- On a laptop with one ethernet port, an office DHCP profile on that port gets
+  autoconnect off, so switch back by hand: `nmcli connection up <that profile>`.
 
 On a **fresh laptop** the wired NIC name differs (e.g. `eno1`, `enp*`) — set the right
 connection name in the nmcli command above.
@@ -213,15 +218,13 @@ connection name in the nmcli command above.
 ## Setup on a fresh Ubuntu laptop (checklist)
 
 1. Clone this repo.
-2. `sudo station/setup_copy_station.sh`: installs opm-lan's packages (sshpass, rsync,
-   ffmpeg, PyYAML, opencv/numpy), shares the wired NIC on `10.77.0.1/24` (see
-   Networking), and raises the ARP-cache thresholds. Safe to re-run.
+2. `sudo station/setup_dock_lan.sh`: makes the ethernet port accept docked NanoPis
+   and Orange Pis (see Networking). Safe to re-run. Then `./install.sh all`.
 3. Clone `starcap-dashboard` — it holds both copiers (`opm-lan/` and
    `orangepi-manager/`).
 4. Edit `starcap-dashboard/opm-lan/config.yaml` → set `destination:` to your SSD mount.
 5. `cd starcap-dashboard/opm-lan && ./start_opm_lan.sh` → open http://localhost:8770,
    dock a recorder over ethernet, and it should appear.
-6. `./install.sh all` in this repo for the rest of the tools.
 
 ---
 

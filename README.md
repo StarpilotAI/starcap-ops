@@ -22,7 +22,7 @@ network layout, the logins, and a fresh-laptop checklist.
 
 | I want to… | tool | run |
 |---|---|---|
-| set up a fresh copy-station laptop | `station/` | `sudo station/setup_copy_station.sh` |
+| make a laptop's ethernet port accept docked boards | `station/` | `sudo station/setup_dock_lan.sh`, then `setup_dock_lan.sh --check` |
 | find every board on the LAN and open its page | `fleet/starcapfinder/` | always-on service, http://127.0.0.1:8090 |
 | rename boards as they dock | `fleet/opm-name/` | `opm-name` launcher |
 | make sure a docked board is current, auto-updating and on main | `fleet/dock-check/` | `dock-check` |
@@ -44,7 +44,7 @@ network layout, the logins, and a fresh-laptop checklist.
 ## Layout
 
 ```
-station/      the copy-station laptop itself
+station/      the laptop's dock ethernet port
 fleet/        tools that talk to boards over the dock ethernet
 storage/      SD cards plugged into the laptop
 camera/       DECXIN stereo cameras on the bench

@@ -148,72 +148,17 @@ fi
 
 # ---------------------------------------------------------------------------
 say "-- [4/4] wired network --"
+# One script sets up the dock port for every fleet tool: station/setup_dock_lan.sh
+# in the starcap-ops checkout, or the copy make_zip.sh bundles next to this file.
+DOCK_LAN="$(ls "$SRC/setup_dock_lan.sh" "$SRC/../../station/setup_dock_lan.sh" 2>/dev/null | head -1 || true)"
 if [ "$DO_NETWORK" != 1 ]; then
   echo "  skipped (re-run with --network to set it up)."
   echo "  You need it if docked recorders never show up: they get their IP from"
-  echo "  this laptop, so the wired NIC has to be sharing a subnet. Note it must"
-  echo "  NOT be 10.42.0.1/24 — that's the recorders' own hotspot subnet, and the"
-  echo "  address collision stops this laptop resolving them."
-elif ! command -v nmcli >/dev/null; then
-  echo "  ⚠ no nmcli (NetworkManager) — set the wired NIC to 10.77.0.1/24 shared by hand."
+  echo "  this laptop, so the wired port has to share 10.77.0.1/24."
+elif [ -z "$DOCK_LAN" ]; then
+  echo "  ⚠ setup_dock_lan.sh not found next to this installer: set it up by hand"
 else
-  WIRED_IFACE="$(ip -br link show | awk '{print $1}' | grep -Ev '^(lo|wl|wwan|docker|veth|virbr|br-)' | head -n1)"
-  if [ -z "$WIRED_IFACE" ]; then
-    echo "  ⚠ couldn't find a wired interface — plug in the ethernet adapter and re-run."
-  else
-    echo "  wired interface: $WIRED_IFACE"
-    CONN_NAME=opm-lan     # same profile name every station uses, so the recovery
-                          # command (`nmcli connection up opm-lan`) is universal
-    EXISTING="$(nmcli -t -f NAME,DEVICE connection show | awk -F: -v d="$WIRED_IFACE" '$2==d{print $1; exit}')"
-    [ -n "$EXISTING" ] || EXISTING="$(nmcli -t -f NAME,TYPE connection show | awk -F: '$2=="802-3-ethernet"{print $1; exit}')"
-    if [ -z "$EXISTING" ]; then
-      echo "  creating profile '$CONN_NAME'"
-      sudo nmcli connection add type ethernet ifname "$WIRED_IFACE" con-name "$CONN_NAME"
-    elif [ "$EXISTING" != "$CONN_NAME" ]; then
-      # rename rather than add a second profile — two profiles on one NIC race
-      echo "  renaming existing profile '$EXISTING' → '$CONN_NAME'"
-      sudo nmcli connection modify "$EXISTING" connection.id "$CONN_NAME"
-    fi
-    sudo nmcli connection modify "$CONN_NAME" connection.interface-name "$WIRED_IFACE" \
-                                              ipv4.method shared ipv4.addresses 10.77.0.1/24 \
-                                              connection.autoconnect yes \
-                                              connection.autoconnect-priority 100
-
-    # Make sure NOTHING else grabs this NIC. Docking a recorder bounces the
-    # carrier, and on every bounce NetworkManager re-picks the highest-priority
-    # autoconnect profile for the device. If that's a plain DHCP-CLIENT profile
-    # (the distro default, priority 0), the shared subnet disappears along with
-    # its dnsmasq — so the recorder you just plugged in can never get an IP and
-    # simply never appears, while the tool looks broken. Seen in the wild: a
-    # laptop where the dock profile sat at priority -999 and lost every time.
-    # Ours is pinned to 100 above; anything else ethernet gets its autoconnect
-    # turned off (reversible: nmcli connection modify "<name>" connection.autoconnect yes).
-    while read -r other; do
-      [ -n "$other" ] && [ "$other" != "$CONN_NAME" ] || continue
-      echo "  demoting '$other' — it would grab $WIRED_IFACE back on every replug"
-      sudo nmcli connection modify "$other" connection.autoconnect no || true
-    done < <(nmcli -t -f NAME,TYPE connection show | awk -F: '$2=="802-3-ethernet"{print $1}')
-
-    sudo nmcli connection down "$CONN_NAME" >/dev/null 2>&1 || true
-    sudo nmcli connection up "$CONN_NAME" >/dev/null 2>&1 \
-      || echo "  (bring-up failed — dock a recorder, then: nmcli connection up $CONN_NAME)"
-    echo "  $WIRED_IFACE → 10.77.0.1/24 shared, and it now wins on every replug"
-    ACTIVE_NOW="$(nmcli -t -f NAME,DEVICE connection show --active | awk -F: -v d="$WIRED_IFACE" '$2==d{print $1}')"
-    echo "  active on $WIRED_IFACE: ${ACTIVE_NOW:-none yet} ($(ip -br addr show "$WIRED_IFACE" | awk '{print $3}'))"
-
-    # Discovery ping-sweeps the whole /24 every pass. The default ARP table caps
-    # at gc_thresh1=128, so a sweep floods it and the kernel evicts LIVE boards —
-    # that's the "recorder shows up, then vanishes, then comes back" symptom.
-    sudo tee /etc/sysctl.d/99-arp-cache.conf >/dev/null <<'EOF'
-# opm-name/opm-lan ping-sweep the whole /24; the default ARP table (gc_thresh1=128)
-# overflows and the GC evicts live recorders, making them flicker in and out.
-net.ipv4.neigh.default.gc_thresh1 = 1024
-net.ipv4.neigh.default.gc_thresh2 = 2048
-net.ipv4.neigh.default.gc_thresh3 = 4096
-EOF
-    sudo sysctl -p /etc/sysctl.d/99-arp-cache.conf >/dev/null
-    echo "  raised the ARP cache limits (persisted in /etc/sysctl.d/99-arp-cache.conf)"
-  fi
+  sudo bash "$DOCK_LAN"
 fi
 
 say "done."

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Which docked starcaps have a camera that jitters.
 
-Plug the dock switch into this laptop's ethernet (the PI-Dock profile shares
+Plug the dock switch into this laptop's ethernet (the starcap-dock profile shares
 10.77.0.1/24 over enp2s0), and this sweeps every recorder on the cable and grades
 the camera attached to each one.
 
@@ -240,7 +240,7 @@ def main():
         _, subnet = opmlan.wired_iface_subnet(cfg)
         sys.exit(f"nothing answered on {iface or 'any wired interface'} "
                  f"({subnet or 'no subnet'}) — is the dock switch plugged into this "
-                 f"laptop, and is the PI-Dock connection up?")
+                 f"laptop, and is the dock profile up? (station/setup_dock_lan.sh --check)")
     # stderr, not stdout: --json must emit nothing but JSON, or every consumer has to
     # strip a banner off the front before parsing.
     print(f"{len(ips)} host(s) answering on {iface}\n",
