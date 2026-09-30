@@ -1,10 +1,21 @@
-# Orange Pi 5 SD card — StarCap recorder 1.55.0 (flashing/opi/sd)
+# Orange Pi 5 SD card — StarCap recorder 1.65.0 (flashing/opi/sd)
+
+> **2026-09-30: rebuilt on recorder 1.65.0** (`main` @ `5f5bc3b`), WB off (the 1.64.0+
+> default; no `WB_ENABLE` line), updates on and pinned to `main`. Built OFFLINE from the
+> previous image: the `main` tarball overlaid exactly as `updater.py` does, then the
+> release's own `post_update.sh` run as root in a qemu-aarch64 chroot (only its board probe
+> and LED probe pointed at fakes describing this board), so every native library was
+> recompiled from 1.65.0 sources. `e2fsck -fn` clean, ext4 features identical to the
+> previous image. **Not yet boot-tested on hardware**: flash one board and check it records
+> before trusting it fleet-wide. The previous image is kept at `~/rebuild-165/old-images/`.
+> Build notes further down describe the PREVIOUS build and are kept as history.
+
 
 A flashable SD image that boots an **Orange Pi 5** straight into the recorder, and a
 flasher that refuses to hand you a card that will not work.
 
-    orangepi5-starcap-1.55.0-20260830.img.gz    the image  (2.23 GB, 16 GiB raw)
-    orangepi5-starcap-1.55.0-20260830.img.gz.sha256
+    orangepi5-starcap-1.65.0-20260930.img.gz    the image  (2.23 GB, 16 GiB raw)
+    orangepi5-starcap-1.65.0-20260930.img.gz.sha256
     flash_opi_sd.sh                             write it + verify it
 
 This is the **Orange Pi 5 / RK3588** counterpart to `../../nanopi/`, which is

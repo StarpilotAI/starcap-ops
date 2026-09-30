@@ -1,7 +1,18 @@
-# SD card route — NanoPi R76S, recorder 1.50.0
+# SD card route — NanoPi R76S, recorder 1.65.0
+
+> **2026-09-30: rebuilt on recorder 1.65.0** (`main` @ `5f5bc3b`), WB off (the 1.64.0+
+> default; no `WB_ENABLE` line), updates on and pinned to `main`. Built OFFLINE from the
+> previous image: the `main` tarball overlaid exactly as `updater.py` does, then the
+> release's own `post_update.sh` run as root in a qemu-aarch64 chroot (only its board probe
+> and LED probe pointed at fakes describing this board), so every native library was
+> recompiled from 1.65.0 sources. This zip was rebuilt with `../rebuild/build_nanopi_sd_image.sh` from the 1.65.0 eMMC set (`../emmc/nanopiIMAGE/rk3576-starcap-latest-20260930`). `e2fsck -fn` clean, ext4 features identical to the
+> previous image. **Not yet boot-tested on hardware**: flash one board and check it records
+> before trusting it fleet-wide. The previous image is kept at `~/rebuild-165/old-images/`.
+> Build notes further down describe the PREVIOUS build and are kept as history.
+
 
 For a NanoPi with **no eMMC** (or when you don't want to deal with maskrom). Same OS,
-same recorder 1.50.0, same self-assigning identity as the eMMC route in the folder above
+same recorder 1.65.0, same self-assigning identity as the eMMC route in the folder above
 — it is literally the same partition set, just materialised as one flat disk image
 instead of pushed partition-by-partition over USB.
 
@@ -25,7 +36,7 @@ Step 4 is the one that matters — see the warning below.
 
 ## balenaEtcher / Raspberry Pi Imager (macOS, Windows)
 
-Point it at `nanopi-r76s-starcap-1.50.0-sd-20260822.img.zip` — it reads the zip directly
+Point it at `nanopi-r76s-starcap-1.65.0-sd-20260930.img.zip` — it reads the zip directly
 (single file inside, which is why it's packed that way).
 
 ⚠️ **But then the card is NOT expanded, and the board gets only ~1.6 GB of recording

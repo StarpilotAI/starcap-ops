@@ -1,10 +1,20 @@
 # eMMC boot for the Orange Pi 5B — StarCap recorder
 
+> **2026-09-30: rebuilt on recorder 1.65.0** (`main` @ `5f5bc3b`), WB off (the 1.64.0+
+> default; no `WB_ENABLE` line), updates on and pinned to `main`. Built OFFLINE from the
+> previous image: the `main` tarball overlaid exactly as `updater.py` does, then the
+> release's own `post_update.sh` run as root in a qemu-aarch64 chroot (only its board probe
+> and LED probe pointed at fakes describing this board), so every native library was
+> recompiled from 1.65.0 sources. The 60.1 fps measurements below are from the 1.55.0 build. `e2fsck -fn` clean, ext4 features identical to the
+> previous image. **Not yet boot-tested on hardware**: flash one board and check it records
+> before trusting it fleet-wide. The previous image is kept at `~/rebuild-165/old-images/`.
+> Build notes further down describe the PREVIOUS build and are kept as history.
+
 Boots the recorder from the board's onboard eMMC, freeing the SD slot to be pure
 recording storage.
 
-    opi5b-emmc-starcap-1.55.0-20260913c.img         THE GOLDEN IMAGE (10.7 GB)
-    opi5b-emmc-starcap-1.55.0-20260913c.img.sha256
+    opi5b-emmc-starcap-1.65.0-20260930.img          THE GOLDEN IMAGE (10.7 GB)
+    opi5b-emmc-starcap-1.65.0-20260930.img.sha256
     flash_emmc.sh                                  probe / write / read back
     rk3588_spl_loader.bin                          RK3588 maskrom DDR loader
     sdcard-boot.scr / .cmd                         SD->eMMC boot handoff (see #8)
@@ -35,7 +45,7 @@ then capturing the eMMC. Every claim below was observed working on hardware.
 | | |
 |---|---|
 | Base | ubuntu-rockchip 22.04.5 **desktop** for orangepi-5b, kernel 5.10.0-1012-rockchip |
-| Recorder | 1.55.0, **`stereocam.service`** enabled (the fleet daemon — dashboard heartbeat, device_id, LED, recording) |
+| Recorder | 1.65.0 (was 1.55.0 when this table was measured), **`stereocam.service`** enabled (the fleet daemon — dashboard heartbeat, device_id, LED, recording) |
 | Update pinning | `UPDATE_BRANCH=main` + `UPDATE_ENABLE=1`, both explicit, in `stereocam.service.d/20-pin-main.conf` |
 | WB plugin | `libgstwbcorrect.so` **compiled from source on real RK3588 silicon**; `gst-inspect-1.0 wbcorrect` loads it |
 | opencv | installed natively by `install.sh` |

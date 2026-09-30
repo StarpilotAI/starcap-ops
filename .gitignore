@@ -40,3 +40,6 @@ flashing/nanopi/sd/*.img.zip
 flashing/opi/emmc/*.img
 flashing/opi/sd/*.img.gz
 *.part
+
+# LibreOffice lock files
+.~lock.*#

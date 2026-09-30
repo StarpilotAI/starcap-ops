@@ -19,8 +19,8 @@ With rclone logged in (`rclone config create gdrive drive scope=drive`), plain
 | Orange Pi 5B | eMMC | `opi/emmc/` | board in maskrom: `sudo ./flash_emmc.sh` |
 | Orange Pi 5 | SD card | `opi/sd/` | `sudo ./flash_opi_sd.sh /dev/sdX` |
 
-Versions: NanoPi recorder **1.50.0** (image 2026-08-22/23), Orange Pi recorder
-**1.55.0** (SD 2026-08-30, 5B eMMC 2026-09-13). Each folder's README has the details.
+Versions: every image is recorder **1.65.0** (`main` @ `5f5bc3b`, rebuilt 2026-09-30,
+WB off, auto-update on). Each folder's README has the details.
 
 Extras:
 - `nanopi/rebuild/`: build a NanoPi SD image from the eMMC image set, clone a running

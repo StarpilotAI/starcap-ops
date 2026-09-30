@@ -1,6 +1,17 @@
-# NanoPi R76S eMMC — recorder 1.50.0 (flashing/nanopi/emmc)
+# NanoPi R76S eMMC — recorder 1.65.0 (flashing/nanopi/emmc)
 
-Put the StarCap recorder at **1.50.0**, tracking `main`, onto a NanoPi R76S.
+Put the StarCap recorder at **1.65.0**, tracking `main`, onto a NanoPi R76S.
+
+> **2026-09-30: rebuilt on recorder 1.65.0** (`main` @ `5f5bc3b`), WB off (the 1.64.0+
+> default; no `WB_ENABLE` line), updates on and pinned to `main`. Built OFFLINE from the
+> previous image: the `main` tarball overlaid exactly as `updater.py` does, then the
+> release's own `post_update.sh` run as root in a qemu-aarch64 chroot (only its board probe
+> and LED probe pointed at fakes describing this board), so every native library was
+> recompiled from 1.65.0 sources. Only `userdata.img` changed (every vendor partition is byte-identical to the previous set); the host kernel's overlay bookkeeping (77 `origin` + 22 `impure` xattrs and a `trusted.overlay.uuid`) was stripped from the upper so clones don't boot to a blinking cursor. `userdata.img` sha256 `d8f2933f…`. `e2fsck -fn` clean, ext4 features identical to the
+> previous image. **Not yet boot-tested on hardware**: flash one board and check it records
+> before trusting it fleet-wide. The previous image is kept at `~/rebuild-165/old-images/`.
+> Build notes further down describe the PREVIOUS build and are kept as history.
+
 **Two routes — same OS, same recorder, same partition set, pick by the hardware:**
 
 | route | use when | how |
@@ -19,7 +30,7 @@ flashed with Etcher rather than `flash_sd.sh` is left unexpanded, giving the boa
 sudo ./flash_nanopi_emmc.sh          # board in maskrom, A-to-A cable, no hub
 ```
 
-No arguments needed — it auto-selects `nanopiIMAGE/rk3576-starcap-latest-20260822`.
+No arguments needed — it auto-selects `nanopiIMAGE/rk3576-starcap-latest-20260930`.
 Add `--dry-run` to print the write plan without touching the board.
 
 Needs a Linux x86-64 host (`upgrade_tool` is closed-source x86-64) and **~12 GB free**.
