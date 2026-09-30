@@ -9,7 +9,7 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 - **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
   opm-name, starcapfinder, vnc, board-grading, pi-fixes)
 - **`storage/`**: sd-format (turn an SD card into plain storage for a board)
-- **`camera/`**: DECXIN bench tools (camrig + CamView, camfw, calibcheck, fingerprint)
+- **`camera/`**: DECXIN bench tools (camrig + CamView, camfw, fingerprint)
 - **`inventory/`**: whoholds
 - **`lib/install_common.sh`**: the helper every `install.sh` sources
 

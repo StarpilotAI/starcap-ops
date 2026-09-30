@@ -29,7 +29,6 @@ recordings/
 fleet/opm-name/board_registry.json
 fleet/opm-name/board_registry.json.tmp
 camera/camfw/fwidentapp/.last-run.json
-camera/calibcheck/cameras.txt
 camera/camrig/presets.json
 camera/camrig/.venv/
 
