@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StarCap QC</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171d26; --panel2:#1d2530; --line:#2a3340; --line2:#36414f;
+    --fg:#e6edf3; --mut:#8b98a8; --acc:#ff7a18; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --blu:#388bfd;
+    --okbg:#12261a; --badbg:#2d1416; --warnbg:#2a210f;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{margin:0;color:var(--fg);font:14px/1.5 system-ui,"Segoe UI",Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+         padding:12px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header img{width:28px;height:28px}
+  header h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.01em}
+  header .meta{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto;font-size:12px;color:var(--mut)}
+  header .meta b{color:var(--fg);font-weight:600}
+  main{max-width:1180px;margin:0 auto;padding:20px 22px 60px}
+  .bar{border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;border:1px solid}
+  .bar.warn{background:var(--warnbg);border-color:var(--warn);color:var(--warn)}
+  .bar.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+  h2{margin:26px 0 10px;font-size:13px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:10px}
+  h2 .sub{text-transform:none;letter-spacing:0;font-weight:400}
+  .empty{color:var(--mut);text-align:center;padding:42px 0;border:1px dashed var(--line2);border-radius:12px}
+  .empty b{color:var(--fg)}
+  .cards{display:grid;gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card.pass{border-color:var(--ok)} .card.fail{border-color:var(--bad)} .card.running{border-color:var(--acc)}
+  .chead{display:flex;align-items:center;gap:14px;padding:14px 18px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .cname{font-size:18px;font-weight:650}
+  .cname .unnamed{color:var(--mut);font-weight:500}
+  .facts{display:flex;gap:6px;flex-wrap:wrap}
+  .fact{font-size:12px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-family:var(--mono)}
+  .fact b{color:var(--fg);font-weight:500}
+  .fact.badf{color:var(--bad);border-color:var(--bad)}
+  .fact.recf{color:var(--bad);border-color:var(--bad)}
+  .cact{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .seg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;color:var(--mut);border:0;border-radius:0;margin:0;padding:7px 14px;font-weight:600}
+  .seg button.on{background:var(--panel2);color:var(--fg);box-shadow:inset 0 -2px 0 var(--acc)}
+  button{font:inherit;background:var(--acc);border:1px solid var(--acc);color:#1a1205;font-weight:650;border-radius:9px;padding:7px 16px;cursor:pointer}
+  button:hover:not(:disabled){filter:brightness(1.08)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--fg);border-color:var(--line2);font-weight:550}
+  button.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+  button.big{padding:10px 22px;font-size:15px}
+  .cbody{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:0}
+  .cbody.one{grid-template-columns:1fr}
+  @media (max-width:900px){.cbody{grid-template-columns:1fr}}
+  .steps{padding:8px 0}
+  .step{display:grid;grid-template-columns:28px minmax(150px,230px) minmax(0,1fr);gap:10px;align-items:start;padding:7px 18px}
+  .step + .step{border-top:1px solid #1f2731}
+  .step .ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;margin-top:1px}
+  .ic.pending{border:2px solid var(--line2)}
+  .ic.running{border:2px solid var(--acc);border-right-color:transparent;animation:spin .8s linear infinite}
+  .ic.pass{background:var(--ok);color:#06200e} .ic.warn{background:var(--warn);color:#2a1d02}
+  .ic.fail{background:var(--bad);color:#2b0507} .ic.skip{border:2px dashed var(--line2)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.ic.running{animation:none}}
+  .step .t{font-weight:600}
+  .step .t .why{display:block;font-weight:400;color:var(--mut);font-size:12px}
+  .step .s{color:var(--fg);font-size:13px;min-width:0;overflow-wrap:anywhere}
+  .step.pending .t,.step.skip .t{color:var(--mut)}
+  .step .s .dt{display:block;color:var(--mut);font-size:12px;font-family:var(--mono)}
+  .step.fail .s{color:#ffb4ae} .step.warn .s{color:#f0cf87}
+  .side{border-left:1px solid var(--line);padding:16px 18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+  @media (max-width:900px){.side{border-left:0;border-top:1px solid var(--line)}}
+  .side img{width:100%;border-radius:8px;border:1px solid var(--line);background:#000;display:block}
+  .side .cap{font-size:11px;color:var(--mut);margin-top:4px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 10px}
+  .stat .k{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+  .stat .v{font-size:17px;font-weight:650;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .stat .v.bad{color:var(--bad)} .stat .v.ok{color:var(--ok)}
+  .prog{height:8px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+  .prog i{display:block;height:100%;background:var(--acc);transition:width .9s linear}
+  .proglbl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:4px;font-family:var(--mono)}
+  .prompt{margin:12px 18px;padding:16px 18px;border-radius:12px;background:#2b1c08;border:2px solid var(--acc);display:flex;gap:16px;align-items:center}
+  .prompt .big{font-size:20px;font-weight:700;color:var(--acc)}
+  .prompt .cnt{margin-left:auto;font-family:var(--mono);font-size:26px;font-weight:700;color:var(--fg)}
+  @media (prefers-reduced-motion:no-preference){.prompt{animation:pulse 1.4s ease-in-out infinite}}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,122,24,.18)}}
+  .verdict{margin:0 18px 14px;padding:14px 16px;border-radius:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .verdict.pass{background:var(--okbg);border:1px solid var(--ok)}
+  .verdict.fail{background:var(--badbg);border:1px solid var(--bad)}
+  .verdict.cancelled{background:var(--panel2);border:1px solid var(--line2)}
+  .verdict .w{font-size:22px;font-weight:800;letter-spacing:.02em}
+  .verdict.pass .w{color:var(--ok)} .verdict.fail .w{color:var(--bad)} .verdict.cancelled .w{color:var(--mut)}
+  .verdict .h{color:var(--fg);font-size:13px;min-width:0}
+  .verdict .va{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .namebox{margin:0 18px 16px;padding:14px 16px;border-radius:12px;background:var(--panel2);border:1px solid var(--line2);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .namebox .lbl{font-weight:650}
+  .namebox .hint{font-size:12px;color:var(--mut);width:100%}
+  input[type=text]{background:var(--bg);color:var(--fg);border:1px solid var(--line2);border-radius:9px;padding:8px 11px;font:15px var(--mono);width:200px}
+  input[type=text]:focus{outline:none;border-color:var(--acc)}
+  .named{color:var(--ok);font-weight:650}
+  .msg{font-size:13px}
+  .msg.bad{color:var(--bad)} .msg.ok{color:var(--ok)} .msg.warn{color:var(--warn)}
+  .confirm{width:100%;background:var(--warnbg);border:1px solid var(--warn);border-radius:9px;padding:10px 12px;color:#f0cf87;font-size:13px}
+  .confirm .row{display:flex;gap:8px;margin-top:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:500;background:var(--panel2)}
+  tr:last-child td{border-bottom:0}
+  td.mono{font-family:var(--mono)}
+  .pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
+  .pill.pass{color:var(--ok);border-color:var(--ok)} .pill.fail{color:var(--bad);border-color:var(--bad)}
+  .pill.cancelled{color:var(--mut);border-color:var(--line2)}
+  a{color:var(--blu)}
+  .mut{color:var(--mut)}
+  .mono{font-family:var(--mono)}
+  .note{font-size:12px;color:var(--mut);padding:0 18px 14px}
+  .recwarn{width:100%;font-size:12px;color:var(--warn)}
+</style>
+</head>
+<body>
+<header>
+  <img src="/icon.svg" alt="">
+  <h1>StarCap QC</h1>
+  <div class="meta">
+    <span id="dock">dock: …</span>
+    <span id="names" title="Read from the dashboard's name table, the one /devices shows">names: …</span>
+  </div>
+</header>
+<main>
+  <div id="bars"></div>
+  <h2>Docked StarCaps <span class="sub mut" id="dockhint"></span>
+    <button class="ghost" style="margin-left:auto;padding:4px 12px;font-size:12px" onclick="rescan(this)">Rescan</button></h2>
+  <div class="cards" id="cards"></div>
+  <div class="empty" id="empty" hidden>No StarCap on the dock yet. <b>Plug one into this laptop's ethernet</b>; it shows up here in a few seconds.</div>
+
+  <h2>QC history <span class="sub mut">(reports saved on this laptop)</span></h2>
+  <div id="hist"></div>
+</main>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// a value as a JS string literal inside an HTML attribute (onclick="f(${js(x)})")
+const js = v => esc(JSON.stringify(String(v ?? "")));
+// a value as an element id
+const idOf = v => String(v ?? "").replace(/[^A-Za-z0-9_-]/g, "_");
+const ICON = {pass:"✓", warn:"!", fail:"✕", pending:"", running:"", skip:""};
+const soakPick = {};      // cpu_id -> minutes the operator picked
+const nameDraft = {};     // cpu_id -> what is typed in the name box (survives the poll redraw)
+const flash = {};         // cpu_id -> {cls, text} message under the name box
+const confirmFor = {};    // cpu_id -> pending duplicate-name confirmation
+const busy = {};          // cpu_id -> a request is in flight
+let STATE = null;
+
+async function post(path, body){
+  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body || {})});
+  let j = {};
+  try { j = await r.json(); } catch (_) { j = {ok:false, error:`HTTP ${r.status}`}; }
+  return j;
+}
+
+function shortModel(m){ return String(m || "").replace(/^(FriendlyElec|FriendlyARM|Xunlong|Rockchip)\s+/i, "").trim(); }
+function mmss(s){ s = Math.max(0, Math.round(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
+function ago(ts){
+  if(!ts) return "—";
+  const s = Math.floor(Date.now()/1000 - ts);
+  if(s < 60) return "just now"; if(s < 3600) return `${Math.floor(s/60)} min ago`;
+  if(s < 86400) return `${Math.floor(s/3600)} h ago`;
+  return new Date(ts*1000).toLocaleDateString();
+}
+
+function facts(d){
+  const f = [];
+  f.push(`<span class="fact">${esc(d.ip)}</span>`);
+  if(d.model) f.push(`<span class="fact">${esc(shortModel(d.model))}</span>`);
+  if(d.version) f.push(`<span class="fact">v<b>${esc(d.version)}</b></span>`);
+  if(d.camera_id) f.push(`<span class="fact">camera <b>${esc(d.camera_id)}</b></span>`);
+  else if(d.device_id) f.push(`<span class="fact badf">no camera</span>`);
+  if(d.cpu_id) f.push(`<span class="fact" title="${esc(d.cpu_id)}">cpu ${esc(d.cpu_id.slice(0,10))}</span>`);
+  if(d.recording) f.push(`<span class="fact recf">● recording ${d.rec_duration ? mmss(d.rec_duration) : ""}</span>`);
+  if(d.error) f.push(`<span class="fact badf" title="${esc(d.error)}">${esc(d.recorder_down ? "recorder not answering" : "unreachable")}</span>`);
+  return f.join("");
+}
+
+function stepRow(s){
+  const det = (s.details || []).map(x => `<span class="dt">${esc(x)}</span>`).join("");
+  return `<div class="step ${s.state}">
+    <div class="ic ${s.state}">${ICON[s.state] || ""}</div>
+    <div class="t">${esc(s.title)}<span class="why">${esc(s.why || "")}</span></div>
+    <div class="s">${esc(s.summary || (s.state === "pending" ? "" : s.state === "running" ? "…" : ""))}${det}</div>
+  </div>`;
+}
+
+function liveSide(run){
+  const parts = [];
+  const lv = run.live;
+  if(lv && lv.total_s && !lv.done && run.active){
+    const pct = Math.min(100, 100 * lv.t / lv.total_s);
+    parts.push(`<div><div class="prog"><i style="width:${pct.toFixed(1)}%"></i></div>
+      <div class="proglbl"><span>soak ${mmss(lv.t)}</span><span>${mmss(lv.total_s - lv.t)} left</span></div></div>`);
+  } else if(lv){
+    parts.push(`<div class="proglbl" style="margin:0"><span>soak: ${mmss(lv.t)} recorded</span></div>`);
+  }
+  if(lv){
+    const cls = (v, bad) => v === null || v === undefined ? "" : (bad ? "bad" : "ok");
+    parts.push(`<div class="stats">
+      <div class="stat"><div class="k">fps</div><div class="v ${cls(lv.fps, lv.fps < 59.5)}">${lv.fps != null ? lv.fps.toFixed(1) : "—"}</div></div>
+      <div class="stat"><div class="k">dropped</div><div class="v ${cls(lv.dropped, lv.dropped > 0)}">${lv.dropped ?? "—"}</div></div>
+      <div class="stat"><div class="k">hottest °C</div><div class="v ${cls(lv.temp_max, lv.temp_max >= 80)}">${lv.temp_max != null ? lv.temp_max.toFixed(1) : "—"}</div></div>
+      <div class="stat"><div class="k">IMU Hz</div><div class="v ${cls(lv.imu_hz, lv.imu_hz < 200)}">${lv.imu_hz != null ? Math.round(lv.imu_hz) : "—"}</div></div>
+    </div>`);
+  }
+  if(run.has_frame){
+    parts.push(`<div><img src="/api/frame?cpu_id=${encodeURIComponent(run.cpu_id)}&v=${run.frame_seq}" alt="QC snapshot">
+      <div class="cap">${esc(run.frame_caption || "snapshot")}</div></div>`);
+  }
+  return parts.join("");
+}
+
+function nameBox(run){
+  const cpu = run.cpu_id;
+  if(run.named_as){
+    return `<div class="namebox"><span class="lbl">Named</span><span class="named">${esc(run.named_as)}</span>
+      <span class="mut">on the dashboard now; the board picks it up on its next heartbeat.</span>
+      ${run.named_note ? `<span class="msg warn" style="width:100%">${esc(run.named_note)}</span>` : ""}</div>`;
+  }
+  const nm = (STATE && STATE.names) || null;
+  const suggest = nm && nm.next ? nm.next : "";
+  const val = nameDraft[cpu] !== undefined ? nameDraft[cpu] : suggest;
+  const fl = flash[cpu];
+  const cf = confirmFor[cpu];
+  const id = "nm-" + idOf(cpu);
+  return `<div class="namebox">
+    <span class="lbl">Name this StarCap</span>
+    <input type="text" id="${id}" value="${esc(val)}" spellcheck="false" autocomplete="off"
+      oninput="nameDraft[${js(cpu)}]=this.value; delete confirmFor[${js(cpu)}]" onkeydown="if(event.key==='Enter')doName(${js(cpu)})">
+    <button onclick="doName(${js(cpu)})" ${busy[cpu] ? "disabled" : ""}>${busy[cpu] ? "Naming…" : "Name it"}</button>
+    ${fl ? `<span class="msg ${fl.cls}">${esc(fl.text)}</span>` : ""}
+    <span class="hint">${suggest ? `Next free number is <b>${esc(suggest)}</b>. ` : ""}Written on the dashboard, the same way opm-name does it.</span>
+    ${cf ? `<div class="confirm">${esc(cf.text)}<div class="row">
+        <button onclick="doName(${js(cpu)}, true)">Name it ${esc(cf.name)} anyway</button>
+        <button class="ghost" onclick="delete confirmFor[${js(cpu)}]; render()">Cancel</button></div></div>` : ""}
+  </div>`;
+}
+
+function card(d, run){
+  const cpu = d.cpu_id || "";
+  const state = run ? (run.active ? "running" : run.verdict) : "";
+  const title = d.name ? esc(d.name) : `<span class="unnamed">unnamed</span>`;
+  const pick = soakPick[cpu] || (STATE.soak_choices || [5])[0];
+  let actions = "";
+  if(!run || !run.active){
+    const can = !!cpu && !d.error;
+    const segs = (STATE.soak_choices || [5, 10]).map(m =>
+      `<button class="${m === pick ? "on" : ""}" onclick="soakPick[${js(cpu)}]=${Number(m)}; render()">${Number(m)} min</button>`).join("");
+    actions = `<div class="seg" title="How long the soak recording runs">${segs}</div>
+      <button class="big" ${can ? "" : "disabled"} onclick="startQC(${js(d.ip)}, ${js(cpu)}, ${d.recording ? "true" : "false"})">${run ? "Run QC again" : "Start QC"}</button>`;
+    if(d.recording) actions += `<span class="recwarn">This board is recording a take right now. Starting QC stops that take first (it is kept on the card).</span>`;
+  } else {
+    const el = run.started ? mmss(Date.now()/1000 - run.started) : "";
+    actions = `<span class="mut mono" title="time since QC started">${el}</span>
+      <button class="danger" ${run.cancelling ? "disabled" : ""} onclick="cancelQC(${js(cpu)}, this)">${run.cancelling ? "Stopping…" : "Stop QC"}</button>`;
+  }
+  let body = "";
+  if(run){
+    const prompt = run.prompt ? `<div class="prompt"><div><div class="big">${esc(run.prompt.title)}</div>
+        <div>${esc(run.prompt.text)}</div></div>${run.prompt.deadline ? `<div class="cnt">${mmss(run.prompt.deadline - Date.now()/1000)}</div>` : ""}</div>` : "";
+    let verdict = "";
+    if(!run.active){
+      const w = {pass:"PASSED", fail:"FAILED", cancelled:"STOPPED"}[run.verdict] || "";
+      verdict = `<div class="verdict ${run.verdict}"><span class="w">${w}</span><span class="h">${esc(run.headline || "")}</span>
+        <span class="va">${run.report_file ? `<a href="/api/report?file=${encodeURIComponent(run.report_file)}" target="_blank" rel="noopener"><button class="ghost">Report</button></a>` : ""}
+        ${run.report_file && run.has_logs ? `<button class="ghost" title="frames.csv, imu.csv, metrics.csv, device_info/final_status and the recorder's journal, kept on this laptop; the video was deleted from the board" onclick="openLogs(${js(run.report_file)}, this)">Logs</button>` : ""}
+        <button class="ghost" onclick="dismiss(${js(cpu)})">Clear</button></span></div>`;
+    }
+    const nb = (!run.active && run.verdict === "pass") ? nameBox(run) : "";
+    const side = liveSide(run);
+    body = `${prompt}${verdict}${nb}
+      <div class="cbody${side ? "" : " one"}"><div class="steps">${run.steps.map(stepRow).join("")}</div>
+      ${side ? `<div class="side">${side}</div>` : ""}</div>
+      ${run.active ? `<div class="note">Leave the board on the dock until the run finishes. Stop QC ends the test take and removes it from the board.</div>` : ""}`;
+  }
+  return `<div class="card ${state}">
+    <div class="chead"><span class="cname">${title}</span><span class="facts">${facts(d)}</span>
+      <span class="cact">${actions}</span></div>${body}</div>`;
+}
+
+function render(){
+  if(!STATE) return;
+  // keep the cursor in the name box across the redraw
+  const a = document.activeElement;
+  const keep = a && a.id && a.id.startsWith("nm-") ? {id:a.id, s:a.selectionStart, e:a.selectionEnd} : null;
+
+  const devs = STATE.devices || [];
+  const runs = STATE.runs || {};
+  // a run whose board has left the dock still gets its card (it may be mid-failure)
+  const seen = new Set(devs.map(d => d.cpu_id).filter(Boolean));
+  const ghost = Object.values(runs).filter(r => !seen.has(r.cpu_id)).map(r => ({
+    ip: r.ip, cpu_id: r.cpu_id, name: r.name, camera_id: r.camera_id, model: r.model, version: r.version,
+    error: "not on the dock right now"}));
+  const all = devs.concat(ghost);
+  $("empty").hidden = all.length > 0;
+  setHTML($("cards"), all.map(d => card(d, d.cpu_id ? runs[d.cpu_id] : null)).join(""));
+
+  if(keep){ const el = $(keep.id); if(el){ el.focus(); try{ el.setSelectionRange(keep.s, keep.e); }catch(_){} } }
+
+  const hist = STATE.history || [];
+  setHTML($("hist"), hist.length ? `<table><thead><tr><th>When</th><th>Result</th><th>Name</th><th>Camera</th><th>cpu_id</th><th>Soak</th><th>Summary</th><th></th></tr></thead><tbody>${
+    hist.map(h => `<tr><td title="${h.finished ? new Date(h.finished*1000).toLocaleString() : ""}">${ago(h.finished)}</td>
+      <td><span class="pill ${esc(h.verdict)}">${esc(String(h.verdict || "").toUpperCase())}</span></td>
+      <td>${esc(h.name || "—")}</td><td class="mono">${esc(h.camera_id || "—")}</td>
+      <td class="mono" title="${esc(h.cpu_id)}">${esc((h.cpu_id || "").slice(0,10))}</td>
+      <td>${h.minutes ? h.minutes + " min" : "—"}</td><td>${esc(h.headline || "")}</td>
+      <td><a href="/api/report?file=${encodeURIComponent(h.file)}" target="_blank" rel="noopener">report</a>${h.logs ? ` · <a href="#" onclick="openLogs(${js(h.file)}); return false">logs</a>` : ""}</td></tr>`).join("")
+  }</tbody></table>` : `<div class="empty">No QC runs yet.</div>`);
+}
+
+// innerHTML only when it changed: a redraw replaces every button, and a click whose
+// press and release straddle a redraw is lost. Idle cards then never redraw at all.
+const _last = new WeakMap();
+function setHTML(el, html){
+  if(_last.get(el) === html) return;
+  _last.set(el, html);
+  el.innerHTML = html;
+}
+// ...and a card that does change every second (a soak in progress) holds still while
+// a mouse button is down on the page, so its Stop button can't be pulled out from
+// under a click
+let pressing = false;
+document.addEventListener("pointerdown", () => { pressing = true; }, true);
+document.addEventListener("pointerup", () => { setTimeout(() => { pressing = false; }, 0); }, true);
+document.addEventListener("pointercancel", () => { pressing = false; }, true);
+
+function header(){
+  const dk = STATE.dock || {};
+  const links = dk.links || [];
+  $("dock").innerHTML = links.length ? `dock: <b>${esc(links.map(l => `${l.iface} ${l.ip}`).join(", "))}</b>` : `dock: <b style="color:var(--bad)">no ethernet link</b>`;
+  const nm = STATE.names;
+  $("names").innerHTML = nm && nm.next ? `next free name: <b>${esc(nm.next)}</b>` : "names: unavailable";
+  const bars = [];
+  if(!links.length){
+    const down = (dk.down || []).map(x => `${x[0]} is ${x[1]}`).join(", ");
+    bars.push(`<div class="bar bad">No ethernet dock link is up${down ? ` (${esc(down)})` : ""}. Plug the dock cable into this laptop; boards get their address from it.</div>`);
+  }
+  for(const p of (STATE.pending || [])){
+    const who = p.name || (p.cpu_id ? "cpu " + p.cpu_id.slice(0,10) : "a board");
+    const cls = p.state === "done" ? "warn" : p.state === "failed" ? "bad" : "warn";
+    const what = p.state === "done" ? "Cleaned up after an interrupted QC run on"
+               : p.state === "failed" ? "Couldn't clean up after an interrupted QC run on"
+               : p.state === "running" ? "Removing the test take left by an interrupted QC run on"
+               : "An interrupted QC run left a test take on";
+    bars.push(`<div class="bar ${cls}">${esc(what)} <b>${esc(who)}</b>: ${esc(p.message || "")}</div>`);
+  }
+  const dash = STATE.dashboard || {};
+  if(dash.ok === false){
+    bars.push(`<div class="bar warn">Can't reach the dashboard (${esc(dash.error || "unknown error")}). QC still runs, but naming needs ${esc(dash.url || "the dashboard")}.</div>`);
+  }
+  $("bars").innerHTML = bars.join("");
+  $("dockhint").textContent = (STATE.devices || []).length ? `(${STATE.devices.length} on ${links.map(l => l.iface).join(", ") || "the dock"})` : "";
+}
+
+async function poll(){
+  try{
+    const r = await fetch("/api/state", {cache:"no-store"});
+    STATE = await r.json();
+    header();
+    if(!pressing) render();
+  }catch(_){ /* the next poll retries */ }
+  setTimeout(poll, 1000);
+}
+
+async function startQC(ip, cpu, recording){
+  if(busy[cpu]) return;
+  if(recording && !confirm("This StarCap is recording a take. QC has to stop it first (the take stays on the card). Stop it and start QC?")) return;
+  busy[cpu] = true;
+  const j = await post("/api/qc/start", {ip, minutes: soakPick[cpu] || (STATE.soak_choices || [5])[0], stop_take: recording});
+  delete busy[cpu];
+  if(!j.ok) alert(j.error || "couldn't start QC");
+  delete flash[cpu]; delete confirmFor[cpu]; delete nameDraft[cpu];
+}
+
+async function cancelQC(cpu, btn){
+  if(!confirm("Stop QC on this board? The test take is ended and removed from the board.")) return;
+  btn.disabled = true;
+  const j = await post("/api/qc/cancel", {cpu_id: cpu});
+  if(!j.ok) alert(j.error || "couldn't stop it");
+}
+
+async function dismiss(cpu){
+  await post("/api/qc/dismiss", {cpu_id: cpu});
+  delete flash[cpu]; delete confirmFor[cpu]; delete nameDraft[cpu];
+}
+
+async function doName(cpu, force){
+  const el = $("nm-" + idOf(cpu));
+  // "Name it anyway" names exactly the name that was warned about, never whatever the
+  // box says by now (typing in the box drops the confirmation anyway)
+  const name = force && confirmFor[cpu] ? confirmFor[cpu].name
+                                        : (el ? el.value : (nameDraft[cpu] || "")).trim();
+  if(!name || busy[cpu]) return;
+  busy[cpu] = true; delete flash[cpu]; delete confirmFor[cpu]; render();
+  const j = await post("/api/rename", {cpu_id: cpu, name, force: !!force});
+  delete busy[cpu];
+  if(j.ok){
+    const took = (j.taken_from || []).length;
+    flash[cpu] = {cls:"ok", text: took ? `Named ${j.name}. That name was taken off ${took} other board${took > 1 ? "s" : ""}.` : `Named ${j.name}.`};
+    delete nameDraft[cpu];
+  } else if(j.needs_confirm){
+    const parts = [];
+    if((j.taken_by || []).length) parts.push(`"${j.name}" already belongs to ${j.taken_by.length} other board${j.taken_by.length > 1 ? "s" : ""} (cpu ${j.taken_by.map(c => c.slice(0,10)).join(", ")}). Naming this one takes it off them.`);
+    if(j.current_name) parts.push(`This board is currently named "${j.current_name}".`);
+    confirmFor[cpu] = {text: parts.join(" "), name: j.name};
+  } else {
+    flash[cpu] = {cls:"bad", text: j.error || "naming failed"};
+  }
+  render();
+}
+
+async function openLogs(file, btn){
+  if(btn) btn.disabled = true;
+  const j = await post("/api/open_logs", {file});
+  if(btn) setTimeout(() => { btn.disabled = false; }, 1500);
+  if(!j.ok) alert(j.error || "couldn't open the logs");
+}
+
+async function rescan(btn){
+  btn.disabled = true; await post("/api/rescan"); setTimeout(() => { btn.disabled = false; }, 1500);
+}
+
+poll();
+</script>
+</body>
+</html>

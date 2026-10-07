@@ -6,7 +6,7 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 "which tool when" index):
 
 - **`station/`**: `setup_dock_lan.sh`, which makes a laptop's ethernet port accept docked boards
-- **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
+- **`fleet/`**: tools that talk to docked boards (starcap-qc, dock-check, pin-to-branch,
   opm-name, starcapfinder, vnc, board-grading, pi-fixes)
 - **`storage/`**: sd-format (turn an SD card into plain storage for a board)
 - **`camera/`**: DECXIN bench tools (camrig + CamView, camfw, fingerprint)

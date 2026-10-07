@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="#0f1419"/>
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="none" stroke="#2a3340" stroke-width="3"/>
+  <!-- stereo camera body -->
+  <rect x="18" y="38" width="92" height="44" rx="12" fill="#1d2530" stroke="#ff7a18" stroke-width="4"/>
+  <circle cx="44" cy="60" r="12" fill="#0f1419" stroke="#ff7a18" stroke-width="4"/>
+  <circle cx="84" cy="60" r="12" fill="#0f1419" stroke="#ff7a18" stroke-width="4"/>
+  <circle cx="44" cy="60" r="4" fill="#ff7a18"/>
+  <circle cx="84" cy="60" r="4" fill="#ff7a18"/>
+  <!-- pass badge -->
+  <circle cx="92" cy="94" r="22" fill="#3fb950" stroke="#0f1419" stroke-width="5"/>
+  <path d="M81 94.5 l7.5 7.5 l14 -15" fill="none" stroke="#0f1419" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
