@@ -35,6 +35,32 @@ Add `--dry-run` to print the write plan without touching the board.
 
 Needs a Linux x86-64 host (`upgrade_tool` is closed-source x86-64) and **~12 GB free**.
 
+### Verify
+
+After writing, the script reads the eMMC back before it reboots the board: the GPT
+header, every image up to 64 MiB in full, and 16 × 1 MiB spread across rootfs and
+userdata (~90 MB, well under a minute). It ends with **VERIFY PASSED** or
+**VERIFY FAILED**. On a failure the board is not rebooted. If kernel, boot, rootfs
+and userdata fail while uboot/dtbo/resource pass, the eMMC is keeping only its
+first 32 MiB: set the board aside, reflashing won't help. `--no-verify` skips the check.
+
+### Several boards at once
+
+Put each board, in maskrom, on **its own laptop port**, then flash one per terminal:
+
+```bash
+./flash_nanopi_emmc.sh --ports            # where each board is; flags boards sharing a link
+sudo ./flash_nanopi_emmc.sh --port 1-1    # terminal 1
+sudo ./flash_nanopi_emmc.sh --port 3-1    # terminal 2, ...
+```
+
+`--ports` prints a **SHARED LINK** warning when several boards sit behind one hub on one
+laptop port. Those boards split a single 480 Mbit/s link, so flashing them together is about
+as slow as flashing them one by one. Separate laptop ports don't share a link, even when
+they're on the same USB controller. Without `--port`, the script refuses to run while more
+than one board is plugged in. Each port keeps its own `upgrade_tool` log under
+`/root/upgrade_tool/port-<P>/`.
+
 ---
 
 ## What this is

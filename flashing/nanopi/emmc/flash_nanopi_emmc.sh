@@ -104,6 +104,22 @@
 #                and not the other.
 #   --unsparse   expand sparse images with simg2img before writing (needs
 #                android-sdk-libsparse-utils and ~6 GB free in TMPDIR)
+#   --no-verify  skip the read-back check after writing (see VERIFY below).
+#                Only for chasing a problem; a board flashed this way is unproven.
+#   --ports      no root needed: list every Rockchip board on USB with its port,
+#                controller and speed, and flag boards that share one link
+#                (several behind the same hub). Touches no board.
+#   --port P     flash only the board on USB port P (a name from --ports, e.g.
+#                1-2). This is how several boards flash AT ONCE: one terminal
+#                per board, each with its own --port. Without it, the script
+#                refuses to run while more than one board is plugged in.
+#
+# Several boards at once: put each on its OWN laptop port (boards behind one
+# hub split a single 480 Mbit/s link, so they gain nothing), then
+#     ./flash_nanopi_emmc.sh --ports            # check: no SHARED LINK warning
+#     sudo ./flash_nanopi_emmc.sh --port 1-1    # terminal 1
+#     sudo ./flash_nanopi_emmc.sh --port 1-2    # terminal 2, and so on
+# Each port gets its own upgrade_tool log under ~/upgrade_tool/port-<P>/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -116,18 +132,25 @@ AUTO_YES=0
 DRY_RUN=0
 PROBE=0
 UNSPARSE=0
+VERIFY=1
+PORT=""
+LIST_PORTS=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --yes) AUTO_YES=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --probe) PROBE=1 ;;
     --unsparse) UNSPARSE=1 ;;
+    --no-verify) VERIFY=0 ;;
     --tool) shift; TOOL="${1:-}" ;;
     --tool=*) TOOL="${1#*=}" ;;
     --loader) shift; RAM_LOADER="${1:-}" ;;
     --loader=*) RAM_LOADER="${1#*=}" ;;
     --flash-loader) shift; FLASH_LOADER="${1:-}" ;;
     --flash-loader=*) FLASH_LOADER="${1#*=}" ;;
+    --port) shift; PORT="${1:-}" ;;
+    --port=*) PORT="${1#*=}" ;;
+    --ports) LIST_PORTS=1 ;;
     -h|--help) awk 'NR>1 && !/^#/{exit} NR>1{sub(/^# ?/,""); print}' "$0"; exit 0 ;;
     -*) echo "unknown option: $1"; exit 1 ;;
     *) IMAGE_DIR="$1" ;;
@@ -138,6 +161,77 @@ case "$TOOL" in
   upgrade_tool|rkdeveloptool) : ;;
   *) echo "--tool must be upgrade_tool or rkdeveloptool (got: $TOOL)"; exit 1 ;;
 esac
+
+# ---------------------------------------------------------------------------
+# Which USB port each board is on, and whether boards share a link
+# ---------------------------------------------------------------------------
+# Every Rockchip device (vendor 2207) on USB, one per line:
+#   <port> <busnum> <devnum> <pid> <speed Mbit/s> <controller PCI address>
+# <port> is the kernel's name for the physical port: 1-2 is root port 2 of
+# bus 1 (straight into the laptop), 1-2.3 is port 3 of a hub sitting on 1-2.
+USB_SYSFS="${USB_SYSFS:-/sys/bus/usb/devices}"   # overridable only for testing
+rk_devices() {
+  local d
+  for d in "$USB_SYSFS"/*; do
+    [ -f "$d/idVendor" ] && [ "$(cat "$d/idVendor")" = 2207 ] || continue
+    printf '%s %s %s %s %s %s\n' "$(basename "$d")" "$(cat "$d/busnum")" "$(cat "$d/devnum")" \
+      "$(cat "$d/idProduct")" "$(cat "$d/speed")" \
+      "$(readlink -f "$d" | sed -E 's#.*/([^/]+)/usb[0-9]+/.*#\1#')"
+  done
+}
+# upgrade_tool's LocationID for whatever board is on port $1 right now
+port_locid() {
+  local d="$USB_SYSFS/$1"
+  [ -f "$d/idVendor" ] && [ "$(cat "$d/idVendor")" = 2207 ] || return 1
+  printf '%x\n' $(( ($(cat "$d/busnum") << 8) + $(cat "$d/devnum") ))
+}
+# The report behind --ports, also printed at the start of every --port run.
+# Two boards share bandwidth only when they hang off the same laptop port
+# (the part of the port name before the first "."), i.e. behind the same hub.
+# Two boards on different laptop ports of the same controller do NOT: each
+# root port has its own 480 Mbit/s link and the controller has plenty spare.
+show_ports() {
+  local rows n via root sharing="" hubbed=0 slow=""
+  rows="$(rk_devices)"
+  if [ -z "$rows" ]; then echo "   no Rockchip boards (vendor 2207) on USB right now."; return 0; fi
+  n="$(wc -l <<<"$rows")"
+  printf '   %-10s %-12s %-6s %-14s %s\n' port usb-id speed controller "connected"
+  while read -r name bus dev pid speed pci; do
+    root="${name%%.*}"
+    if [ "$root" = "$name" ]; then via="straight into the laptop"
+    else via="through hub on laptop port $root ($(cat "$USB_SYSFS/$root/product" 2>/dev/null || echo hub))"; hubbed=1; fi
+    [ "$name" = "$PORT" ] && via="$via   <- this run"
+    printf '   %-10s %-12s %-6s %-14s %s\n' "$name" "2207:$pid" "${speed}M" "$pci" "$via"
+    [ "${speed%%.*}" -lt 480 ] && slow="$slow $name"
+  done <<<"$rows"
+  sharing="$(cut -d' ' -f1 <<<"$rows" | sed 's/\..*//' | sort | uniq -c | awk '$1>1{print $2" ("$1" boards)"}' | tr '\n' ' ')"
+  echo
+  if [ -n "$sharing" ]; then
+    echo "   ⚠ SHARED LINK: these laptop ports each carry several boards through a hub: $sharing"
+    echo "     Those boards split one 480 Mbit/s link, so flashing them at once is about"
+    echo "     as slow as one after another. Move them onto separate laptop ports."
+  elif [ "$n" -gt 1 ]; then
+    echo "   ✓ $n boards, each on its own laptop port: none share a link, so they can"
+    echo "     all flash at once at full speed."
+  fi
+  [ "$hubbed" -eq 1 ] && [ -z "$sharing" ] && echo "   ⚠ a board is behind a hub. That works, but a hub is the usual cause of err=-1 link failures."
+  [ -n "$slow" ] && echo "   ⚠ running below USB 2 high speed (480M):$slow (bad cable or port, a flash will crawl or fail)"
+  [ "$n" -gt 1 ] && [ -z "$PORT" ] && echo "   Flash one per terminal with: sudo $0 --port <port>"
+  return 0
+}
+
+if [ "$LIST_PORTS" -eq 1 ]; then
+  echo "== Rockchip boards on USB =="
+  show_ports
+  exit 0
+fi
+if [ -n "$PORT" ]; then
+  [ "$TOOL" = upgrade_tool ] || { echo "--port only works with upgrade_tool (rkdeveloptool can't pick a device)"; exit 1; }
+  [[ "$PORT" =~ ^[0-9]+-[0-9.]+$ ]] || { echo "--port wants a USB port name like 1-2 or 3-1.4 (see --ports), got: $PORT"; exit 1; }
+fi
+# each port gets its own HOME for upgrade_tool, so each board gets its own log
+UT_HOME="${HOME:-/root}"
+[ -z "$PORT" ] || UT_HOME="${HOME:-/root}/upgrade_tool/port-$PORT"
 
 if [ "$DRY_RUN" -ne 1 ] && [ "$(id -u)" -ne 0 ]; then
   echo "This needs root: no udev rule ships for the RK3576's USB id (2207:350e),"
@@ -183,18 +277,39 @@ ut_switch() {
   esac
 }
 
-t_list()       { if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" ld;              else rkdeveloptool list; fi; }
-t_db()         { if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" db "$RAM_LOADER"; else rkdeveloptool boot "$RAM_LOADER"; fi; }
-t_chip_info()  { if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" rci;             else rkdeveloptool read-chip-info; fi; }
-t_flash_info() { if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" rfi 2>&1;        else rkdeveloptool read-flash-info 2>&1; fi; }
-t_partitions() { if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" pl;              else rkdeveloptool list-partitions; fi; }
-t_reset()      { if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" rd;              else rkdeveloptool reset; fi; }
+# With --port, every upgrade_tool call is aimed at that one board with
+# `-s <LocationID>` (manual §1.11). The LocationID is NOT stable: it is the
+# board's (bus << 8) + device address, printed in hex, and the address changes
+# each time the board re-enumerates (after `db`, after `rd 3`). So it's looked
+# up fresh from the physical port before every call: the port name (sysfs, e.g.
+# 1-2) is what stays put. Each port also gets its own HOME, so the tool's log
+# for this board (~/upgrade_tool/log) isn't mixed with the other boards'.
+ut() {
+  if [ -z "$PORT" ]; then "$UT_BIN" "$@"; return; fi
+  local loc=""
+  for _ in $(seq 1 15); do loc="$(port_locid "$PORT")" && break; sleep 1; done
+  [ -n "$loc" ] || { echo "!! no Rockchip board on USB port $PORT any more"; return 1; }
+  HOME="$UT_HOME" "$UT_BIN" -s "$loc" "$@"
+}
+t_list() {
+  if [ "$TOOL" != upgrade_tool ]; then rkdeveloptool list; return; fi
+  if [ -z "$PORT" ]; then "$UT_BIN" ld; return; fi
+  # `ld` lists every board on the machine: keep only this port's line
+  local loc
+  loc="$(port_locid "$PORT")" || return 0
+  HOME="$UT_HOME" "$UT_BIN" ld | grep -i "LocationID=${loc}[[:space:]]" || true
+}
+t_db()         { if [ "$TOOL" = upgrade_tool ]; then ut db "$RAM_LOADER"; else rkdeveloptool boot "$RAM_LOADER"; fi; }
+t_chip_info()  { if [ "$TOOL" = upgrade_tool ]; then ut rci;             else rkdeveloptool read-chip-info; fi; }
+t_flash_info() { if [ "$TOOL" = upgrade_tool ]; then ut rfi 2>&1;        else rkdeveloptool read-flash-info 2>&1; fi; }
+t_partitions() { if [ "$TOOL" = upgrade_tool ]; then ut pl;              else rkdeveloptool list-partitions; fi; }
+t_reset()      { if [ "$TOOL" = upgrade_tool ]; then ut rd;              else rkdeveloptool reset; fi; }
 t_gpt()        {
-  if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" di -p "$IMAGE_DIR/parameter.txt"
+  if [ "$TOOL" = upgrade_tool ]; then ut di -p "$IMAGE_DIR/parameter.txt"
   else rkdeveloptool write-partition-table "$IMAGE_DIR/parameter.txt"; fi
 }
 t_write_part() {  # <partition-name> <start-sector> <file>
-  if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" di "$(ut_switch "$1")" "$3"
+  if [ "$TOOL" = upgrade_tool ]; then ut di "$(ut_switch "$1")" "$3"
   else rkdeveloptool write "$2" "$3"; fi
 }
 # upgrade_tool's console output is terse ("Read capability Fail!"); its log has
@@ -203,7 +318,7 @@ t_write_part() {  # <partition-name> <start-sector> <file>
 show_ut_log_errors() {
   [ "$TOOL" = upgrade_tool ] || return 0
   local log
-  log="$(ls -t "${HOME:-/root}"/upgrade_tool/log/Log*.txt 2>/dev/null | head -1)"
+  log="$(ls -t "$UT_HOME"/upgrade_tool/log/Log*.txt 2>/dev/null | head -1)"
   [ -n "$log" ] || return 0
   echo
   echo "-- error codes from the tool's own log ($log) --"
@@ -215,7 +330,7 @@ show_ut_log_errors() {
 t_write_loader() {
   if [ "$TOOL" = upgrade_tool ]; then
     # generates the IDBlock from the loader and writes it to storage (manual §1.3)
-    "$UT_BIN" ul "$FLASH_LOADER" -noreset
+    ut ul "$FLASH_LOADER" -noreset
   elif [ -f "$IMAGE_DIR/idbloader.img" ]; then
     # rkdeveloptool has no equivalent: place the RKNS idblock by hand, at the
     # sector the boot ROM reads it from.
@@ -362,6 +477,29 @@ fi
 # ---------------------------------------------------------------------------
 echo
 echo "== looking for a board in maskrom mode =="
+if [ -n "$PORT" ]; then
+  echo "   (only the one on USB port $PORT; tool log: $UT_HOME/upgrade_tool/log)"
+  mkdir -p "$UT_HOME"
+  show_ports
+  for _ in $(seq 1 20); do port_locid "$PORT" >/dev/null && break; sleep 1; done
+  port_locid "$PORT" >/dev/null || { echo "!! nothing Rockchip on USB port $PORT. Run: $0 --ports"; exit 1; }
+  # Prove the port -> LocationID mapping against what upgrade_tool itself lists
+  # before anything is aimed with -s. If this ever trips, nothing was written.
+  LOC="$(port_locid "$PORT")"
+  ALL="$(HOME="$UT_HOME" "$UT_BIN" ld 2>&1 || true)"
+  if ! grep -qi "LocationID=${LOC}[[:space:]]" <<<"$ALL"; then
+    echo "!! the board on port $PORT should be LocationID=$LOC, but upgrade_tool lists:"
+    sed 's/^/     /' <<<"$ALL"
+    echo "   So this script's port -> LocationID mapping is wrong for this tool version."
+    echo "   Nothing was written. Flash one board at a time (no --port) until it's fixed."
+    exit 1
+  fi
+elif [ "$TOOL" = upgrade_tool ] && [ "$(rk_devices | wc -l)" -gt 1 ]; then
+  echo "!! more than one Rockchip board is plugged in, and without --port there's no"
+  echo "   telling which one each step would hit. Pick one:"
+  show_ports
+  exit 1
+fi
 MODE=""
 for _ in $(seq 1 20); do
   LIST="$(t_list 2>/dev/null || true)"
@@ -409,7 +547,7 @@ if [ "$PROBE" -eq 1 ]; then
   for probe in TD:test-device RSM:read-secure-mode RCB:read-capability RCI:read-chip-info RID:read-flash-id RFI:read-flash-info; do
     ut_cmd="${probe%%:*}"; rk_cmd="${probe#*:}"
     echo "-- ${ut_cmd} / ${rk_cmd} --"
-    if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" "$ut_cmd" 2>&1 | grep -v '^Using ' || true
+    if [ "$TOOL" = upgrade_tool ]; then ut "$ut_cmd" 2>&1 | grep -v '^Using ' || true
     else rkdeveloptool "$rk_cmd" 2>&1 || true; fi
   done
   show_ut_log_errors
@@ -422,7 +560,7 @@ if [ "$MODE" = loader ]; then
   # Something bootable is already on the eMMC and answered in rockusb mode. Bounce
   # it to maskrom so the loader doing the writing is the one from THIS package.
   echo "== board answered in loader mode — bouncing it to maskrom =="
-  if [ "$TOOL" = upgrade_tool ]; then "$UT_BIN" rd 3 >/dev/null 2>&1 || true
+  if [ "$TOOL" = upgrade_tool ]; then ut rd 3 >/dev/null 2>&1 || true
   else rkdeveloptool reboot-maskrom >/dev/null 2>&1 || true; fi
   for _ in $(seq 1 10); do
     if t_list 2>/dev/null | grep -qi maskrom; then MODE=maskrom; break; fi
@@ -543,6 +681,139 @@ fi
 echo "-- bootloader IDBlock ($(basename "$FLASH_LOADER")) --"
 t_write_loader
 
+# ---------------------------------------------------------------------------
+# VERIFY: read the eMMC back and compare it with the images
+# ---------------------------------------------------------------------------
+# "di ... 100%" and "Download IDB Success" only prove the tool handed the bytes
+# over. One R76S eMMC acked every write and kept only the first 32 MiB: past
+# LBA 65536 it read back 0xCC, so uboot/dtbo/resource were fine and the kernel,
+# boot, rootfs and userdata were simply not there. Nothing in the write log
+# showed it. So, while the loader is still running, read the board back with
+# `rl` (the board is not reset until this passes):
+#   * the GPT header at sector 1 must say "EFI PART"
+#   * images up to 64 MiB are read back WHOLE and compared byte for byte
+#   * bigger ones (rootfs, userdata) are SAMPLED: their first and last MiB plus
+#     14 MiB spread evenly between. For a sparse image the samples come from its
+#     raw data chunks, mapped to where they land on the eMMC. That covers the
+#     far end of every partition, which is exactly where a bad chip loses data.
+# About 90 MB of reads in all, well under a minute. --no-verify skips it.
+VERIFY_FULL_MAX=$((64 * 1024 * 1024))
+VERIFY_SAMPLES=16
+VERIFY_SAMPLE_BYTES=$((1024 * 1024))
+
+# Print one "<eMMC sector> <file offset> <bytes>" line per region to check, for
+# image $1 written at partition sector $2. Every region starts on a sector edge.
+verify_plan() {
+  python3 - "$1" "$2" "$VERIFY_FULL_MAX" "$VERIFY_SAMPLES" "$VERIFY_SAMPLE_BYTES" <<'PY'
+import os, struct, sys
+path, part, full_max, n, chunk = sys.argv[1], int(sys.argv[2]), *map(int, sys.argv[3:])
+regions = []  # (byte offset in partition, byte offset in file, length)
+with open(path, "rb") as f:
+    hdr = f.read(28)
+    if struct.unpack_from("<I", hdr)[0] == 0xED26FF3A:
+        _, _, _, fh, ch, blk, _, nchunks, _ = struct.unpack("<IHHHHIIII", hdr)
+        f.seek(fh)
+        out = 0
+        for _ in range(nchunks):
+            ctype, _, csz, tot = struct.unpack("<HHII", f.read(12))
+            f.seek(ch - 12, 1)
+            data = f.tell()
+            if ctype == 0xCAC1:                      # raw: real bytes we can compare
+                regions.append((out, data, csz * blk))
+            f.seek(data + tot - ch)
+            out += csz * blk if ctype != 0xCAC4 else 0
+    else:
+        regions.append((0, 0, os.path.getsize(path)))
+total = sum(r[2] for r in regions)
+if total <= full_max:
+    picks = [(o, d, l) for o, d, l in regions]
+else:
+    # n evenly spaced points through the compared bytes, first and last included
+    picks, marks = [], [round(i * (total - 1) / (n - 1)) for i in range(n)]
+    seen, acc = set(), 0
+    for o, d, l in regions:
+        for m in marks:
+            if acc <= m < acc + l:
+                k = (m - acc) // 512 * 512
+                k = min(k, max(0, (l - chunk) // 512 * 512))
+                if (o + k) not in seen:
+                    seen.add(o + k)
+                    picks.append((o + k, d + k, min(chunk, l - k)))
+        acc += l
+for o, d, l in picks:
+    if o % 512:
+        sys.exit(f"region at partition byte {o} is not sector aligned")
+    print(part + o // 512, d, l)
+PY
+}
+
+verify_emmc() {
+  local vdir fails=0 checked=0 bytes=0
+  vdir="$(mktemp -d)"
+  echo
+  echo "== verifying: reading the eMMC back =="
+  if ut rl 0 2 "$vdir/gpt.bin" >/dev/null 2>&1 \
+     && [ "$(dd if="$vdir/gpt.bin" bs=1 skip=512 count=8 2>/dev/null)" = "EFI PART" ]; then
+    echo "   gpt        ok"
+  else
+    echo "   gpt        FAIL: sector 1 does not hold a GPT header"
+    fails=$((fails + 1))
+  fi
+  for i in "${!W_NAME[@]}"; do
+    local name="${W_NAME[$i]}" file="${W_FILE[$i]}" plan sec off len n bad=0 nreg=0 got first=""
+    plan="$(verify_plan "$file" "${W_OFF[$i]}")" || { echo "   $name: couldn't plan the check"; fails=$((fails + 1)); continue; }
+    while read -r sec off len; do
+      [ -n "$sec" ] || continue
+      n=$(( (len + 511) / 512 ))
+      rm -f "$vdir/rb.bin"
+      ut rl "$sec" "$n" "$vdir/rb.bin" >/dev/null 2>&1 || true
+      got="$(stat -c%s "$vdir/rb.bin" 2>/dev/null || echo 0)"
+      if [ "$got" -lt "$len" ]; then
+        [ -n "$first" ] || first="sector $sec could not be read (got $got of $len bytes)"
+        bad=$((bad + 1))
+      elif ! cmp -s -n "$len" "$vdir/rb.bin" \
+             <(dd if="$file" iflag=skip_bytes,count_bytes skip="$off" count="$len" bs=1M 2>/dev/null); then
+        [ -n "$first" ] || first="sector $sec holds $(od -An -tx1 -N8 "$vdir/rb.bin" | tr -d ' \n')..."
+        bad=$((bad + 1))
+      fi
+      nreg=$((nreg + 1)); bytes=$((bytes + len))
+    done <<<"$plan"
+    checked=$((checked + 1))
+    if [ "$bad" -eq 0 ]; then
+      printf '   %-10s ok  (%d region%s)\n' "$name" "$nreg" "$([ "$nreg" = 1 ] || echo s)"
+    else
+      printf '   %-10s FAIL  %d of %d region%s wrong; first: %s\n' "$name" "$bad" "$nreg" "$([ "$nreg" = 1 ] || echo s)" "$first"
+      fails=$((fails + 1))
+    fi
+  done
+  rm -rf -- "$vdir"
+  echo "   read back $(human "$bytes") across $checked partitions"
+  return "$fails"
+}
+
+if [ "$VERIFY" -eq 0 ]; then
+  echo
+  echo "   ⚠ --no-verify: nothing was read back, so this flash is unproven."
+elif [ "$TOOL" != upgrade_tool ]; then
+  echo
+  echo "   ⚠ read-back verify needs upgrade_tool; skipped with --tool $TOOL."
+elif ! verify_emmc; then
+  cat <<EOF
+
+!! VERIFY FAILED: the eMMC does not hold what was just written to it.
+   The board was NOT rebooted; it is still in loader mode.
+
+   Re-seat the cable and flash once more. If the same partitions fail again,
+   especially everything past the first 32 MiB (kernel, boot, rootfs,
+   userdata) while uboot/dtbo/resource pass, the eMMC itself is dropping
+   writes. That board can't be fixed by reflashing: set it aside for an eMMC
+   or board swap.
+EOF
+  exit 1
+else
+  echo "   ✓ VERIFY PASSED: the eMMC holds the image."
+fi
+
 echo "== partition table now on the board =="
 t_partitions || true
 
@@ -558,5 +829,6 @@ first boot does the image's own first-boot work (filesystem resize, SSH host
 keys, etc.), so give it a couple of minutes before expecting a desktop or a
 network answer.
 
-To flash the next board: power-cycle it into maskrom the same way and re-run.
+To flash the next board: power-cycle it into maskrom the same way and re-run${PORT:+
+(with --port $PORT if it goes on the same USB port)}.
 EOF
