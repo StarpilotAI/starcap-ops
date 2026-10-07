@@ -24,7 +24,7 @@ network layout, the logins, and a fresh-laptop checklist.
 |---|---|---|
 | make a laptop's ethernet port accept docked boards | `station/` | `sudo station/setup_dock_lan.sh`, then `setup_dock_lan.sh --check` |
 | find every board on the LAN and open its page | `fleet/starcapfinder/` | always-on service, http://127.0.0.1:8090 |
-| QC a finished StarCap end to end, then name it | `fleet/starcap-qc/` | `StarCap QC` launcher, or `starcap-qc` |
+| QC a finished StarCap end to end, then name it | **its own repo**: [StarpilotAI/starcap-qc](https://github.com/StarpilotAI/starcap-qc) | `StarCap QC` launcher, or `starcap-qc` |
 | rename boards as they dock | `fleet/opm-name/` | `opm-name` launcher |
 | make sure a docked board is current, auto-updating and on main | `fleet/dock-check/` | `dock-check` |
 | hold a board on a specific recorder branch or commit | `fleet/pin-to-branch/` | `pin-to-branch --branch <ref>` |

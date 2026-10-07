@@ -29,9 +29,6 @@ recordings/
 fleet/opm-name/board_registry.json
 fleet/opm-name/board_registry.json.tmp
 
-# StarCap QC's per-board reports: laptop-only by design (one JSON per QC run)
-fleet/starcap-qc/reports/
-fleet/starcap-qc/.delivery_cache/
 camera/camfw/fwidentapp/.last-run.json
 camera/camrig/presets.json
 camera/camrig/.venv/

@@ -6,7 +6,7 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 "which tool when" index):
 
 - **`station/`**: `setup_dock_lan.sh`, which makes a laptop's ethernet port accept docked boards
-- **`fleet/`**: tools that talk to docked boards (starcap-qc, dock-check, pin-to-branch,
+- **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
   opm-name, starcapfinder, vnc, board-grading, pi-fixes)
 - **`storage/`**: sd-format (turn an SD card into plain storage for a board)
 - **`camera/`**: DECXIN bench tools (camrig + CamView, camfw, fingerprint)
@@ -22,6 +22,12 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
   restore mtimes (the flash scripts pick the NEWEST image beside them, so keep one per
   folder). The images carry `stereocam/update_token`: never share the folder as
   "Anyone with the link".
+
+**StarCap QC is its own repo**, `StarpilotAI/starcap-qc` (cloned at `~/starcap-qc`). It
+VENDORS copies of `fleet/opm-name/opmname.py`, `fleet/dock-check/dock_check.py`,
+`camera/camfw/dockscan.py`, `lib/install_common.sh` and `station/setup_dock_lan.sh`: after
+changing any of those here, run its `vendor/update_from_starcap_ops.sh` (copies them over
+and runs its tests) and push that repo too.
 
 Not here on purpose: the SSD cloud-verify / hours / drive-health tools and the opm SD
 launcher were retired after the opm-lan rework (2026-09-30).
