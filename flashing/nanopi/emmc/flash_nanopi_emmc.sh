@@ -110,15 +110,21 @@
 #                controller and speed, and flag boards that share one link
 #                (several behind the same hub). Touches no board.
 #   --port P     flash only the board on USB port P (a name from --ports, e.g.
-#                1-2). This is how several boards flash AT ONCE: one terminal
-#                per board, each with its own --port. Without it, the script
-#                refuses to run while more than one board is plugged in.
+#                1-2). Without it (or --all), the script refuses to run while
+#                more than one board is plugged in.
+#   --all        flash EVERY board on USB at once from this one terminal: one
+#                confirmation, then a background `--port P --yes` run per
+#                board, a live status line each, and PASSED/FAILED per board at
+#                the end. Each board's full output goes to logs/<time>/port-P.log.
 #
 # Several boards at once: put each on its OWN laptop port (boards behind one
 # hub split a single 480 Mbit/s link, so they gain nothing), then
 #     ./flash_nanopi_emmc.sh --ports            # check: no SHARED LINK warning
+#     sudo ./flash_nanopi_emmc.sh --all         # all of them, one terminal
+# or by hand, one terminal per board:
 #     sudo ./flash_nanopi_emmc.sh --port 1-1    # terminal 1
 #     sudo ./flash_nanopi_emmc.sh --port 1-2    # terminal 2, and so on
+# make_launcher.sh puts a desktop icon that opens a terminal running --all.
 # Each port gets its own upgrade_tool log under ~/upgrade_tool/port-<P>/.
 set -euo pipefail
 
@@ -135,22 +141,26 @@ UNSPARSE=0
 VERIFY=1
 PORT=""
 LIST_PORTS=0
+ALL=0
+PASS_ARGS=()   # every option except --all, handed on to each --all child run
 while [ $# -gt 0 ]; do
+  [ "$1" = --all ] || PASS_ARGS+=("$1")
   case "$1" in
     --yes) AUTO_YES=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --probe) PROBE=1 ;;
     --unsparse) UNSPARSE=1 ;;
     --no-verify) VERIFY=0 ;;
-    --tool) shift; TOOL="${1:-}" ;;
+    --tool) shift; TOOL="${1:-}"; PASS_ARGS+=("${1:-}") ;;
     --tool=*) TOOL="${1#*=}" ;;
-    --loader) shift; RAM_LOADER="${1:-}" ;;
+    --loader) shift; RAM_LOADER="${1:-}"; PASS_ARGS+=("${1:-}") ;;
     --loader=*) RAM_LOADER="${1#*=}" ;;
-    --flash-loader) shift; FLASH_LOADER="${1:-}" ;;
+    --flash-loader) shift; FLASH_LOADER="${1:-}"; PASS_ARGS+=("${1:-}") ;;
     --flash-loader=*) FLASH_LOADER="${1#*=}" ;;
-    --port) shift; PORT="${1:-}" ;;
+    --port) shift; PORT="${1:-}"; PASS_ARGS+=("${1:-}") ;;
     --port=*) PORT="${1#*=}" ;;
     --ports) LIST_PORTS=1 ;;
+    --all) ALL=1 ;;
     -h|--help) awk 'NR>1 && !/^#/{exit} NR>1{sub(/^# ?/,""); print}' "$0"; exit 0 ;;
     -*) echo "unknown option: $1"; exit 1 ;;
     *) IMAGE_DIR="$1" ;;
@@ -179,11 +189,18 @@ rk_devices() {
       "$(readlink -f "$d" | sed -E 's#.*/([^/]+)/usb[0-9]+/.*#\1#')"
   done
 }
-# upgrade_tool's LocationID for whatever board is on port $1 right now
+# upgrade_tool's LocationID for whatever board is on port $1 right now.
+# v2.44 builds it from libusb_get_port_numbers: the bus number, then one hex
+# digit per port along the path, printed with %x. So 1-1 -> 11, 1-2 -> 12,
+# 3-1.4 -> 314. (Older tools used (bus << 8) + device address; seen wrong on
+# real boards 2026-10-08.)
 port_locid() {
-  local d="$USB_SYSFS/$1"
+  local d="$USB_SYSFS/$1" loc p
   [ -f "$d/idVendor" ] && [ "$(cat "$d/idVendor")" = 2207 ] || return 1
-  printf '%x\n' $(( ($(cat "$d/busnum") << 8) + $(cat "$d/devnum") ))
+  loc="$(cat "$d/busnum")"
+  local IFS=.
+  for p in ${1#*-}; do loc=$(( loc * 16 + p )); done
+  printf '%x\n' "$loc"
 }
 # The report behind --ports, also printed at the start of every --port run.
 # Two boards share bandwidth only when they hang off the same laptop port
@@ -216,7 +233,7 @@ show_ports() {
   fi
   [ "$hubbed" -eq 1 ] && [ -z "$sharing" ] && echo "   ⚠ a board is behind a hub. That works, but a hub is the usual cause of err=-1 link failures."
   [ -n "$slow" ] && echo "   ⚠ running below USB 2 high speed (480M):$slow (bad cable or port, a flash will crawl or fail)"
-  [ "$n" -gt 1 ] && [ -z "$PORT" ] && echo "   Flash one per terminal with: sudo $0 --port <port>"
+  [ "$n" -gt 1 ] && [ -z "$PORT" ] && echo "   Flash them all from here with: sudo $0 --all   (or one per terminal: --port <port>)"
   return 0
 }
 
@@ -238,6 +255,76 @@ if [ "$DRY_RUN" -ne 1 ] && [ "$(id -u)" -ne 0 ]; then
   echo "so its maskrom/loader device node is root-only. Re-run:"
   echo "    sudo $0 $*"
   exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# --all: every board on USB, at once, from this one terminal
+# ---------------------------------------------------------------------------
+# One confirmation here, then this same script runs `--port P --yes` per board
+# in the background (exactly what you'd type in one terminal per board), with
+# its output in logs/<time>/port-P.log. This loop just redraws one status line
+# per board until they've all finished, then says which passed.
+if [ "$ALL" -eq 1 ]; then
+  [ -z "$PORT" ] || { echo "--all and --port don't mix: --all already flashes every port"; exit 1; }
+  [ "$TOOL" = upgrade_tool ] || { echo "--all only works with upgrade_tool (rkdeveloptool can't pick a device)"; exit 1; }
+  echo "== Rockchip boards on USB =="
+  show_ports
+  mapfile -t PORTS < <(rk_devices | cut -d' ' -f1 | sort -V)
+  [ "${#PORTS[@]}" -gt 0 ] || { echo "!! no board in maskrom. Plug them in (A-to-A cable, maskrom) and re-run."; exit 1; }
+  if [ "$AUTO_YES" -ne 1 ] && [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
+    echo
+    echo "!! About to OVERWRITE the ENTIRE eMMC of ${#PORTS[@]} board(s), on port(s): ${PORTS[*]} !!"
+    read -r -p "Type 'flash' to continue: " CONFIRM
+    [ "$CONFIRM" = "flash" ] || { echo "aborted — nothing written."; exit 1; }
+  fi
+  LOG_DIR="$SCRIPT_DIR/logs/$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$LOG_DIR"
+  declare -A PIDS
+  for p in "${PORTS[@]}"; do
+    "$0" "${PASS_ARGS[@]}" --port "$p" --yes </dev/null >"$LOG_DIR/port-$p.log" 2>&1 &
+    PIDS[$p]=$!
+  done
+  # the last line a board printed, with upgrade_tool's \r progress bars split up
+  last_line() { { tr '\r' '\n' <"$1" | grep -v '^[[:space:]]*$' || true; } | tail -n 1 | cut -c1-90; }
+  START=$SECONDS
+  while :; do
+    running=0
+    printf '\033[H\033[J'
+    echo "== flashing ${#PORTS[@]} board(s) — $(( (SECONDS-START)/60 ))m$(( (SECONDS-START)%60 ))s   logs: $LOG_DIR"
+    for p in "${PORTS[@]}"; do
+      log="$LOG_DIR/port-$p.log"
+      if kill -0 "${PIDS[$p]}" 2>/dev/null; then running=1; state="running"; else state="finished"; fi
+      stage="$({ grep '^== ' "$log" || true; } | tail -n 1 | sed 's/^== //; s/ ==$//')"
+      printf '\n  port %-8s %-9s %s\n             %s\n' "$p" "$state" "$stage" "$(last_line "$log")"
+    done
+    [ "$running" -eq 1 ] || break
+    sleep 2
+  done
+  echo
+  echo "== result =="
+  FAILED=0
+  for p in "${PORTS[@]}"; do
+    rc=0; wait "${PIDS[$p]}" || rc=$?
+    log="$LOG_DIR/port-$p.log"
+    if [ "$rc" -ne 0 ]; then verdict="FAILED (exit $rc)"; FAILED=1
+    elif grep -q 'VERIFY PASSED' "$log"; then verdict="PASSED"
+    elif [ "$DRY_RUN" -eq 1 ] || [ "$PROBE" -eq 1 ]; then verdict="ok (nothing written)"
+    else verdict="flashed, NOT verified"; fi
+    printf '   port %-8s %s\n' "$p" "$verdict"
+  done
+  if [ "$FAILED" -eq 1 ]; then
+    for p in "${PORTS[@]}"; do
+      grep -q 'VERIFY PASSED' "$LOG_DIR/port-$p.log" && continue
+      echo; echo "-- port $p, last lines (full log: $LOG_DIR/port-$p.log) --"
+      { tr '\r' '\n' <"$LOG_DIR/port-$p.log" | grep -v '^[[:space:]]*$' || true; } | tail -n 12 | sed 's/^/   /'
+    done
+  elif [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
+    echo
+    echo "Unplug the cables and power-cycle each board: they boot from eMMC now."
+  fi
+  # logs belong to whoever ran sudo, not root
+  [ -n "${SUDO_USER:-}" ] && chown -R "$SUDO_USER:" "$SCRIPT_DIR/logs" 2>/dev/null || true
+  exit "$FAILED"
 fi
 
 # ---------------------------------------------------------------------------
@@ -278,11 +365,10 @@ ut_switch() {
 }
 
 # With --port, every upgrade_tool call is aimed at that one board with
-# `-s <LocationID>` (manual §1.11). The LocationID is NOT stable: it is the
-# board's (bus << 8) + device address, printed in hex, and the address changes
-# each time the board re-enumerates (after `db`, after `rd 3`). So it's looked
-# up fresh from the physical port before every call: the port name (sysfs, e.g.
-# 1-2) is what stays put. Each port also gets its own HOME, so the tool's log
+# `-s <LocationID>` (manual §1.11). The LocationID comes from the physical
+# port (see port_locid), so it survives the board re-enumerating after `db` or
+# `rd 3`; it's still looked up before every call, which also waits for the
+# board to come back on that port. Each port also gets its own HOME, so the tool's log
 # for this board (~/upgrade_tool/log) isn't mixed with the other boards'.
 ut() {
   if [ -z "$PORT" ]; then "$UT_BIN" "$@"; return; fi
@@ -685,19 +771,23 @@ t_write_loader
 # VERIFY: read the eMMC back and compare it with the images
 # ---------------------------------------------------------------------------
 # "di ... 100%" and "Download IDB Success" only prove the tool handed the bytes
-# over. One R76S eMMC acked every write and kept only the first 32 MiB: past
-# LBA 65536 it read back 0xCC, so uboot/dtbo/resource were fine and the kernel,
-# boot, rootfs and userdata were simply not there. Nothing in the write log
-# showed it. So, while the loader is still running, read the board back with
-# `rl` (the board is not reset until this passes):
+# over, so while the loader is still running, read the board back with `rl`
+# (the board is not reset until this passes):
 #   * the GPT header at sector 1 must say "EFI PART"
-#   * images up to 64 MiB are read back WHOLE and compared byte for byte
-#   * bigger ones (rootfs, userdata) are SAMPLED: their first and last MiB plus
-#     14 MiB spread evenly between. For a sparse image the samples come from its
-#     raw data chunks, mapped to where they land on the eMMC. That covers the
-#     far end of every partition, which is exactly where a bad chip loses data.
-# About 90 MB of reads in all, well under a minute. --no-verify skips it.
+#   * every image region below sector 65536 is read back and compared byte
+#     for byte: uboot, misc, dtbo, resource
+#
+# Nothing at or past sector 65536 (32 MiB) can be checked this way: the
+# package's USB loader (nanopi_m5_usbplug) returns 0xCC for every sector from
+# 65536 on, whatever the eMMC holds. Proven 2026-10-08: two boards both read
+# 0xCC there after a flash, even in a read that started below the line and
+# ran across it, yet the one that was rebooted came up on the flashed OS. So
+# kernel, boot, rootfs and userdata are reported "not checkable over USB", not
+# failed; the first boot is their check. (The earlier "this eMMC keeps only
+# its first 32 MiB" diagnosis was this same loader limit.)
+# --no-verify skips the read-back.
 VERIFY_FULL_MAX=$((64 * 1024 * 1024))
+RL_MAX_SECTOR=65536   # the USB loader reads nothing real from here on (see above)
 VERIFY_SAMPLES=16
 VERIFY_SAMPLE_BYTES=$((1024 * 1024))
 
@@ -760,11 +850,12 @@ verify_emmc() {
     fails=$((fails + 1))
   fi
   for i in "${!W_NAME[@]}"; do
-    local name="${W_NAME[$i]}" file="${W_FILE[$i]}" plan sec off len n bad=0 nreg=0 got first=""
+    local name="${W_NAME[$i]}" file="${W_FILE[$i]}" plan sec off len n bad=0 nreg=0 skipped=0 got first=""
     plan="$(verify_plan "$file" "${W_OFF[$i]}")" || { echo "   $name: couldn't plan the check"; fails=$((fails + 1)); continue; }
     while read -r sec off len; do
       [ -n "$sec" ] || continue
       n=$(( (len + 511) / 512 ))
+      if [ $(( sec + n )) -gt "$RL_MAX_SECTOR" ]; then skipped=$((skipped + 1)); continue; fi
       rm -f "$vdir/rb.bin"
       ut rl "$sec" "$n" "$vdir/rb.bin" >/dev/null 2>&1 || true
       got="$(stat -c%s "$vdir/rb.bin" 2>/dev/null || echo 0)"
@@ -778,6 +869,10 @@ verify_emmc() {
       fi
       nreg=$((nreg + 1)); bytes=$((bytes + len))
     done <<<"$plan"
+    if [ "$nreg" -eq 0 ] && [ "$skipped" -gt 0 ]; then
+      printf '   %-10s not checkable over USB (past 32 MiB; the first boot proves it)\n' "$name"
+      continue
+    fi
     checked=$((checked + 1))
     if [ "$bad" -eq 0 ]; then
       printf '   %-10s ok  (%d region%s)\n' "$name" "$nreg" "$([ "$nreg" = 1 ] || echo s)"
@@ -804,14 +899,11 @@ elif ! verify_emmc; then
    The board was NOT rebooted; it is still in loader mode.
 
    Re-seat the cable and flash once more. If the same partitions fail again,
-   especially everything past the first 32 MiB (kernel, boot, rootfs,
-   userdata) while uboot/dtbo/resource pass, the eMMC itself is dropping
-   writes. That board can't be fixed by reflashing: set it aside for an eMMC
-   or board swap.
+   set the board aside: its eMMC is not keeping writes.
 EOF
   exit 1
 else
-  echo "   ✓ VERIFY PASSED: the eMMC holds the image."
+  echo "   ✓ VERIFY PASSED: everything below 32 MiB matches; kernel/rootfs/userdata are proven by the first boot."
 fi
 
 echo "== partition table now on the board =="

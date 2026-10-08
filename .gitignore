@@ -44,3 +44,6 @@ flashing/opi/sd/*.img.gz
 
 # LibreOffice lock files
 .~lock.*#
+
+# flash_nanopi_emmc.sh --all: one log per board per run
+flashing/nanopi/emmc/logs/

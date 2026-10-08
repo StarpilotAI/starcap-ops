@@ -38,21 +38,28 @@ Needs a Linux x86-64 host (`upgrade_tool` is closed-source x86-64) and **~12 GB 
 ### Verify
 
 After writing, the script reads the eMMC back before it reboots the board: the GPT
-header, every image up to 64 MiB in full, and 16 × 1 MiB spread across rootfs and
-userdata (~90 MB, well under a minute). It ends with **VERIFY PASSED** or
-**VERIFY FAILED**. On a failure the board is not rebooted. If kernel, boot, rootfs
-and userdata fail while uboot/dtbo/resource pass, the eMMC is keeping only its
-first 32 MiB: set the board aside, reflashing won't help. `--no-verify` skips the check.
+header and uboot, misc, dtbo and resource, byte for byte. It ends with **VERIFY PASSED**
+or **VERIFY FAILED**; on a failure the board is not rebooted.
+
+kernel, boot, rootfs and userdata sit past 32 MiB, and the USB loader can't read there
+(it returns `0xCC` for every sector from 65536 on, whatever is written). So those print
+"not checkable over USB" and the first boot is their check. That limit is also what was
+once misread as "this eMMC keeps only its first 32 MiB": checked 2026-10-08, a board that
+read `0xCC` there booted the flashed OS fine. `--no-verify` skips the check.
 
 ### Several boards at once
 
-Put each board, in maskrom, on **its own laptop port**, then flash one per terminal:
+Put each board, in maskrom, on **its own laptop port**, then flash them all from one terminal:
 
 ```bash
 ./flash_nanopi_emmc.sh --ports            # where each board is; flags boards sharing a link
-sudo ./flash_nanopi_emmc.sh --port 1-1    # terminal 1
-sudo ./flash_nanopi_emmc.sh --port 3-1    # terminal 2, ...
+sudo ./flash_nanopi_emmc.sh --all         # one 'flash' confirmation, all boards at once
 ```
+
+`--all` shows a live status line per board and ends with PASSED / FAILED per port; each
+board's full output is in `logs/<time>/port-<P>.log`. `./make_launcher.sh` puts a
+**Flash NanoPis** icon on the desktop that opens a terminal running exactly that.
+By hand, one terminal per board, works too: `sudo ./flash_nanopi_emmc.sh --port 1-1`.
 
 `--ports` prints a **SHARED LINK** warning when several boards sit behind one hub on one
 laptop port. Those boards split a single 480 Mbit/s link, so flashing them together is about
