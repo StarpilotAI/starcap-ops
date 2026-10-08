@@ -44,10 +44,14 @@
 #
 # THIS PERMANENTLY ERASES EVERYTHING ON THE TARGET DEVICE.
 #
-# Usage:  ./format_sd_storage.sh /dev/sdX [--label NAME] [--yes]
-#         ./format_sd_storage.sh /dev/sdX --check
+# Usage:  ./format_sd_storage.sh /dev/sdX [/dev/sdY ...] [--label NAME] [--yes]
+#         ./format_sd_storage.sh /dev/sdX [/dev/sdY ...] --check
 #   /dev/sdX      the WHOLE disk device (not a partition, e.g. /dev/sdb not
-#                 /dev/sdb1) — find it with `lsblk` first
+#                 /dev/sdb1) — find it with `lsblk` first. Several cards are
+#                 done one after another, after a single confirmation.
+#   --all         every card currently in a reader: removable (RM=1) whole
+#                 disks with media, up to 512 GiB. Never the laptop's own disk
+#                 or a USB SSD (those report RM=0). The list is shown first.
 #   --label NAME  ext4 volume label (default: starcap_storage)
 #   --yes         skip the confirmation prompt
 #   --check       read-only: report whether the card would hijack a NanoPi's
@@ -63,22 +67,62 @@ TAIL_WIPE_MIB=4          # enough to take out the backup GPT header
 LOADER_SKIP=64           # first sector the BootROM reads
 LOADER_COUNT=1984        # ...through sector 2047, i.e. up to the 1 MiB mark
 
-DEV=""
+DEVS=()
 LABEL="starcap_storage"
 AUTO_YES=0
 CHECK_ONLY=0
+ALL=0
+ALL_MAX_BYTES=$(( 512 * 1024 * 1024 * 1024 ))
 while [ $# -gt 0 ]; do
   case "$1" in
     --yes)   AUTO_YES=1 ;;
     --check) CHECK_ONLY=1 ;;
+    --all)   ALL=1 ;;
     --label) shift; LABEL="${1:?--label needs a value}" ;;
     -*)      echo "unknown option: $1"; exit 1 ;;
-    *)       DEV="$1" ;;
+    *)       DEVS+=("$1") ;;
   esac
   shift
 done
 
-[ -n "$DEV" ] || { echo "usage: $0 /dev/sdX [--label NAME] [--yes] [--check]"; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT; exit 1; }
+if [ "$ALL" -eq 1 ]; then
+  [ "${#DEVS[@]}" -eq 0 ] || { echo "--all and explicit devices don't mix — pass one or the other"; exit 1; }
+  while read -r name size type rm; do
+    [ "$type" = disk ] && [ "$rm" = 1 ] && [ "$size" -gt 0 ] && [ "$size" -le "$ALL_MAX_BYTES" ] \
+      && DEVS+=("/dev/$name")
+  done < <(lsblk -dnb -o NAME,SIZE,TYPE,RM)
+  [ "${#DEVS[@]}" -gt 0 ] || { echo "--all: no SD cards found (no removable disk with media)."; exit 1; }
+  echo "--all picked ${#DEVS[@]} card(s): ${DEVS[*]}"
+  # a single card still goes through the multi-card path so it gets the listing
+fi
+
+[ "${#DEVS[@]}" -gt 0 ] || { echo "usage: $0 /dev/sdX [/dev/sdY ...] | --all  [--label NAME] [--yes] [--check]"; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT; exit 1; }
+
+# several cards: confirm once for the lot, then run this script on each in
+# turn (every one gets the full set of safety checks and its own verify)
+if [ "${#DEVS[@]}" -gt 1 ] || [ "$ALL" -eq 1 ]; then
+  if [ "$CHECK_ONLY" -ne 1 ] && [ "$AUTO_YES" -ne 1 ]; then
+    lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT "${DEVS[@]}"
+    echo
+    echo "!! About to WIPE ALL ${#DEVS[@]} of: ${DEVS[*]} and reformat each as one ext4 partition (label: $LABEL) !!"
+    read -r -p "Type 'format' to continue: " CONFIRM
+    [ "$CONFIRM" = "format" ] || { echo "aborted — nothing written."; exit 1; }
+  fi
+  sudo -v || { echo "!! sudo failed — nothing written."; exit 1; }   # ask the password once, up front
+  ARGS=(--label "$LABEL")
+  [ "$CHECK_ONLY" -eq 1 ] && ARGS+=(--check) || ARGS+=(--yes)
+  OK=(); BAD=()
+  for d in "${DEVS[@]}"; do
+    echo
+    if "$0" "$d" "${ARGS[@]}"; then OK+=("$d"); else BAD+=("$d"); fi
+  done
+  echo
+  echo "== summary =="
+  [ "${#OK[@]}"  -gt 0 ] && echo "   ok:     ${OK[*]}"
+  [ "${#BAD[@]}" -gt 0 ] && { echo "   FAILED: ${BAD[*]}  (see output above)"; exit 1; }
+  exit 0
+fi
+DEV="${DEVS[0]}"
 [ -b "$DEV" ] || { echo "not a block device: $DEV"; exit 1; }
 
 # refuse a partition handed in by mistake (/dev/sdb1) — we need the whole disk
@@ -105,8 +149,10 @@ done
 # read-only inspection: is there a stale Rockchip loader in the boot region?
 # Returns 0 if clean, 1 if the card would hijack a NanoPi's BootROM.
 loader_bytes() {
-  sudo dd if="$DEV" bs=512 skip="$LOADER_SKIP" count="$LOADER_COUNT" status=none 2>/dev/null \
-    | tr -d '\0' | wc -c
+  local raw
+  raw="$(sudo dd if="$DEV" bs=512 skip="$LOADER_SKIP" count="$LOADER_COUNT" status=none | base64 -w0)" \
+    || { echo "!! couldn't read $DEV (sudo or read error) — status unknown" >&2; return 1; }
+  printf '%s' "$raw" | base64 -d | tr -d '\0' | wc -c
 }
 
 echo "== target: $DEV =="
