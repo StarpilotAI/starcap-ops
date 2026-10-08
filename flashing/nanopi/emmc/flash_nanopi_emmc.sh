@@ -116,15 +116,21 @@
 #                confirmation, then a background `--port P --yes` run per
 #                board, a live status line each, and PASSED/FAILED per board at
 #                the end. Each board's full output goes to logs/<time>/port-P.log.
+#   --update     with --all: also keep each board's ethernet in this laptop's
+#                dock port. As each flashed board boots onto the dock LAN it
+#                gets fleet/dock-check/dock_check.py --yes (pinned to main,
+#                updates on, self-updated to latest main), and the run is only
+#                done once every board is on latest main.
 #
 # Several boards at once: put each on its OWN laptop port (boards behind one
 # hub split a single 480 Mbit/s link, so they gain nothing), then
 #     ./flash_nanopi_emmc.sh --ports            # check: no SHARED LINK warning
 #     sudo ./flash_nanopi_emmc.sh --all         # all of them, one terminal
+#     sudo ./flash_nanopi_emmc.sh --all --update  # ...and update each to latest main over the dock LAN
 # or by hand, one terminal per board:
 #     sudo ./flash_nanopi_emmc.sh --port 1-1    # terminal 1
 #     sudo ./flash_nanopi_emmc.sh --port 1-2    # terminal 2, and so on
-# make_launcher.sh puts a desktop icon that opens a terminal running --all.
+# make_launcher.sh puts two desktop icons: one runs --all, one --all --update.
 # Each port gets its own upgrade_tool log under ~/upgrade_tool/port-<P>/.
 set -euo pipefail
 
@@ -142,9 +148,10 @@ VERIFY=1
 PORT=""
 LIST_PORTS=0
 ALL=0
+UPDATE=0
 PASS_ARGS=()   # every option except --all, handed on to each --all child run
 while [ $# -gt 0 ]; do
-  [ "$1" = --all ] || PASS_ARGS+=("$1")
+  case "$1" in --all|--update) ;; *) PASS_ARGS+=("$1") ;; esac
   case "$1" in
     --yes) AUTO_YES=1 ;;
     --dry-run) DRY_RUN=1 ;;
@@ -161,6 +168,7 @@ while [ $# -gt 0 ]; do
     --port=*) PORT="${1#*=}" ;;
     --ports) LIST_PORTS=1 ;;
     --all) ALL=1 ;;
+    --update) UPDATE=1 ;;
     -h|--help) awk 'NR>1 && !/^#/{exit} NR>1{sub(/^# ?/,""); print}' "$0"; exit 0 ;;
     -*) echo "unknown option: $1"; exit 1 ;;
     *) IMAGE_DIR="$1" ;;
@@ -264,6 +272,15 @@ fi
 # in the background (exactly what you'd type in one terminal per board), with
 # its output in logs/<time>/port-P.log. This loop just redraws one status line
 # per board until they've all finished, then says which passed.
+#
+# --update adds a second leg: keep the boards' ethernet in this laptop's dock
+# port, and as each flashed board boots and shows up on the dock LAN, run
+# fleet/dock-check/dock_check.py --yes on it (pin to main, updates on, restart
+# stereocam so it self-updates from GitHub, wait until it IS on latest main).
+# A board is done only when that passes. Which LAN board is which USB port
+# isn't knowable (the image is identical), so a LAN board counts as "ours" when
+# it's a NanoPi that booted after this run started.
+[ "$UPDATE" -eq 0 ] || [ "$ALL" -eq 1 ] || { echo "--update goes with --all (sudo $0 --all --update)"; exit 1; }
 if [ "$ALL" -eq 1 ]; then
   [ -z "$PORT" ] || { echo "--all and --port don't mix: --all already flashes every port"; exit 1; }
   [ "$TOOL" = upgrade_tool ] || { echo "--all only works with upgrade_tool (rkdeveloptool can't pick a device)"; exit 1; }
@@ -271,6 +288,36 @@ if [ "$ALL" -eq 1 ]; then
   show_ports
   mapfile -t PORTS < <(rk_devices | cut -d' ' -f1 | sort -V)
   [ "${#PORTS[@]}" -gt 0 ] || { echo "!! no board in maskrom. Plug them in (A-to-A cable, maskrom) and re-run."; exit 1; }
+
+  if [ "$UPDATE" -eq 1 ]; then
+    # dock_check runs as whoever ran sudo: it needs their ~/orangepi-recorder
+    # clone (and git credentials) to learn what "latest main" is.
+    DOCK_CHECK="$(cd "$SCRIPT_DIR" && pwd -P)/../../../fleet/dock-check/dock_check.py"
+    [ -f "$DOCK_CHECK" ] || { echo "!! --update needs $DOCK_CHECK"; exit 1; }
+    as_user() { if [ -n "${SUDO_USER:-}" ]; then sudo -u "$SUDO_USER" -H "$@"; else "$@"; fi; }
+    command -v sshpass >/dev/null || { echo "!! --update needs sshpass (apt install sshpass)"; exit 1; }
+    # the dock link: a wired interface (not WiFi) holding an IPv4 address
+    DOCK_NET=""
+    while read -r ifc cidr; do
+      [ -e "/sys/class/net/$ifc/wireless" ] && continue
+      case "$ifc" in en*|eth*) DOCK_NET="${cidr%.*/*}"; DOCK_OWN="${cidr%/*}"; break ;; esac
+    done < <(ip -4 -o addr show up | awk '{print $2, $4}')
+    if [ -z "$DOCK_NET" ]; then
+      echo "!! --update: no wired dock link is up. Plug the boards' ethernet into this"
+      echo "   laptop's port, then: nmcli connection up starcap-dock"
+      echo "   (first time on this laptop: sudo $(cd "$SCRIPT_DIR" && pwd -P)/../../../station/setup_dock_lan.sh)"
+      exit 1
+    fi
+    echo
+    echo "== --update: what is latest main? =="
+    LATEST="$(as_user python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import dock_check as d
+v, src, stale = d.latest_version(d.LOCAL_REPO)
+print(v or "", file=sys.stdout); print(src, file=sys.stderr)' "$(dirname "$DOCK_CHECK")" 2>"$SCRIPT_DIR/.latest.err" || true)"
+    echo "   $LATEST  ($(cat "$SCRIPT_DIR/.latest.err" 2>/dev/null))"; rm -f "$SCRIPT_DIR/.latest.err"
+    [ -n "$LATEST" ] || { echo "!! couldn't work out the latest recorder version; nothing was flashed."; exit 1; }
+    echo "   dock LAN: $DOCK_NET.0/24. Boards get updated to $LATEST as they come up there."
+  fi
+
   if [ "$AUTO_YES" -ne 1 ] && [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
     echo
     echo "!! About to OVERWRITE the ENTIRE eMMC of ${#PORTS[@]} board(s), on port(s): ${PORTS[*]} !!"
@@ -280,24 +327,77 @@ if [ "$ALL" -eq 1 ]; then
   LOG_DIR="$SCRIPT_DIR/logs/$(date +%Y%m%d-%H%M%S)"
   mkdir -p "$LOG_DIR"
   declare -A PIDS
+  START=$SECONDS
   for p in "${PORTS[@]}"; do
     "$0" "${PASS_ARGS[@]}" --port "$p" --yes </dev/null >"$LOG_DIR/port-$p.log" 2>&1 &
     PIDS[$p]=$!
   done
-  # the last line a board printed, with upgrade_tool's \r progress bars split up
-  last_line() { { tr '\r' '\n' <"$1" | grep -v '^[[:space:]]*$' || true; } | tail -n 1 | cut -c1-90; }
-  START=$SECONDS
+  # the last line a log printed, with \r progress bars split up and colours off
+  last_line() { { tr '\r' '\n' <"$1" | sed 's/\x1b\[[0-9;]*m//g' | grep -v '^[[:space:]]*$' || true; } | tail -n 1 | cut -c1-90; }
+
+  # --update state, one entry per LAN board picked up
+  declare -A UPIDS UDONE
+  LAN_IPS=()
+  UPDATE_DEADLINE=""      # set once every flash has finished
+  UPDATE_WAIT=600         # how long a passed board gets to show up on the LAN
+  NEXT_SWEEP=0
+  pi_ssh() { sshpass -p 12345 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=4 -o LogLevel=ERROR -o BatchMode=no "pi@$1" "$2" 2>/dev/null; }
+  # NanoPis on the dock LAN that booted after this run started and aren't picked up yet
+  sweep_lan() {
+    local i ip up age pings=(); age=$(( SECONDS - START ))
+    # wait on the pings only: a bare `wait` would also block on the flashes
+    for i in $(seq 2 254); do ping -c1 -W1 "$DOCK_NET.$i" >/dev/null 2>&1 & pings+=($!); done
+    wait "${pings[@]}" 2>/dev/null || true
+    for ip in $(ip neigh show | awk -v n="$DOCK_NET." 'index($1,n)==1 && $0 ~ /lladdr/ {print $1}'); do
+      [ "$ip" = "$DOCK_OWN" ] && continue
+      [ -n "${UPIDS[$ip]:-}" ] && continue
+      up="$(pi_ssh "$ip" 'cut -d. -f1 /proc/uptime')" || continue
+      [[ "$up" =~ ^[0-9]+$ ]] && [ "$up" -lt "$age" ] || continue
+      LAN_IPS+=("$ip")
+      as_user python3 "$DOCK_CHECK" --host "$ip" --yes --expect "$LATEST" \
+        </dev/null >"$LOG_DIR/update-$ip.log" 2>&1 &
+      UPIDS[$ip]=$!
+    done
+  }
+  n_passed() { local p n=0; for p in "${PORTS[@]}"; do grep -q 'VERIFY PASSED' "$LOG_DIR/port-$p.log" && n=$((n + 1)); done; echo "$n"; }
+
   while :; do
     running=0
+    for p in "${PORTS[@]}"; do kill -0 "${PIDS[$p]}" 2>/dev/null && running=1; done
+    updating=0
+    if [ "$UPDATE" -eq 1 ] && [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
+      for ip in "${LAN_IPS[@]}"; do kill -0 "${UPIDS[$ip]}" 2>/dev/null && updating=1; done
+      [ "$running" -eq 1 ] || [ -n "$UPDATE_DEADLINE" ] || UPDATE_DEADLINE=$(( SECONDS + UPDATE_WAIT ))
+      if [ "$SECONDS" -ge "$NEXT_SWEEP" ] && { [ -z "$UPDATE_DEADLINE" ] || [ "$SECONDS" -lt "$UPDATE_DEADLINE" ]; } \
+         && [ "${#LAN_IPS[@]}" -lt "$(n_passed)" -o "$running" -eq 1 ]; then
+        sweep_lan; NEXT_SWEEP=$(( SECONDS + 10 ))
+        for ip in "${LAN_IPS[@]}"; do kill -0 "${UPIDS[$ip]}" 2>/dev/null && updating=1; done
+      fi
+      waiting_lan=0
+      if [ "$running" -eq 0 ] && [ "${#LAN_IPS[@]}" -lt "$(n_passed)" ] && [ "$SECONDS" -lt "$UPDATE_DEADLINE" ]; then waiting_lan=1; fi
+    else
+      waiting_lan=0
+    fi
     printf '\033[H\033[J'
     echo "== flashing ${#PORTS[@]} board(s) — $(( (SECONDS-START)/60 ))m$(( (SECONDS-START)%60 ))s   logs: $LOG_DIR"
     for p in "${PORTS[@]}"; do
       log="$LOG_DIR/port-$p.log"
-      if kill -0 "${PIDS[$p]}" 2>/dev/null; then running=1; state="running"; else state="finished"; fi
+      if kill -0 "${PIDS[$p]}" 2>/dev/null; then state="running"; else state="finished"; fi
       stage="$({ grep '^== ' "$log" || true; } | tail -n 1 | sed 's/^== //; s/ ==$//')"
       printf '\n  port %-8s %-9s %s\n             %s\n' "$p" "$state" "$stage" "$(last_line "$log")"
     done
-    [ "$running" -eq 1 ] || break
+    if [ "$UPDATE" -eq 1 ] && [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
+      echo
+      echo "== updating to $LATEST on the dock LAN ($DOCK_NET.0/24) =="
+      for ip in "${LAN_IPS[@]}"; do
+        if kill -0 "${UPIDS[$ip]}" 2>/dev/null; then state="updating"; else state="finished"; fi
+        printf '  %-14s %-9s %s\n' "$ip" "$state" "$(last_line "$LOG_DIR/update-$ip.log")"
+      done
+      [ "$waiting_lan" -eq 1 ] && echo "  waiting for $(( $(n_passed) - ${#LAN_IPS[@]} )) more flashed board(s) to boot onto the LAN ($(( UPDATE_DEADLINE - SECONDS ))s left)"
+      [ "${#LAN_IPS[@]}" -eq 0 ] && [ "$waiting_lan" -eq 0 ] && [ "$running" -eq 1 ] && echo "  (boards show up here once they're flashed and booted)"
+    fi
+    [ "$running" -eq 1 ] || [ "$updating" -eq 1 ] || [ "$waiting_lan" -eq 1 ] || break
     sleep 2
   done
   echo
@@ -312,6 +412,21 @@ if [ "$ALL" -eq 1 ]; then
     else verdict="flashed, NOT verified"; fi
     printf '   port %-8s %s\n' "$p" "$verdict"
   done
+  if [ "$UPDATE" -eq 1 ] && [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
+    for ip in "${LAN_IPS[@]}"; do
+      rc=0; wait "${UPIDS[$ip]}" || rc=$?
+      ver="$(pi_ssh "$ip" 'cat ~/orangepi-recorder/stereocam/VERSION' || true)"
+      if [ "$rc" -eq 0 ]; then printf '   lan  %-14s UPDATED: on %s, auto-updating, pinned to main\n' "$ip" "$ver"
+      else printf '   lan  %-14s NOT UPDATED (on %s) — see %s\n' "$ip" "${ver:-?}" "$LOG_DIR/update-$ip.log"; FAILED=1; fi
+    done
+    missing=$(( $(n_passed) - ${#LAN_IPS[@]} ))
+    if [ "$missing" -gt 0 ]; then
+      echo "   !! $missing flashed board(s) never showed up on the dock LAN within ${UPDATE_WAIT}s:"
+      echo "      is each board's ethernet in this laptop's dock port (or a switch on it)?"
+      echo "      Once it's up: fleet/dock-check/dock_check.py"
+      FAILED=1
+    fi
+  fi
   if [ "$FAILED" -eq 1 ]; then
     for p in "${PORTS[@]}"; do
       grep -q 'VERIFY PASSED' "$LOG_DIR/port-$p.log" && continue
@@ -320,7 +435,11 @@ if [ "$ALL" -eq 1 ]; then
     done
   elif [ "$DRY_RUN" -ne 1 ] && [ "$PROBE" -ne 1 ]; then
     echo
-    echo "Unplug the cables and power-cycle each board: they boot from eMMC now."
+    if [ "$UPDATE" -eq 1 ]; then
+      echo "Done: every board is flashed, booted and on $LATEST. Unplug the USB cables."
+    else
+      echo "Unplug the cables and power-cycle each board: they boot from eMMC now."
+    fi
   fi
   # logs belong to whoever ran sudo, not root
   [ -n "${SUDO_USER:-}" ] && chown -R "$SUDO_USER:" "$SCRIPT_DIR/logs" 2>/dev/null || true

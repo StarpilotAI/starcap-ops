@@ -57,9 +57,17 @@ sudo ./flash_nanopi_emmc.sh --all         # one 'flash' confirmation, all boards
 ```
 
 `--all` shows a live status line per board and ends with PASSED / FAILED per port; each
-board's full output is in `logs/<time>/port-<P>.log`. `./make_launcher.sh` puts a
-**Flash NanoPis** icon on the desktop that opens a terminal running exactly that.
+board's full output is in `logs/<time>/port-<P>.log`. `./make_launcher.sh` puts two
+desktop icons that open a terminal: **Flash NanoPis** (`--all`) and **Flash + Update NanoPis**
+(`--all --update`, below).
 By hand, one terminal per board, works too: `sudo ./flash_nanopi_emmc.sh --port 1-1`.
+
+**`--all --update`**: also plug each board's ethernet into the laptop's dock port
+(`starcap-dock`, see `station/setup_dock_lan.sh`). As each flashed board boots onto the dock
+LAN, `fleet/dock-check/dock_check.py --yes` pins it to `main`, turns updates on and waits until
+it has self-updated to the latest `main` (the image ships 1.65.0). The run only says done once
+every flashed board is on latest; a board that doesn't show up on the LAN within 10 minutes, or
+doesn't update, fails the run.
 
 `--ports` prints a **SHARED LINK** warning when several boards sit behind one hub on one
 laptop port. Those boards split a single 480 Mbit/s link, so flashing them together is about
