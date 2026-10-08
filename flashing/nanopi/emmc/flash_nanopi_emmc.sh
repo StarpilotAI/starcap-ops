@@ -736,7 +736,7 @@ echo "== writing the GPT partition table (from parameter.txt) =="
 t_gpt
 
 UNSPARSE_TMP=""
-cleanup() { [ -n "$UNSPARSE_TMP" ] && rm -rf -- "$UNSPARSE_TMP"; }
+cleanup() { [ -z "$UNSPARSE_TMP" ] || rm -rf -- "$UNSPARSE_TMP"; }   # must return 0: under set -e its status becomes the exit code
 trap cleanup EXIT
 [ "$UNSPARSE" -eq 1 ] && UNSPARSE_TMP="$(mktemp -d)"
 
