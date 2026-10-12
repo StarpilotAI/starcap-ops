@@ -1,0 +1,1175 @@
+{
+ "fleet": {
+  "total": 172,
+  "out": 104,
+  "office": 68,
+  "online": 27,
+  "blocked": 29
+ },
+ "long_out": [
+  {
+   "cap": "starcap149",
+   "camera": "152",
+   "checkout_at": "2026-10-02T08:12:00+03:00",
+   "days_out": 10.31,
+   "last_heard": "2026-10-02T17:44:00+03:00",
+   "silent_h": 237.93,
+   "operator": "Mahmoud Adel",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap61",
+   "camera": "64",
+   "checkout_at": "2026-10-03T07:55:00+03:00",
+   "days_out": 9.32,
+   "last_heard": "2026-10-04T09:21:00+03:00",
+   "silent_h": 198.32,
+   "operator": "Khaled Ragab",
+   "task": "Tailoring"
+  }
+ ],
+ "silent": [
+  {
+   "cap": "starcap149",
+   "camera": "152",
+   "checkout_at": "2026-10-02T08:12:00+03:00",
+   "days_out": 10.31,
+   "last_heard": "2026-10-02T17:44:00+03:00",
+   "silent_h": 237.93,
+   "operator": "Mahmoud Adel",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap61",
+   "camera": "64",
+   "checkout_at": "2026-10-03T07:55:00+03:00",
+   "days_out": 9.32,
+   "last_heard": "2026-10-04T09:21:00+03:00",
+   "silent_h": 198.32,
+   "operator": "Khaled Ragab",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap81",
+   "camera": "86",
+   "checkout_at": "2026-10-10T08:30:00+03:00",
+   "days_out": 2.3,
+   "last_heard": "2026-10-10T21:15:00+03:00",
+   "silent_h": 42.42,
+   "operator": "Tamer Fawzy",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap27",
+   "camera": "29",
+   "checkout_at": "2026-10-10T07:40:00+03:00",
+   "days_out": 2.33,
+   "last_heard": "2026-10-11T06:05:00+03:00",
+   "silent_h": 33.58,
+   "operator": "Tarek Hamdy",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap17",
+   "camera": "33",
+   "checkout_at": "2026-10-11T07:48:00+03:00",
+   "days_out": 1.33,
+   "last_heard": null,
+   "silent_h": 31.87,
+   "operator": "Tarek Hamdy",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap166",
+   "camera": "171",
+   "checkout_at": "2026-10-11T09:12:00+03:00",
+   "days_out": 1.27,
+   "last_heard": null,
+   "silent_h": 30.47,
+   "operator": "Sherif Mounir",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap156",
+   "camera": "158",
+   "checkout_at": "2026-10-11T09:40:00+03:00",
+   "days_out": 1.25,
+   "last_heard": null,
+   "silent_h": 30.0,
+   "operator": "Khaled Ragab",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap138",
+   "camera": "141",
+   "checkout_at": "2026-10-11T08:02:00+03:00",
+   "days_out": 1.32,
+   "last_heard": "2026-10-11T12:30:00+03:00",
+   "silent_h": 27.17,
+   "operator": "Hossam Ezzat",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap102",
+   "camera": "110",
+   "checkout_at": "2026-10-11T08:27:00+03:00",
+   "days_out": 1.3,
+   "last_heard": "2026-10-11T13:02:00+03:00",
+   "silent_h": 26.63,
+   "operator": "Mahmoud Adel",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap70",
+   "camera": "73",
+   "checkout_at": "2026-10-11T10:05:00+03:00",
+   "days_out": 1.23,
+   "last_heard": "2026-10-11T14:48:00+03:00",
+   "silent_h": 24.87,
+   "operator": "Tarek Hamdy",
+   "task": "Cleaning"
+  }
+ ],
+ "out": [
+  {
+   "cap": "starcap149",
+   "camera": "152",
+   "checkout_at": "2026-10-02T08:12:00+03:00",
+   "days_out": 10.31,
+   "last_heard": "2026-10-02T17:44:00+03:00",
+   "silent_h": 237.93,
+   "operator": "Mahmoud Adel",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap61",
+   "camera": "64",
+   "checkout_at": "2026-10-03T07:55:00+03:00",
+   "days_out": 9.32,
+   "last_heard": "2026-10-04T09:21:00+03:00",
+   "silent_h": 198.32,
+   "operator": "Khaled Ragab",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap27",
+   "camera": "29",
+   "checkout_at": "2026-10-10T07:40:00+03:00",
+   "days_out": 2.33,
+   "last_heard": "2026-10-11T06:05:00+03:00",
+   "silent_h": 33.58,
+   "operator": "Tarek Hamdy",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap81",
+   "camera": "86",
+   "checkout_at": "2026-10-10T08:30:00+03:00",
+   "days_out": 2.3,
+   "last_heard": "2026-10-10T21:15:00+03:00",
+   "silent_h": 42.42,
+   "operator": "Tamer Fawzy",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap17",
+   "camera": "33",
+   "checkout_at": "2026-10-11T07:48:00+03:00",
+   "days_out": 1.33,
+   "last_heard": null,
+   "silent_h": 31.87,
+   "operator": "Tarek Hamdy",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap138",
+   "camera": "141",
+   "checkout_at": "2026-10-11T08:02:00+03:00",
+   "days_out": 1.32,
+   "last_heard": "2026-10-11T12:30:00+03:00",
+   "silent_h": 27.17,
+   "operator": "Hossam Ezzat",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap102",
+   "camera": "110",
+   "checkout_at": "2026-10-11T08:27:00+03:00",
+   "days_out": 1.3,
+   "last_heard": "2026-10-11T13:02:00+03:00",
+   "silent_h": 26.63,
+   "operator": "Mahmoud Adel",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap166",
+   "camera": "171",
+   "checkout_at": "2026-10-11T09:12:00+03:00",
+   "days_out": 1.27,
+   "last_heard": null,
+   "silent_h": 30.47,
+   "operator": "Sherif Mounir",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap156",
+   "camera": "158",
+   "checkout_at": "2026-10-11T09:40:00+03:00",
+   "days_out": 1.25,
+   "last_heard": null,
+   "silent_h": 30.0,
+   "operator": "Khaled Ragab",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap70",
+   "camera": "73",
+   "checkout_at": "2026-10-11T10:05:00+03:00",
+   "days_out": 1.23,
+   "last_heard": "2026-10-11T14:48:00+03:00",
+   "silent_h": 24.87,
+   "operator": "Tarek Hamdy",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap161",
+   "camera": "31",
+   "checkout_at": "2026-10-12T07:30:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Tamer Fawzy",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap91",
+   "camera": "231",
+   "checkout_at": "2026-10-12T07:37:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Sayed Abdo",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap157",
+   "camera": "176",
+   "checkout_at": "2026-10-12T07:35:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Yasser Nagy",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap106",
+   "camera": "150",
+   "checkout_at": "2026-10-12T07:33:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T15:35:00+03:00",
+   "silent_h": 0.08,
+   "operator": "Walid Lotfy",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap160",
+   "camera": "103",
+   "checkout_at": "2026-10-12T07:36:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Tarek Hamdy",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap45",
+   "camera": "128",
+   "checkout_at": "2026-10-12T07:36:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T15:35:00+03:00",
+   "silent_h": 0.08,
+   "operator": "Ramy Fouad",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap2",
+   "camera": "165",
+   "checkout_at": "2026-10-12T07:35:00+03:00",
+   "days_out": 0.34,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Ramy Fouad",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap67",
+   "camera": "206",
+   "checkout_at": "2026-10-12T07:41:00+03:00",
+   "days_out": 0.33,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Amr Saeed",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap78",
+   "camera": "48",
+   "checkout_at": "2026-10-12T07:49:00+03:00",
+   "days_out": 0.33,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Omar Khaled",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap48",
+   "camera": "223",
+   "checkout_at": "2026-10-12T07:38:00+03:00",
+   "days_out": 0.33,
+   "last_heard": null,
+   "silent_h": 8.03,
+   "operator": "Sherif Mounir",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap167",
+   "camera": "180",
+   "checkout_at": "2026-10-12T07:40:00+03:00",
+   "days_out": 0.33,
+   "last_heard": null,
+   "silent_h": 8.0,
+   "operator": "Islam Reda",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap49",
+   "camera": "174",
+   "checkout_at": "2026-10-12T07:48:00+03:00",
+   "days_out": 0.33,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Mohamed Fathy",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap35",
+   "camera": "236",
+   "checkout_at": "2026-10-12T07:50:00+03:00",
+   "days_out": 0.33,
+   "last_heard": null,
+   "silent_h": 7.83,
+   "operator": "Sherif Mounir",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap15",
+   "camera": "159",
+   "checkout_at": "2026-10-12T07:40:00+03:00",
+   "days_out": 0.33,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Tarek Hamdy",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap108",
+   "camera": "164",
+   "checkout_at": "2026-10-12T07:44:00+03:00",
+   "days_out": 0.33,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Khaled Ragab",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap51",
+   "camera": "13",
+   "checkout_at": "2026-10-12T07:42:00+03:00",
+   "days_out": 0.33,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Islam Reda",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap152",
+   "camera": "159",
+   "checkout_at": "2026-10-12T08:00:00+03:00",
+   "days_out": 0.32,
+   "last_heard": null,
+   "silent_h": 7.67,
+   "operator": "Mostafa Hassan",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap125",
+   "camera": "70",
+   "checkout_at": "2026-10-12T08:03:00+03:00",
+   "days_out": 0.32,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Ahmed Samir",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap109",
+   "camera": "178",
+   "checkout_at": "2026-10-12T08:05:00+03:00",
+   "days_out": 0.32,
+   "last_heard": null,
+   "silent_h": 7.58,
+   "operator": "Khaled Ragab",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap77",
+   "camera": "225",
+   "checkout_at": "2026-10-12T08:06:00+03:00",
+   "days_out": 0.32,
+   "last_heard": null,
+   "silent_h": 7.57,
+   "operator": "Khaled Ragab",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap59",
+   "camera": "151",
+   "checkout_at": "2026-10-12T08:06:00+03:00",
+   "days_out": 0.32,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Ibrahim Salah",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap92",
+   "camera": "9",
+   "checkout_at": "2026-10-12T08:09:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Hossam Ezzat",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap46",
+   "camera": "117",
+   "checkout_at": "2026-10-12T08:16:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Mahmoud Adel",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap32",
+   "camera": "39",
+   "checkout_at": "2026-10-12T08:10:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Ibrahim Salah",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap137",
+   "camera": "94",
+   "checkout_at": "2026-10-12T08:13:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Mostafa Hassan",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap93",
+   "camera": "164",
+   "checkout_at": "2026-10-12T08:17:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Yasser Nagy",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap123",
+   "camera": "171",
+   "checkout_at": "2026-10-12T08:08:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Sayed Abdo",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap112",
+   "camera": "78",
+   "checkout_at": "2026-10-12T08:15:00+03:00",
+   "days_out": 0.31,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Islam Reda",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap23",
+   "camera": "138",
+   "checkout_at": "2026-10-12T08:24:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Karim Nabil",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap26",
+   "camera": "177",
+   "checkout_at": "2026-10-12T08:21:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Mahmoud Adel",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap42",
+   "camera": "159",
+   "checkout_at": "2026-10-12T08:32:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T15:35:00+03:00",
+   "silent_h": 0.08,
+   "operator": "Omar Khaled",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap139",
+   "camera": "95",
+   "checkout_at": "2026-10-12T08:29:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Walid Lotfy",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap115",
+   "camera": "139",
+   "checkout_at": "2026-10-12T08:26:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Karim Nabil",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap121",
+   "camera": "57",
+   "checkout_at": "2026-10-12T08:29:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Walid Lotfy",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap88",
+   "camera": "116",
+   "checkout_at": "2026-10-12T08:21:00+03:00",
+   "days_out": 0.3,
+   "last_heard": null,
+   "silent_h": 7.32,
+   "operator": "Khaled Ragab",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap105",
+   "camera": "85",
+   "checkout_at": "2026-10-12T08:29:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Tamer Fawzy",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap13",
+   "camera": "196",
+   "checkout_at": "2026-10-12T08:33:00+03:00",
+   "days_out": 0.3,
+   "last_heard": null,
+   "silent_h": 7.12,
+   "operator": "Sayed Abdo",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap140",
+   "camera": "133",
+   "checkout_at": "2026-10-12T08:29:00+03:00",
+   "days_out": 0.3,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Hossam Ezzat",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap104",
+   "camera": "40",
+   "checkout_at": "2026-10-12T08:47:00+03:00",
+   "days_out": 0.29,
+   "last_heard": null,
+   "silent_h": 6.88,
+   "operator": "Tamer Fawzy",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap135",
+   "camera": "41",
+   "checkout_at": "2026-10-12T08:41:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Tarek Hamdy",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap84",
+   "camera": "16",
+   "checkout_at": "2026-10-12T08:49:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Omar Khaled",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap21",
+   "camera": "210",
+   "checkout_at": "2026-10-12T08:43:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Ahmed Samir",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap24",
+   "camera": "32",
+   "checkout_at": "2026-10-12T08:48:00+03:00",
+   "days_out": 0.29,
+   "last_heard": null,
+   "silent_h": 6.87,
+   "operator": "Amr Saeed",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap153",
+   "camera": "154",
+   "checkout_at": "2026-10-12T08:45:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Ibrahim Salah",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap47",
+   "camera": "103",
+   "checkout_at": "2026-10-12T08:42:00+03:00",
+   "days_out": 0.29,
+   "last_heard": null,
+   "silent_h": 6.97,
+   "operator": "Tamer Fawzy",
+   "task": "Repair Services"
+  },
+  {
+   "cap": "starcap142",
+   "camera": "162",
+   "checkout_at": "2026-10-12T08:38:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Yasser Nagy",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap97",
+   "camera": "48",
+   "checkout_at": "2026-10-12T08:43:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Ramy Fouad",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap3",
+   "camera": "126",
+   "checkout_at": "2026-10-12T08:37:00+03:00",
+   "days_out": 0.29,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Islam Reda",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap131",
+   "camera": "211",
+   "checkout_at": "2026-10-12T08:52:00+03:00",
+   "days_out": 0.28,
+   "last_heard": null,
+   "silent_h": 6.8,
+   "operator": "Hany Mahmoud",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap99",
+   "camera": "226",
+   "checkout_at": "2026-10-12T09:00:00+03:00",
+   "days_out": 0.28,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Mostafa Hassan",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap6",
+   "camera": "61",
+   "checkout_at": "2026-10-12T08:55:00+03:00",
+   "days_out": 0.28,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Hossam Ezzat",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap170",
+   "camera": "168",
+   "checkout_at": "2026-10-12T08:55:00+03:00",
+   "days_out": 0.28,
+   "last_heard": null,
+   "silent_h": 6.75,
+   "operator": "Ramy Fouad",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap4",
+   "camera": "214",
+   "checkout_at": "2026-10-12T09:01:00+03:00",
+   "days_out": 0.28,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Mahmoud Adel",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap76",
+   "camera": "35",
+   "checkout_at": "2026-10-12T08:51:00+03:00",
+   "days_out": 0.28,
+   "last_heard": null,
+   "silent_h": 6.82,
+   "operator": "Karim Nabil",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap58",
+   "camera": "237",
+   "checkout_at": "2026-10-12T09:04:00+03:00",
+   "days_out": 0.28,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Amr Saeed",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap118",
+   "camera": "160",
+   "checkout_at": "2026-10-12T08:55:00+03:00",
+   "days_out": 0.28,
+   "last_heard": null,
+   "silent_h": 6.75,
+   "operator": "Hany Mahmoud",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap44",
+   "camera": "177",
+   "checkout_at": "2026-10-12T08:57:00+03:00",
+   "days_out": 0.28,
+   "last_heard": "2026-10-12T15:35:00+03:00",
+   "silent_h": 0.08,
+   "operator": "Ibrahim Salah",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap80",
+   "camera": "42",
+   "checkout_at": "2026-10-12T09:00:00+03:00",
+   "days_out": 0.28,
+   "last_heard": null,
+   "silent_h": 6.67,
+   "operator": "Khaled Ragab",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap96",
+   "camera": "151",
+   "checkout_at": "2026-10-12T09:06:00+03:00",
+   "days_out": 0.27,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Ibrahim Salah",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap71",
+   "camera": "48",
+   "checkout_at": "2026-10-12T09:16:00+03:00",
+   "days_out": 0.27,
+   "last_heard": null,
+   "silent_h": 6.4,
+   "operator": "Ramy Fouad",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap30",
+   "camera": "203",
+   "checkout_at": "2026-10-12T09:17:00+03:00",
+   "days_out": 0.27,
+   "last_heard": "2026-10-12T15:35:00+03:00",
+   "silent_h": 0.08,
+   "operator": "Tamer Fawzy",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap114",
+   "camera": "232",
+   "checkout_at": "2026-10-12T09:12:00+03:00",
+   "days_out": 0.27,
+   "last_heard": "2026-10-12T15:39:40+03:00",
+   "silent_h": 0.01,
+   "operator": "Sayed Abdo",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap126",
+   "camera": "224",
+   "checkout_at": "2026-10-12T09:14:00+03:00",
+   "days_out": 0.27,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Ahmed Samir",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap141",
+   "camera": "143",
+   "checkout_at": "2026-10-12T09:23:00+03:00",
+   "days_out": 0.26,
+   "last_heard": null,
+   "silent_h": 6.28,
+   "operator": "Karim Nabil",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap38",
+   "camera": "4",
+   "checkout_at": "2026-10-12T09:29:00+03:00",
+   "days_out": 0.26,
+   "last_heard": null,
+   "silent_h": 6.18,
+   "operator": "Hany Mahmoud",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap147",
+   "camera": "82",
+   "checkout_at": "2026-10-12T09:31:00+03:00",
+   "days_out": 0.26,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Hany Mahmoud",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap169",
+   "camera": "19",
+   "checkout_at": "2026-10-12T09:19:00+03:00",
+   "days_out": 0.26,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Khaled Ragab",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap164",
+   "camera": "7",
+   "checkout_at": "2026-10-12T09:29:00+03:00",
+   "days_out": 0.26,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Amr Saeed",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap100",
+   "camera": "219",
+   "checkout_at": "2026-10-12T09:33:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Hany Mahmoud",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap154",
+   "camera": "90",
+   "checkout_at": "2026-10-12T09:35:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T15:35:00+03:00",
+   "silent_h": 0.08,
+   "operator": "Hossam Ezzat",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap117",
+   "camera": "179",
+   "checkout_at": "2026-10-12T09:38:00+03:00",
+   "days_out": 0.25,
+   "last_heard": null,
+   "silent_h": 6.03,
+   "operator": "Walid Lotfy",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap146",
+   "camera": "196",
+   "checkout_at": "2026-10-12T09:46:00+03:00",
+   "days_out": 0.25,
+   "last_heard": null,
+   "silent_h": 5.9,
+   "operator": "Tamer Fawzy",
+   "task": "Laundry"
+  },
+  {
+   "cap": "starcap159",
+   "camera": "74",
+   "checkout_at": "2026-10-12T09:47:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Amr Saeed",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap148",
+   "camera": "17",
+   "checkout_at": "2026-10-12T09:37:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T15:39:40+03:00",
+   "silent_h": 0.01,
+   "operator": "Hossam Ezzat",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap9",
+   "camera": "135",
+   "checkout_at": "2026-10-12T09:43:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Amr Saeed",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap20",
+   "camera": "186",
+   "checkout_at": "2026-10-12T09:40:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Ayman Gaber",
+   "task": "Carpentry"
+  },
+  {
+   "cap": "starcap124",
+   "camera": "170",
+   "checkout_at": "2026-10-12T09:41:00+03:00",
+   "days_out": 0.25,
+   "last_heard": "2026-10-12T14:40:00+03:00",
+   "silent_h": 1.0,
+   "operator": "Khaled Ragab",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap172",
+   "camera": "102",
+   "checkout_at": "2026-10-12T09:59:00+03:00",
+   "days_out": 0.24,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Ayman Gaber",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap83",
+   "camera": "238",
+   "checkout_at": "2026-10-12T09:50:00+03:00",
+   "days_out": 0.24,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Omar Khaled",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap130",
+   "camera": "77",
+   "checkout_at": "2026-10-12T09:52:00+03:00",
+   "days_out": 0.24,
+   "last_heard": null,
+   "silent_h": 5.8,
+   "operator": "Amr Saeed",
+   "task": "Bakery"
+  },
+  {
+   "cap": "starcap113",
+   "camera": "18",
+   "checkout_at": "2026-10-12T09:58:00+03:00",
+   "days_out": 0.24,
+   "last_heard": null,
+   "silent_h": 5.7,
+   "operator": "Tamer Fawzy",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap82",
+   "camera": "87",
+   "checkout_at": "2026-10-12T09:52:00+03:00",
+   "days_out": 0.24,
+   "last_heard": null,
+   "silent_h": 5.8,
+   "operator": "Sherif Mounir",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap171",
+   "camera": "92",
+   "checkout_at": "2026-10-12T10:05:00+03:00",
+   "days_out": 0.23,
+   "last_heard": null,
+   "silent_h": 5.58,
+   "operator": "Ahmed Samir",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap162",
+   "camera": "188",
+   "checkout_at": "2026-10-12T10:06:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Hany Mahmoud",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap101",
+   "camera": "90",
+   "checkout_at": "2026-10-12T10:13:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Islam Reda",
+   "task": "Kitchen"
+  },
+  {
+   "cap": "starcap12",
+   "camera": "23",
+   "checkout_at": "2026-10-12T10:06:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:10:00+03:00",
+   "silent_h": 0.5,
+   "operator": "Sayed Abdo",
+   "task": "Cleaning"
+  },
+  {
+   "cap": "starcap151",
+   "camera": "6",
+   "checkout_at": "2026-10-12T10:02:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Hany Mahmoud",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap145",
+   "camera": "49",
+   "checkout_at": "2026-10-12T10:04:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T13:40:00+03:00",
+   "silent_h": 2.0,
+   "operator": "Karim Nabil",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap33",
+   "camera": "144",
+   "checkout_at": "2026-10-12T10:12:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:39:40+03:00",
+   "silent_h": 0.01,
+   "operator": "Mostafa Hassan",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap36",
+   "camera": "72",
+   "checkout_at": "2026-10-12T10:14:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Tarek Hamdy",
+   "task": "Retail"
+  },
+  {
+   "cap": "starcap18",
+   "camera": "41",
+   "checkout_at": "2026-10-12T10:14:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:39:15+03:00",
+   "silent_h": 0.01,
+   "operator": "Mostafa Hassan",
+   "task": "Tailoring"
+  },
+  {
+   "cap": "starcap69",
+   "camera": "172",
+   "checkout_at": "2026-10-12T10:09:00+03:00",
+   "days_out": 0.23,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Mohamed Fathy",
+   "task": "Car Wash"
+  },
+  {
+   "cap": "starcap50",
+   "camera": "110",
+   "checkout_at": "2026-10-12T10:18:00+03:00",
+   "days_out": 0.22,
+   "last_heard": "2026-10-12T15:25:00+03:00",
+   "silent_h": 0.25,
+   "operator": "Walid Lotfy",
+   "task": "Assembly"
+  },
+  {
+   "cap": "starcap155",
+   "camera": "205",
+   "checkout_at": "2026-10-12T10:20:00+03:00",
+   "days_out": 0.22,
+   "last_heard": "2026-10-12T15:38:50+03:00",
+   "silent_h": 0.02,
+   "operator": "Amr Saeed",
+   "task": "Tailoring"
+  }
+ ]
+}

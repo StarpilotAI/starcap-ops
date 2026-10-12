@@ -23,6 +23,7 @@ network layout, the logins, and a fresh-laptop checklist.
 | I want to… | tool | run |
 |---|---|---|
 | make a laptop's ethernet port accept docked boards | `station/` | `sudo station/setup_dock_lan.sh`, then `setup_dock_lan.sh --check` |
+| see how the fleet did yesterday: hours, 60 fps + timing, who recorded nothing, today's calibrations, tickets, lost caps, uploads | `fleet/tracker/` | always-on service, http://127.0.0.1:8774 (`starcap-tracker`) |
 | find every board on the LAN and open its page | `fleet/starcapfinder/` | always-on service, http://127.0.0.1:8090 |
 | QC a finished StarCap end to end, then name it | **its own repo**: [StarpilotAI/starcap-qc](https://github.com/StarpilotAI/starcap-qc) | `StarCap QC` launcher, or `starcap-qc` |
 | rename boards as they dock | `fleet/opm-name/` | `opm-name` launcher |

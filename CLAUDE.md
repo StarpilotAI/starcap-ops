@@ -7,7 +7,9 @@ system. One folder per tool, grouped by job, each with its own `install.sh`
 
 - **`station/`**: `setup_dock_lan.sh`, which makes a laptop's ethernet port accept docked boards
 - **`fleet/`**: tools that talk to docked boards (dock-check, pin-to-branch,
-  opm-name, starcapfinder, vnc, board-grading, pi-fixes)
+  opm-name, starcapfinder, vnc, board-grading, pi-fixes), plus `tracker`, the daily
+  fleet / calibration / maintenance view that reads the dashboard's Postgres and Redis
+  **read-only** (its `SPEC.md` is the contract between its modules)
 - **`storage/`**: sd-format (turn an SD card into plain storage for a board)
 - **`camera/`**: DECXIN bench tools (camrig + CamView, camfw, fingerprint)
 - **`inventory/`**: whoholds

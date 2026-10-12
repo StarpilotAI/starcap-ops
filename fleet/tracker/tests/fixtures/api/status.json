@@ -1,0 +1,92 @@
+{
+ "now": "2026-10-12T15:40:00+03:00",
+ "today": "2026-10-12",
+ "yesterday": "2026-10-11",
+ "sync": {
+  "running": false,
+  "last_ok_at": "2026-10-12T15:35:53+03:00",
+  "last_error": null,
+  "next_at": "2026-10-12T15:45:53+03:00",
+  "sources": {
+   "starcaps": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 176,
+    "took_s": 0.2,
+    "error": null
+   },
+   "cameras": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 253,
+    "took_s": 0.2,
+    "error": null
+   },
+   "cal_versions": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 1214,
+    "took_s": 1.4,
+    "error": null
+   },
+   "cal_current": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 498,
+    "took_s": 0.4,
+    "error": null
+   },
+   "items": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 1922,
+    "took_s": 0.8,
+    "error": null
+   },
+   "takes": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 3486,
+    "took_s": 6.1,
+    "error": null
+   },
+   "camera_events": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 611,
+    "took_s": 0.3,
+    "error": null
+   },
+   "redis_small": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 912,
+    "took_s": 1.9,
+    "error": null
+   },
+   "device_events": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 15880,
+    "took_s": 4.7,
+    "error": null
+   },
+   "prune": {
+    "ok": true,
+    "at": "2026-10-12T15:36:00+03:00",
+    "rows": 0,
+    "took_s": 0.1,
+    "error": null
+   }
+  }
+ },
+ "config": {
+  "cal_per_day": 10,
+  "recal_days": 30,
+  "min_clip_s": 30,
+  "timing_pass_score": 99,
+  "target_fps": 60
+ },
+ "dashboard_url": "https://starcap.dev",
+ "has_data": true
+}

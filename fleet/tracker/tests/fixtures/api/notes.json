@@ -1,0 +1,68 @@
+{
+ "notes": [
+  {
+   "id": 411,
+   "subject_type": "cap",
+   "subject_id": "starcap23",
+   "created_at": "2026-10-12T10:41:00+03:00",
+   "text": "Camera drops x3 but all takes fine. Keep an eye on it.",
+   "status": null
+  },
+  {
+   "id": 412,
+   "subject_type": "cap",
+   "subject_id": "starcap66",
+   "created_at": "2026-10-12T09:58:00+03:00",
+   "text": "Ticket filed for the storage errors.",
+   "status": null
+  },
+  {
+   "id": 413,
+   "subject_type": "camera",
+   "subject_id": "164",
+   "created_at": "2026-10-12T09:20:00+03:00",
+   "text": "Calibrate before it goes out again.",
+   "status": null
+  },
+  {
+   "id": 410,
+   "subject_type": "camera",
+   "subject_id": "48.1",
+   "created_at": "2026-10-12T09:02:00+03:00",
+   "text": "Overdue calibration. Grab it when starcap77 comes back.",
+   "status": "watch"
+  },
+  {
+   "id": 409,
+   "subject_type": "cap",
+   "subject_id": "starcap5",
+   "created_at": "2026-10-11T20:15:00+03:00",
+   "text": "30 fps two days running. Swap the camera cable before it goes out.",
+   "status": "watch"
+  },
+  {
+   "id": 401,
+   "subject_type": "cap",
+   "subject_id": "starcap40",
+   "created_at": "2026-10-11T19:40:00+03:00",
+   "text": "Footage missing twice this week. Reseated the SD slot, testing on the bench.",
+   "status": "repair"
+  },
+  {
+   "id": 408,
+   "subject_type": "cap",
+   "subject_id": "starcap112",
+   "created_at": "2026-10-11T18:02:00+03:00",
+   "text": "Reboot loop again? Pull kern.log and boot_id when it docks.",
+   "status": "watch"
+  },
+  {
+   "id": 406,
+   "subject_type": "cap",
+   "subject_id": "starcap61",
+   "created_at": "2026-10-09T10:30:00+03:00",
+   "text": "Operator says he left it in a microbus. Chasing with the field lead.",
+   "status": "lost"
+  }
+ ]
+}

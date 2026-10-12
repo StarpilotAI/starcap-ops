@@ -1,0 +1,468 @@
+{
+ "cap": "starcap5",
+ "cpu_id": "e65f53e9421ce502",
+ "board": "Orange Pi 5",
+ "version": "1.67.0",
+ "online": false,
+ "last_heard": "2026-10-12T08:02:00+03:00",
+ "out_now": {
+  "checkout_at": "2026-10-12T07:51:00+03:00",
+  "days_out": 0.33,
+  "camera": "16"
+ },
+ "camera_now": "16",
+ "my_status": {
+  "status": "watch",
+  "since": "2026-10-11T20:15:00+03:00",
+  "text": "30 fps two days running. Swap the camera cable before it goes out."
+ },
+ "totals_30d": {
+  "days_out": 21,
+  "hours": 116.68,
+  "good": 104.72,
+  "no_footage_days": 1
+ },
+ "days": [
+  {
+   "date": "2026-10-11",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 6.46,
+    "good": 0.3,
+    "fps30": 6.1,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.06,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "6.1 h at 30 fps: camera on USB 2"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-10",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 5.94,
+    "good": 1.1,
+    "fps30": 4.8,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.04,
+    "pending": 0.0
+   },
+   "takes": 7,
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.8 h at 30 fps: camera on USB 2"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-08",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 6.89,
+    "good": 6.84,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.05,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": []
+  },
+  {
+   "date": "2026-10-07",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 6.02,
+    "good": 5.97,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.05,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": []
+  },
+  {
+   "date": "2026-10-06",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 5.29,
+    "good": 5.29,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 9,
+   "flags": []
+  },
+  {
+   "date": "2026-10-04",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 5.98,
+    "good": 5.93,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.05,
+    "pending": 0.0
+   },
+   "takes": 10,
+   "flags": []
+  },
+  {
+   "date": "2026-10-03",
+   "status": "no_footage",
+   "camera": "16",
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 0,
+   "flags": [
+    {
+     "code": "no_footage",
+     "severity": "bad",
+     "label": "No footage",
+     "detail": "Out 08:14 to 18:20, nothing copied and no recording seen."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 5.07,
+    "good": 5.05,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.02,
+    "pending": 0.0
+   },
+   "takes": 8,
+   "flags": []
+  },
+  {
+   "date": "2026-09-30",
+   "status": "ok",
+   "camera": "16",
+   "hours": {
+    "total": 5.87,
+    "good": 5.87,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 6,
+   "flags": []
+  },
+  {
+   "date": "2026-09-29",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.02,
+    "good": 5.02,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": []
+  },
+  {
+   "date": "2026-09-26",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.73,
+    "good": 5.73,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 9,
+   "flags": []
+  },
+  {
+   "date": "2026-09-24",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.6,
+    "good": 4.9,
+    "fps30": 0.0,
+    "timing_fail": 0.7,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": [
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "0.7 h failed the p99 frame-timing rule"
+    }
+   ]
+  },
+  {
+   "date": "2026-09-23",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.57,
+    "good": 5.55,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.02,
+    "pending": 0.0
+   },
+   "takes": 10,
+   "flags": []
+  },
+  {
+   "date": "2026-09-22",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 6.07,
+    "good": 6.07,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 10,
+   "flags": []
+  },
+  {
+   "date": "2026-09-21",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.8,
+    "good": 5.75,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.05,
+    "pending": 0.0
+   },
+   "takes": 7,
+   "flags": []
+  },
+  {
+   "date": "2026-09-19",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 6.58,
+    "good": 6.58,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 7,
+   "flags": []
+  },
+  {
+   "date": "2026-09-17",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.36,
+    "good": 5.36,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 6,
+   "flags": []
+  },
+  {
+   "date": "2026-09-16",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 6.27,
+    "good": 6.27,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": []
+  },
+  {
+   "date": "2026-09-15",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.38,
+    "good": 5.38,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 9,
+   "flags": []
+  },
+  {
+   "date": "2026-09-14",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 5.12,
+    "good": 5.12,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "takes": 11,
+   "flags": []
+  },
+  {
+   "date": "2026-09-13",
+   "status": "ok",
+   "camera": "21",
+   "hours": {
+    "total": 6.66,
+    "good": 6.64,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.02,
+    "pending": 0.0
+   },
+   "takes": 7,
+   "flags": []
+  }
+ ],
+ "tickets": [
+  {
+   "id": "t_0919_c5",
+   "subject": "starcap",
+   "unit": "starcap5",
+   "headset": "starcap5",
+   "camera": "21",
+   "category": "camera",
+   "critical": true,
+   "description": "Camera image freezes for a second, then recovers",
+   "reporter": "Omar K.",
+   "created_at": "2026-09-19T10:04:00+03:00",
+   "age_days": 22,
+   "photos": 1,
+   "resolved_at": "2026-09-29T13:30:00+03:00",
+   "resolution_note": "Camera 21 swapped for 16"
+  }
+ ],
+ "camera_history": [
+  {
+   "at": "2026-09-29T13:22:00+03:00",
+   "action": "camera.detached",
+   "camera": "21",
+   "replaced": null
+  },
+  {
+   "at": "2026-09-29T13:25:00+03:00",
+   "action": "camera.attached",
+   "camera": "16",
+   "replaced": "21"
+  },
+  {
+   "at": "2026-08-30T10:00:00+03:00",
+   "action": "camera.attached",
+   "camera": "21",
+   "replaced": null
+  }
+ ],
+ "notes": [
+  {
+   "id": 409,
+   "subject_type": "cap",
+   "subject_id": "starcap5",
+   "created_at": "2026-10-11T20:15:00+03:00",
+   "text": "30 fps two days running. Swap the camera cable before it goes out.",
+   "status": "watch"
+  },
+  {
+   "id": 414,
+   "subject_type": "cap",
+   "subject_id": "starcap5",
+   "created_at": "2026-09-29T14:02:00+03:00",
+   "text": "Back from the bench with camera 16, QC PASS.",
+   "status": "ok"
+  }
+ ]
+}

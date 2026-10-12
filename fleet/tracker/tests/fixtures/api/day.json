@@ -1,0 +1,2337 @@
+{
+ "date": "2026-10-11",
+ "weekday": "Sun",
+ "is_today": false,
+ "latest_version": "1.67.0",
+ "events_from": "2026-10-04T17:00:00+03:00",
+ "events_complete": true,
+ "arrival": {
+  "caps_out": 91,
+  "arrived": 84,
+  "still_out": 3,
+  "waiting": 2,
+  "no_footage": 1,
+  "footage_missing": 1,
+  "pct": 92
+ },
+ "kpis": {
+  "caps_out": {
+   "value": 91,
+   "prev": 82
+  },
+  "caps_recorded": {
+   "value": 84,
+   "prev": 80
+  },
+  "caps_no_footage": {
+   "value": 2,
+   "prev": 2
+  },
+  "hours_total": {
+   "value": 587.0,
+   "prev": 506.2
+  },
+  "hours_good": {
+   "value": 512.3,
+   "prev": 471.0
+  },
+  "good_pct": {
+   "value": 87.27,
+   "prev": 93.05
+  },
+  "timing_pass_pct": {
+   "value": 99.11,
+   "prev": 99.38
+  },
+  "fps30_hours": {
+   "value": 46.0,
+   "prev": 11.2
+  },
+  "fps30_caps": {
+   "value": 12,
+   "prev": 4
+  },
+  "expired_cal_hours": {
+   "value": 9.0,
+   "prev": 4.1
+  }
+ },
+ "hours": {
+  "total": 587.0,
+  "good": 512.3,
+  "fps30": 46.0,
+  "timing_fail": 4.6,
+  "untimed": 2.0,
+  "broken": 14.0,
+  "short": 3.1,
+  "pending": 5.0
+ },
+ "caps": [
+  {
+   "cap": "starcap140",
+   "cpu_id": "73ff80b9465aef7a",
+   "board": "Orange Pi 5",
+   "camera": "145",
+   "cameras": [
+    "145"
+   ],
+   "checkout_at": "2026-10-11T08:17:00+03:00",
+   "returned_at": "2026-10-11T18:40:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 7.1,
+    "good": 5.9,
+    "fps30": 1.2,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 83.1,
+   "timing_pass_pct": 100.0,
+   "fps": 55.0,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.6,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 6,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "1.2 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap9",
+   "cpu_id": "70eae679f02e8d28",
+   "board": "Orange Pi 5",
+   "camera": "27.1",
+   "cameras": [
+    "27.1"
+   ],
+   "checkout_at": "2026-10-11T08:10:00+03:00",
+   "returned_at": "2026-10-11T18:46:00+03:00",
+   "task": "Bakery",
+   "status": "ok",
+   "takes": 10,
+   "clips": 9,
+   "short_takes": 1,
+   "hours": {
+    "total": 7.0,
+    "good": 1.2,
+    "fps30": 5.8,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 17.14,
+   "timing_pass_pct": 100.0,
+   "fps": 35.16,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 4.2,
+   "boots": 3,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 3,
+   "events": {
+    "power_on": 3,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 2,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "5.8 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap44",
+   "cpu_id": "8a29a0d347301ef5",
+   "board": "Orange Pi 5",
+   "camera": "61.1",
+   "cameras": [
+    "61.1"
+   ],
+   "checkout_at": "2026-10-11T08:11:00+03:00",
+   "returned_at": "2026-10-11T18:46:00+03:00",
+   "task": "Assembly",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 7.0,
+    "good": 2.1,
+    "fps30": 4.9,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 30.0,
+   "timing_pass_pct": 100.0,
+   "fps": 39.03,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 3.6,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 14,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.9 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap128",
+   "cpu_id": "c022238daceee209",
+   "board": "Orange Pi 5",
+   "camera": "131",
+   "cameras": [
+    "131"
+   ],
+   "checkout_at": "2026-10-11T08:19:00+03:00",
+   "returned_at": "2026-10-11T18:52:00+03:00",
+   "task": "Laundry",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.9,
+    "good": 5.2,
+    "fps30": 1.7,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 75.36,
+   "timing_pass_pct": 100.0,
+   "fps": 52.67,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.8,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 21,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "1.7 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap63",
+   "cpu_id": "0a9c222670bbe4f4",
+   "board": "Orange Pi 5",
+   "camera": "75",
+   "cameras": [
+    "75"
+   ],
+   "checkout_at": "2026-10-11T08:17:00+03:00",
+   "returned_at": "2026-10-11T18:48:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.7,
+    "good": 2.6,
+    "fps30": 4.1,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 38.81,
+   "timing_pass_pct": 100.0,
+   "fps": 41.68,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 3.1,
+   "boots": 1,
+   "version": "1.64.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 9,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.1 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.64.0; latest is 1.67.0"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 1,
+   "my_status": null
+  },
+  {
+   "cap": "starcap97",
+   "cpu_id": "b42b4ea410fb9102",
+   "board": "Orange Pi 5",
+   "camera": "101",
+   "cameras": [
+    "101"
+   ],
+   "checkout_at": "2026-10-11T08:12:00+03:00",
+   "returned_at": "2026-10-11T18:49:00+03:00",
+   "task": "Retail",
+   "status": "ok",
+   "takes": 12,
+   "clips": 10,
+   "short_takes": 2,
+   "hours": {
+    "total": 6.52,
+    "good": 3.6,
+    "fps30": 2.9,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.02,
+    "pending": 0.0
+   },
+   "good_pct": 55.21,
+   "timing_pass_pct": 100.0,
+   "fps": 46.66,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.0,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 25,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "2.9 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap88",
+   "cpu_id": "95247f2866028de7",
+   "board": "Orange Pi 5",
+   "camera": "93",
+   "cameras": [
+    "93"
+   ],
+   "checkout_at": "2026-10-11T08:16:00+03:00",
+   "returned_at": "2026-10-11T18:55:00+03:00",
+   "task": "Repair Services",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.5,
+    "good": 3.1,
+    "fps30": 3.4,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 47.69,
+   "timing_pass_pct": 100.0,
+   "fps": 44.35,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 2.9,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 9,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "3.4 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap5",
+   "cpu_id": "e65f53e9421ce502",
+   "board": "Orange Pi 5",
+   "camera": "16",
+   "cameras": [
+    "16"
+   ],
+   "checkout_at": "2026-10-11T08:23:00+03:00",
+   "returned_at": "2026-10-11T18:54:00+03:00",
+   "task": "Repair Services",
+   "status": "ok",
+   "takes": 11,
+   "clips": 9,
+   "short_takes": 2,
+   "hours": {
+    "total": 6.46,
+    "good": 0.3,
+    "fps30": 6.1,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.06,
+    "pending": 0.0
+   },
+   "good_pct": 4.64,
+   "timing_pass_pct": 100.0,
+   "fps": 31.42,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 3.9,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 24,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "6.1 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": "watch"
+  },
+  {
+   "cap": "starcap31",
+   "cpu_id": "9023c39c200661fc",
+   "board": "Orange Pi 5",
+   "camera": "52",
+   "cameras": [
+    "52"
+   ],
+   "checkout_at": "2026-10-11T08:22:00+03:00",
+   "returned_at": "2026-10-11T18:47:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 15,
+   "clips": 14,
+   "short_takes": 1,
+   "hours": {
+    "total": 6.41,
+    "good": 0.8,
+    "fps30": 5.2,
+    "timing_fail": 0.4,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.01,
+    "pending": 0.0
+   },
+   "good_pct": 12.48,
+   "timing_pass_pct": 66.67,
+   "fps": 35.65,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 14.8,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 24,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 1,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "5.2 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "0.4 h failed the p99 frame-timing rule"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap112",
+   "cpu_id": "a422eb14ab2f2d0f",
+   "board": "NanoPi R76S",
+   "camera": "118.1",
+   "cameras": [
+    "118.1"
+   ],
+   "checkout_at": "2026-10-11T08:11:00+03:00",
+   "returned_at": "2026-10-11T18:49:00+03:00",
+   "task": "Laundry",
+   "status": "ok",
+   "takes": 13,
+   "clips": 13,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.3,
+    "good": 4.0,
+    "fps30": 2.3,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 63.49,
+   "timing_pass_pct": 100.0,
+   "fps": 49.1,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.4,
+   "boots": 4,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 21,
+   "events": {
+    "power_on": 4,
+    "unclean_boot": 3,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "2.3 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "3 unclean reboots"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 1,
+   "my_status": null
+  },
+  {
+   "cap": "starcap77",
+   "cpu_id": "977656cf2d133187",
+   "board": "Orange Pi 5",
+   "camera": "48.1",
+   "cameras": [
+    "48.1"
+   ],
+   "checkout_at": "2026-10-11T08:20:00+03:00",
+   "returned_at": "2026-10-11T18:44:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 10,
+   "clips": 10,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.8,
+    "good": 2.0,
+    "fps30": 3.8,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 34.48,
+   "timing_pass_pct": 100.0,
+   "fps": 40.38,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 3.3,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 5.8,
+   "cal_days_left": -12,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "3.8 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "expired_cal",
+     "severity": "warn",
+     "label": "Cal expired",
+     "detail": "5.8 h shot on 48.1 after its calibration expired"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap58",
+   "cpu_id": "4dc3cd6089065c31",
+   "board": "Orange Pi 5",
+   "camera": "70",
+   "cameras": [
+    "70"
+   ],
+   "checkout_at": "2026-10-11T08:17:00+03:00",
+   "returned_at": "2026-10-11T18:46:00+03:00",
+   "task": "Cleaning",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.6,
+    "good": 0.4,
+    "fps30": 4.6,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.6,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 7.14,
+   "timing_pass_pct": 100.0,
+   "fps": 32.42,
+   "nominal_fps": 30,
+   "p99_dev_ms_max": 4.4,
+   "boots": 1,
+   "version": "1.66.2",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 24,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 1,
+    "camera_usb2": 1,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.6 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.6 h in takes with no usable video"
+    },
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.66.2; latest is 1.67.0"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap66",
+   "cpu_id": "087413e3b266f850",
+   "board": "Orange Pi 5",
+   "camera": "84",
+   "cameras": [
+    "84"
+   ],
+   "checkout_at": "2026-10-11T08:17:00+03:00",
+   "returned_at": "2026-10-11T18:46:00+03:00",
+   "task": "Retail",
+   "status": "ok",
+   "takes": 7,
+   "clips": 7,
+   "short_takes": 0,
+   "hours": {
+    "total": 4.3,
+    "good": 3.9,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.4,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 90.7,
+   "timing_pass_pct": 100.0,
+   "fps": 60.06,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.8,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 9,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 1,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 2
+   },
+   "flags": [
+    {
+     "code": "storage",
+     "severity": "bad",
+     "label": "Storage",
+     "detail": "2 storage events (disk full, take refused)"
+    },
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.4 h in takes with no usable video"
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 1,
+   "my_status": null
+  },
+  {
+   "cap": "starcap12",
+   "cpu_id": "6d66c7a644fb1285",
+   "board": "Orange Pi 5",
+   "camera": "22",
+   "cameras": [
+    "22"
+   ],
+   "checkout_at": "2026-10-11T08:15:00+03:00",
+   "returned_at": "2026-10-11T18:55:00+03:00",
+   "task": "Kitchen",
+   "status": "no_footage",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 0,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 3,
+   "events": {
+    "power_on": 0,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "no_footage",
+     "severity": "bad",
+     "label": "No footage",
+     "detail": "Out 08:15 to 18:55, nothing copied and no recording seen."
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 1,
+   "my_status": null
+  },
+  {
+   "cap": "starcap40",
+   "cpu_id": "86dcfaea21818b90",
+   "board": "Orange Pi 5",
+   "camera": "57",
+   "cameras": [
+    "57"
+   ],
+   "checkout_at": "2026-10-11T07:59:00+03:00",
+   "returned_at": "2026-10-11T19:18:00+03:00",
+   "task": "Cleaning",
+   "status": "footage_missing",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 3,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 9,
+   "events": {
+    "power_on": 3,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "footage_missing",
+     "severity": "bad",
+     "label": "Footage missing",
+     "detail": "The recorder logged 6 rec_start events, but no takes reached the copy station."
+    }
+   ],
+   "severity": "bad",
+   "open_tickets": 0,
+   "my_status": "repair"
+  },
+  {
+   "cap": "starcap19",
+   "cpu_id": "8b5c72dc4ee60cae",
+   "board": "Orange Pi 5",
+   "camera": "35",
+   "cameras": [
+    "35"
+   ],
+   "checkout_at": "2026-10-11T08:12:00+03:00",
+   "returned_at": "2026-10-11T18:47:00+03:00",
+   "task": "Bakery",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.4,
+    "good": 5.1,
+    "fps30": 0.0,
+    "timing_fail": 1.3,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 79.69,
+   "timing_pass_pct": 79.69,
+   "fps": 60.02,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 22.6,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 6,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "1.3 h failed the p99 frame-timing rule"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap36",
+   "cpu_id": "6559314e23acedbd",
+   "board": "Orange Pi 5",
+   "camera": "41",
+   "cameras": [
+    "41"
+   ],
+   "checkout_at": "2026-10-11T08:12:00+03:00",
+   "returned_at": "2026-10-11T18:43:00+03:00",
+   "task": "Carpentry",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.4,
+    "good": 4.6,
+    "fps30": 0.0,
+    "timing_fail": 0.6,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 1.2
+   },
+   "good_pct": 71.88,
+   "timing_pass_pct": 88.46,
+   "fps": 60.05,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 16.4,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 10,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "0.6 h failed the p99 frame-timing rule"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap83",
+   "cpu_id": "d15a4f4ef27e9589",
+   "board": "Orange Pi 5",
+   "camera": "44.1",
+   "cameras": [
+    "44.1",
+    "52.1"
+   ],
+   "checkout_at": "2026-10-11T08:22:00+03:00",
+   "returned_at": "2026-10-11T18:42:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.3,
+    "good": 4.4,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 1.9,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 69.84,
+   "timing_pass_pct": 100.0,
+   "fps": 60.05,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.7,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 21,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 1,
+    "rec_corrupt": 2,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "1.9 h in takes with no usable video"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap150",
+   "cpu_id": "6c036bb3a62f301f",
+   "board": "Orange Pi 5",
+   "camera": "30.1",
+   "cameras": [
+    "30.1"
+   ],
+   "checkout_at": "2026-10-11T08:18:00+03:00",
+   "returned_at": "2026-10-11T18:44:00+03:00",
+   "task": "Cleaning",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.8,
+    "good": 5.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.8,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 86.21,
+   "timing_pass_pct": 100.0,
+   "fps": 60.03,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.9,
+   "boots": 2,
+   "version": "1.64.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 11,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 1,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.8 h in takes with no usable video"
+    },
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.64.0; latest is 1.67.0"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap101",
+   "cpu_id": "8f6d30c01c3f252e",
+   "board": "Orange Pi 5",
+   "camera": "109",
+   "cameras": [
+    "109"
+   ],
+   "checkout_at": "2026-10-11T08:14:00+03:00",
+   "returned_at": "2026-10-11T18:44:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 7,
+   "clips": 7,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.6,
+    "good": 3.6,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 2.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 64.29,
+   "timing_pass_pct": 100.0,
+   "fps": 60.04,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.2,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 6,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "2.0 h in takes with no frame timing"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap23",
+   "cpu_id": "ab7f3f386d0cd566",
+   "board": "Orange Pi 5",
+   "camera": "39.1",
+   "cameras": [
+    "39.1"
+   ],
+   "checkout_at": "2026-10-11T08:10:00+03:00",
+   "returned_at": "2026-10-11T18:49:00+03:00",
+   "task": "Assembly",
+   "status": "ok",
+   "takes": 11,
+   "clips": 11,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.5,
+    "good": 5.5,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.06,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.5,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 24,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 3,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 3 times"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap54",
+   "cpu_id": "7b5aa666347428c3",
+   "board": "Orange Pi 5",
+   "camera": "67",
+   "cameras": [
+    "67"
+   ],
+   "checkout_at": "2026-10-11T08:13:00+03:00",
+   "returned_at": "2026-10-11T18:44:00+03:00",
+   "task": "Car Wash",
+   "status": "ok",
+   "takes": 12,
+   "clips": 9,
+   "short_takes": 3,
+   "hours": {
+    "total": 4.83,
+    "good": 4.8,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.03,
+    "pending": 0.0
+   },
+   "good_pct": 99.38,
+   "timing_pass_pct": 100.0,
+   "fps": 60.07,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.1,
+   "boots": 5,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 16,
+   "events": {
+    "power_on": 5,
+    "unclean_boot": 4,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "4 unclean reboots"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap117",
+   "cpu_id": "ff4adfa36d084016",
+   "board": "Orange Pi 5",
+   "camera": "122",
+   "cameras": [
+    "122"
+   ],
+   "checkout_at": "2026-10-11T08:14:00+03:00",
+   "returned_at": "2026-10-11T18:47:00+03:00",
+   "task": "Cleaning",
+   "status": "ok",
+   "takes": 23,
+   "clips": 9,
+   "short_takes": 14,
+   "hours": {
+    "total": 3.31,
+    "good": 3.2,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.11,
+    "pending": 0.0
+   },
+   "good_pct": 96.68,
+   "timing_pass_pct": 100.0,
+   "fps": 60.08,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.9,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 21,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "short",
+     "severity": "warn",
+     "label": "Short takes",
+     "detail": "14 of 23 takes are under 30 s"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap71",
+   "cpu_id": "67c29a80b21ead8f",
+   "board": "Orange Pi 5",
+   "camera": "164",
+   "cameras": [
+    "164"
+   ],
+   "checkout_at": "2026-10-11T08:11:00+03:00",
+   "returned_at": "2026-10-11T18:43:00+03:00",
+   "task": "Repair Services",
+   "status": "ok",
+   "takes": 6,
+   "clips": 6,
+   "short_takes": 0,
+   "hours": {
+    "total": 3.2,
+    "good": 3.0,
+    "fps30": 0.0,
+    "timing_fail": 0.2,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 93.75,
+   "timing_pass_pct": 93.75,
+   "fps": 60.07,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 11.2,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 3.2,
+   "cal_days_left": -3,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "expired_cal",
+     "severity": "warn",
+     "label": "Cal expired",
+     "detail": "3.2 h shot on 164 after its calibration expired"
+    }
+   ],
+   "severity": "warn",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap8",
+   "cpu_id": "65debbc6530a2c6a",
+   "board": "Orange Pi 5",
+   "camera": "13",
+   "cameras": [
+    "13"
+   ],
+   "checkout_at": "2026-10-11T08:10:00+03:00",
+   "returned_at": "2026-10-11T18:41:00+03:00",
+   "task": "Tailoring",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.8,
+    "good": 6.8,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.09,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.7,
+   "boots": 2,
+   "version": "1.64.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 3,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.64.0; latest is 1.67.0"
+    }
+   ],
+   "severity": "info",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap47",
+   "cpu_id": "5c4abd5c652a9f30",
+   "board": "Orange Pi 5",
+   "camera": "59.1",
+   "cameras": [
+    "59.1"
+   ],
+   "checkout_at": "2026-10-11T08:24:00+03:00",
+   "returned_at": "2026-10-11T18:43:00+03:00",
+   "task": "Bakery",
+   "status": "ok",
+   "takes": 7,
+   "clips": 7,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.6,
+    "good": 6.2,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.4
+   },
+   "good_pct": 93.94,
+   "timing_pass_pct": 100.0,
+   "fps": 60.08,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.5,
+   "boots": 2,
+   "version": "1.66.2",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 13,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.66.2; latest is 1.67.0"
+    }
+   ],
+   "severity": "info",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap133",
+   "cpu_id": "6c03888ad3e21c5c",
+   "board": "Orange Pi 5",
+   "camera": "138",
+   "cameras": [
+    "138"
+   ],
+   "checkout_at": "2026-10-11T08:18:00+03:00",
+   "returned_at": "2026-10-11T18:41:00+03:00",
+   "task": "Retail",
+   "status": "ok",
+   "takes": 7,
+   "clips": 7,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.2,
+    "good": 5.4,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.8
+   },
+   "good_pct": 87.1,
+   "timing_pass_pct": 100.0,
+   "fps": 60.08,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.6,
+   "boots": 2,
+   "version": "1.66.2",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 20,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.66.2; latest is 1.67.0"
+    }
+   ],
+   "severity": "info",
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap91",
+   "cpu_id": "9a6c52cf63c03378",
+   "board": "NanoPi R76S",
+   "camera": "97",
+   "cameras": [
+    "97"
+   ],
+   "checkout_at": "2026-10-11T08:13:00+03:00",
+   "returned_at": "2026-10-11T18:48:00+03:00",
+   "task": "Retail",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.9,
+    "good": 5.9,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.07,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.0,
+   "boots": 1,
+   "version": "1.64.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 12,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [
+    {
+     "code": "old_firmware",
+     "severity": "info",
+     "label": "Old firmware",
+     "detail": "Running 1.64.0; latest is 1.67.0"
+    }
+   ],
+   "severity": "info",
+   "open_tickets": 1,
+   "my_status": null
+  },
+  {
+   "cap": "starcap34",
+   "cpu_id": "1dfd9c9b9f899007",
+   "board": "Orange Pi 5",
+   "camera": "43.1",
+   "cameras": [
+    "43.1"
+   ],
+   "checkout_at": "2026-10-11T08:23:00+03:00",
+   "returned_at": "2026-10-11T18:55:00+03:00",
+   "task": "Laundry",
+   "status": "ok",
+   "takes": 12,
+   "clips": 9,
+   "short_takes": 3,
+   "hours": {
+    "total": 7.25,
+    "good": 7.2,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.05,
+    "pending": 0.0
+   },
+   "good_pct": 99.31,
+   "timing_pass_pct": 100.0,
+   "fps": 60.09,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.3,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 14,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap50",
+   "cpu_id": "7f39b88687676110",
+   "board": "Orange Pi 5",
+   "camera": "62",
+   "cameras": [
+    "62"
+   ],
+   "checkout_at": "2026-10-11T08:14:00+03:00",
+   "returned_at": "2026-10-11T18:44:00+03:00",
+   "task": "Tailoring",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 7.2,
+    "good": 6.6,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.6
+   },
+   "good_pct": 91.67,
+   "timing_pass_pct": 100.0,
+   "fps": 60.08,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.9,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 6,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap2",
+   "cpu_id": "dc1ac1a27df8713e",
+   "board": "Orange Pi 5",
+   "camera": "6",
+   "cameras": [
+    "6"
+   ],
+   "checkout_at": "2026-10-11T08:20:00+03:00",
+   "returned_at": "2026-10-11T18:45:00+03:00",
+   "task": "Cleaning",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 7.0,
+    "good": 7.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.1,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.4,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 6,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap158",
+   "cpu_id": "dfe9029629fa947b",
+   "board": "Orange Pi 5",
+   "camera": "160",
+   "cameras": [
+    "160"
+   ],
+   "checkout_at": "2026-10-11T08:18:00+03:00",
+   "returned_at": "2026-10-11T18:42:00+03:00",
+   "task": "Bakery",
+   "status": "ok",
+   "takes": 8,
+   "clips": 8,
+   "short_takes": 0,
+   "hours": {
+    "total": 7.0,
+    "good": 6.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 1.0
+   },
+   "good_pct": 85.71,
+   "timing_pass_pct": 100.0,
+   "fps": 60.09,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.7,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 10,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap14",
+   "cpu_id": "1de361b43be4de8d",
+   "board": "NanoPi R76S",
+   "camera": "24.1",
+   "cameras": [
+    "24.1"
+   ],
+   "checkout_at": "2026-10-11T08:19:00+03:00",
+   "returned_at": "2026-10-11T18:43:00+03:00",
+   "task": "Bakery",
+   "status": "ok",
+   "takes": 9,
+   "clips": 9,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.9,
+    "good": 6.9,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.09,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.6,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 7,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap75",
+   "cpu_id": "13782257bffb6aaf",
+   "board": "Orange Pi 5",
+   "camera": "88.1",
+   "cameras": [
+    "88.1"
+   ],
+   "checkout_at": "2026-10-11T08:16:00+03:00",
+   "returned_at": "2026-10-11T18:40:00+03:00",
+   "task": "Cleaning",
+   "status": "ok",
+   "takes": 7,
+   "clips": 7,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.5,
+    "good": 6.5,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.1,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.5,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 27,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap96",
+   "cpu_id": "e6ed8c4b4a95db3e",
+   "board": "Orange Pi 5",
+   "camera": "99",
+   "cameras": [
+    "99"
+   ],
+   "checkout_at": "2026-10-11T08:22:00+03:00",
+   "returned_at": "2026-10-11T18:43:00+03:00",
+   "task": "Bakery",
+   "status": "ok",
+   "takes": 9,
+   "clips": 8,
+   "short_takes": 1,
+   "hours": {
+    "total": 6.32,
+    "good": 6.3,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.02,
+    "pending": 0.0
+   },
+   "good_pct": 99.68,
+   "timing_pass_pct": 100.0,
+   "fps": 60.07,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.8,
+   "boots": 1,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 26,
+   "events": {
+    "power_on": 1,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap120",
+   "cpu_id": "bc4552e9071590d2",
+   "board": "Orange Pi 5",
+   "camera": "125",
+   "cameras": [
+    "125"
+   ],
+   "checkout_at": "2026-10-11T08:22:00+03:00",
+   "returned_at": "2026-10-11T18:46:00+03:00",
+   "task": "Laundry",
+   "status": "ok",
+   "takes": 6,
+   "clips": 6,
+   "short_takes": 0,
+   "hours": {
+    "total": 6.2,
+    "good": 5.2,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 1.0
+   },
+   "good_pct": 83.87,
+   "timing_pass_pct": 100.0,
+   "fps": 60.1,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 2.4,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 17,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap161",
+   "cpu_id": "ae8e9ea7c72bb0bc",
+   "board": "NanoPi R76S",
+   "camera": "166",
+   "cameras": [
+    "166"
+   ],
+   "checkout_at": "2026-10-11T08:24:00+03:00",
+   "returned_at": "2026-10-11T18:43:00+03:00",
+   "task": "Laundry",
+   "status": "ok",
+   "takes": 7,
+   "clips": 7,
+   "short_takes": 0,
+   "hours": {
+    "total": 5.7,
+    "good": 5.7,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": 100.0,
+   "timing_pass_pct": 100.0,
+   "fps": 60.08,
+   "nominal_fps": 60,
+   "p99_dev_ms_max": 3.0,
+   "boots": 2,
+   "version": "1.67.0",
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 27,
+   "events": {
+    "power_on": 2,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap17",
+   "cpu_id": "92a283a2043d77fa",
+   "board": "Orange Pi 5",
+   "camera": "33",
+   "cameras": [
+    "33"
+   ],
+   "checkout_at": "2026-10-11T07:48:00+03:00",
+   "returned_at": null,
+   "task": "Retail",
+   "status": "out",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 0,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 17,
+   "events": {
+    "power_on": 0,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap102",
+   "cpu_id": "baa4ff21db0c2e0b",
+   "board": "Orange Pi 5",
+   "camera": "110",
+   "cameras": [
+    "110"
+   ],
+   "checkout_at": "2026-10-11T08:26:00+03:00",
+   "returned_at": null,
+   "task": "Repair Services",
+   "status": "out",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 0,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 25,
+   "events": {
+    "power_on": 0,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap166",
+   "cpu_id": "3dd475c5a6cd981f",
+   "board": "Orange Pi 5",
+   "camera": "171",
+   "cameras": [
+    "171"
+   ],
+   "checkout_at": "2026-10-11T09:17:00+03:00",
+   "returned_at": null,
+   "task": "Tailoring",
+   "status": "out",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 0,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 24,
+   "events": {
+    "power_on": 0,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap29",
+   "cpu_id": "9451e0f1a365b67f",
+   "board": "Orange Pi 5",
+   "camera": "49",
+   "cameras": [
+    "49"
+   ],
+   "checkout_at": "2026-10-11T08:21:00+03:00",
+   "returned_at": "2026-10-12T08:13:00+03:00",
+   "task": "Laundry",
+   "status": "waiting",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 0,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 16,
+   "events": {
+    "power_on": 0,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  },
+  {
+   "cap": "starcap124",
+   "cpu_id": "e58c59f8fca2f7c1",
+   "board": "Orange Pi 5",
+   "camera": "128",
+   "cameras": [
+    "128"
+   ],
+   "checkout_at": "2026-10-11T08:18:00+03:00",
+   "returned_at": "2026-10-12T11:37:00+03:00",
+   "task": "Carpentry",
+   "status": "waiting",
+   "takes": 0,
+   "clips": 0,
+   "short_takes": 0,
+   "hours": {
+    "total": 0.0,
+    "good": 0.0,
+    "fps30": 0.0,
+    "timing_fail": 0.0,
+    "untimed": 0.0,
+    "broken": 0.0,
+    "short": 0.0,
+    "pending": 0.0
+   },
+   "good_pct": null,
+   "timing_pass_pct": null,
+   "fps": null,
+   "nominal_fps": null,
+   "p99_dev_ms_max": null,
+   "boots": 0,
+   "version": null,
+   "expired_cal_hours": 0.0,
+   "cal_days_left": 13,
+   "events": {
+    "power_on": 0,
+    "unclean_boot": 0,
+    "camera_lost": 0,
+    "rec_dead": 0,
+    "rec_corrupt": 0,
+    "camera_usb2": 0,
+    "storage": 0
+   },
+   "flags": [],
+   "severity": null,
+   "open_tickets": 0,
+   "my_status": null
+  }
+ ],
+ "off_trip": {
+  "takes": 37,
+  "hours": 4.1,
+  "caps": 9
+ }
+}

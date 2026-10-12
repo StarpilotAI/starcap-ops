@@ -1,0 +1,1701 @@
+{
+ "date": "2026-10-11",
+ "stats": {
+  "open": 36,
+  "critical": 31,
+  "opened": 4,
+  "resolved": 2,
+  "median_resolve_days": 3.5,
+  "oldest_open_days": 40,
+  "blocked_caps": 29,
+  "broken_cams": 4
+ },
+ "by_category": [
+  {
+   "category": "hardware",
+   "open": 14,
+   "last_30d": 23
+  },
+  {
+   "category": "camera",
+   "open": 10,
+   "last_30d": 16
+  },
+  {
+   "category": "storage",
+   "open": 4,
+   "last_30d": 9
+  },
+  {
+   "category": "power",
+   "open": 4,
+   "last_30d": 18
+  },
+  {
+   "category": "other",
+   "open": 2,
+   "last_30d": 19
+  },
+  {
+   "category": "software",
+   "open": 2,
+   "last_30d": 5
+  }
+ ],
+ "open": [
+  {
+   "id": "t_0901_35",
+   "subject": "starcap",
+   "unit": "starcap86",
+   "headset": "starcap86",
+   "camera": "64",
+   "category": "camera",
+   "critical": true,
+   "description": "Image flickers green in one eye",
+   "reporter": "Sara (office)",
+   "created_at": "2026-09-01T17:05:00+03:00",
+   "age_days": 40,
+   "photos": 1
+  },
+  {
+   "id": "t_0915_33",
+   "subject": "starcap",
+   "unit": "starcap168",
+   "headset": "starcap168",
+   "camera": "87",
+   "category": "other",
+   "critical": true,
+   "description": "Operator reports headache, padding missing",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-09-15T15:51:00+03:00",
+   "age_days": 26,
+   "photos": 3
+  },
+  {
+   "id": "t_0915_34",
+   "subject": "starcap",
+   "unit": "starcap141",
+   "headset": "starcap141",
+   "camera": "130",
+   "category": "hardware",
+   "critical": true,
+   "description": "LED never lights at boot",
+   "reporter": "Omar K.",
+   "created_at": "2026-09-15T16:58:00+03:00",
+   "age_days": 26,
+   "photos": 1
+  },
+  {
+   "id": "t_0920_30",
+   "subject": "camera",
+   "unit": "38",
+   "headset": null,
+   "camera": "38",
+   "category": "camera",
+   "critical": true,
+   "description": "Left lens scratched across the centre",
+   "reporter": "Hany M.",
+   "created_at": "2026-09-20T12:30:00+03:00",
+   "age_days": 21,
+   "photos": 2
+  },
+  {
+   "id": "t_0923_27",
+   "subject": "starcap",
+   "unit": "starcap25",
+   "headset": "starcap25",
+   "camera": "32",
+   "category": "hardware",
+   "critical": true,
+   "description": "Recording button does nothing",
+   "reporter": "Sara (office)",
+   "created_at": "2026-09-23T09:09:00+03:00",
+   "age_days": 18,
+   "photos": 1
+  },
+  {
+   "id": "t_0923_29",
+   "subject": "starcap",
+   "unit": "starcap61",
+   "headset": "starcap61",
+   "camera": "130",
+   "category": "hardware",
+   "critical": true,
+   "description": "Water exposure, green corrosion near the power jack",
+   "reporter": "Omar K.",
+   "created_at": "2026-09-23T11:23:00+03:00",
+   "age_days": 18,
+   "photos": 2
+  },
+  {
+   "id": "t_0926_23",
+   "subject": "starcap",
+   "unit": "starcap80",
+   "headset": "starcap80",
+   "camera": "170",
+   "category": "storage",
+   "critical": true,
+   "description": "SD card slot cracked, card pops out",
+   "reporter": "Islam R.",
+   "created_at": "2026-09-26T14:41:00+03:00",
+   "age_days": 15,
+   "photos": 1
+  },
+  {
+   "id": "t_0926_24",
+   "subject": "starcap",
+   "unit": "starcap69",
+   "headset": "starcap69",
+   "camera": "64",
+   "category": "hardware",
+   "critical": true,
+   "description": "Buzzer stays on after boot",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-09-26T15:48:00+03:00",
+   "age_days": 15,
+   "photos": 0
+  },
+  {
+   "id": "t_0926_25",
+   "subject": "starcap",
+   "unit": "starcap147",
+   "headset": "starcap147",
+   "camera": "66",
+   "category": "camera",
+   "critical": true,
+   "description": "Camera not detected after the cap was dropped",
+   "reporter": "Sara (office)",
+   "created_at": "2026-09-26T16:55:00+03:00",
+   "age_days": 15,
+   "photos": 3
+  },
+  {
+   "id": "t_0926_26",
+   "subject": "starcap",
+   "unit": "starcap80",
+   "headset": "starcap80",
+   "camera": "93",
+   "category": "power",
+   "critical": true,
+   "description": "Battery pack swollen, pulled from use",
+   "reporter": "Waleed",
+   "created_at": "2026-09-26T17:02:00+03:00",
+   "age_days": 15,
+   "photos": 0
+  },
+  {
+   "id": "t_0928_19",
+   "subject": "starcap",
+   "unit": "starcap144",
+   "headset": "starcap144",
+   "camera": "168",
+   "category": "camera",
+   "critical": true,
+   "description": "Records at 30 fps every session, camera cable reseated twice",
+   "reporter": "Omar K.",
+   "created_at": "2026-09-28T10:13:00+03:00",
+   "age_days": 13,
+   "photos": 3
+  },
+  {
+   "id": "t_0928_20",
+   "subject": "starcap",
+   "unit": "starcap45",
+   "headset": "starcap45",
+   "camera": "60",
+   "category": "hardware",
+   "critical": true,
+   "description": "Strap clip snapped, the cap slides off while working",
+   "reporter": "Omar K.",
+   "created_at": "2026-09-28T11:20:00+03:00",
+   "age_days": 13,
+   "photos": 0
+  },
+  {
+   "id": "t_0928_21",
+   "subject": "starcap",
+   "unit": "starcap147",
+   "headset": "starcap147",
+   "camera": "162",
+   "category": "power",
+   "critical": true,
+   "description": "Does not power on after a full charge",
+   "reporter": "Waleed",
+   "created_at": "2026-09-28T12:27:00+03:00",
+   "age_days": 13,
+   "photos": 0
+  },
+  {
+   "id": "t_0930_18",
+   "subject": "starcap",
+   "unit": "starcap147",
+   "headset": "starcap147",
+   "camera": "94",
+   "category": "hardware",
+   "critical": true,
+   "description": "USB-C port is loose; power cuts when the cable moves",
+   "reporter": "Sara (office)",
+   "created_at": "2026-09-30T09:06:00+03:00",
+   "age_days": 11,
+   "photos": 1
+  },
+  {
+   "id": "t_0930_17",
+   "subject": "starcap",
+   "unit": "starcap91",
+   "headset": "starcap91",
+   "camera": "110",
+   "category": "camera",
+   "critical": true,
+   "description": "Image flickers green in one eye",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-09-30T17:59:00+03:00",
+   "age_days": 11,
+   "photos": 1
+  },
+  {
+   "id": "t_1002_14",
+   "subject": "starcap",
+   "unit": "starcap108",
+   "headset": "starcap108",
+   "camera": "32",
+   "category": "storage",
+   "critical": true,
+   "description": "Takes stop after a few minutes, 'disk full' on a half-empty card",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-10-02T14:38:00+03:00",
+   "age_days": 9,
+   "photos": 3
+  },
+  {
+   "id": "t_1002_15",
+   "subject": "starcap",
+   "unit": "starcap45",
+   "headset": "starcap45",
+   "camera": "150",
+   "category": "other",
+   "critical": true,
+   "description": "Operator reports headache, padding missing",
+   "reporter": "Sara (office)",
+   "created_at": "2026-10-02T15:45:00+03:00",
+   "age_days": 9,
+   "photos": 1
+  },
+  {
+   "id": "t_1002_16",
+   "subject": "starcap",
+   "unit": "starcap149",
+   "headset": "starcap149",
+   "camera": "64",
+   "category": "hardware",
+   "critical": true,
+   "description": "LED never lights at boot",
+   "reporter": "Islam R.",
+   "created_at": "2026-10-02T16:52:00+03:00",
+   "age_days": 9,
+   "photos": 3
+  },
+  {
+   "id": "t_1005_13",
+   "subject": "starcap",
+   "unit": "starcap168",
+   "headset": "starcap168",
+   "camera": "188",
+   "category": "hardware",
+   "critical": true,
+   "description": "Fan rattles and the board gets very hot",
+   "reporter": "Islam R.",
+   "created_at": "2026-10-05T13:31:00+03:00",
+   "age_days": 6,
+   "photos": 1
+  },
+  {
+   "id": "t_1006_12",
+   "subject": "camera",
+   "unit": "171",
+   "headset": null,
+   "camera": "171",
+   "category": "camera",
+   "critical": true,
+   "description": "Left lens scratched across the centre",
+   "reporter": "Waleed",
+   "created_at": "2026-10-06T12:24:00+03:00",
+   "age_days": 5,
+   "photos": 0
+  },
+  {
+   "id": "t_1007_11",
+   "subject": "starcap",
+   "unit": "starcap163",
+   "headset": "starcap163",
+   "camera": "87",
+   "category": "hardware",
+   "critical": true,
+   "description": "Water exposure, green corrosion near the power jack",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-10-07T11:17:00+03:00",
+   "age_days": 4,
+   "photos": 1
+  },
+  {
+   "id": "t_1008_09",
+   "subject": "starcap",
+   "unit": "starcap155",
+   "headset": "starcap155",
+   "camera": "107",
+   "category": "hardware",
+   "critical": true,
+   "description": "Recording button does nothing",
+   "reporter": "Omar K.",
+   "created_at": "2026-10-08T09:03:00+03:00",
+   "age_days": 3,
+   "photos": 0
+  },
+  {
+   "id": "t_1008_10",
+   "subject": "starcap",
+   "unit": "starcap73",
+   "headset": "starcap73",
+   "camera": "23",
+   "category": "software",
+   "critical": true,
+   "description": "Stuck on old firmware, never updates",
+   "reporter": "Hany M.",
+   "created_at": "2026-10-08T10:10:00+03:00",
+   "age_days": 3,
+   "photos": 0
+  },
+  {
+   "id": "t_1009_07",
+   "subject": "starcap",
+   "unit": "starcap11",
+   "headset": "starcap11",
+   "camera": "218",
+   "category": "camera",
+   "critical": true,
+   "description": "Camera not detected after the cap was dropped",
+   "reporter": "Waleed",
+   "created_at": "2026-10-09T16:49:00+03:00",
+   "age_days": 2,
+   "photos": 0
+  },
+  {
+   "id": "t_1010_02",
+   "subject": "starcap",
+   "unit": "starcap61",
+   "headset": "starcap61",
+   "camera": "146",
+   "category": "hardware",
+   "critical": true,
+   "description": "Strap clip snapped, the cap slides off while working",
+   "reporter": "Hany M.",
+   "created_at": "2026-10-10T11:14:00+03:00",
+   "age_days": 1,
+   "photos": 1
+  },
+  {
+   "id": "t_1010_03",
+   "subject": "starcap",
+   "unit": "starcap45",
+   "headset": "starcap45",
+   "camera": "151",
+   "category": "power",
+   "critical": true,
+   "description": "Does not power on after a full charge",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-10-10T12:21:00+03:00",
+   "age_days": 1,
+   "photos": 1
+  },
+  {
+   "id": "t_1010_04",
+   "subject": "starcap",
+   "unit": "starcap45",
+   "headset": "starcap45",
+   "camera": "139",
+   "category": "camera",
+   "critical": true,
+   "description": "Right eye image is soft, looks out of focus",
+   "reporter": "Hany M.",
+   "created_at": "2026-10-10T13:28:00+03:00",
+   "age_days": 1,
+   "photos": 3
+  },
+  {
+   "id": "t_1010_05",
+   "subject": "starcap",
+   "unit": "starcap52",
+   "headset": "starcap52",
+   "camera": "32",
+   "category": "storage",
+   "critical": true,
+   "description": "SD card slot cracked, card pops out",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-10-10T14:35:00+03:00",
+   "age_days": 1,
+   "photos": 2
+  },
+  {
+   "id": "t_1010_06",
+   "subject": "starcap",
+   "unit": "starcap104",
+   "headset": "starcap104",
+   "camera": "215",
+   "category": "hardware",
+   "critical": true,
+   "description": "Buzzer stays on after boot",
+   "reporter": "Waleed",
+   "created_at": "2026-10-10T15:42:00+03:00",
+   "age_days": 1,
+   "photos": 0
+  },
+  {
+   "id": "t_1011_00",
+   "subject": "starcap",
+   "unit": "starcap112",
+   "headset": "starcap112",
+   "camera": "78",
+   "category": "hardware",
+   "critical": true,
+   "description": "Reboots every few minutes in the field, fine on the bench",
+   "reporter": "Hany M.",
+   "created_at": "2026-10-11T09:00:00+03:00",
+   "age_days": 0,
+   "photos": 0
+  },
+  {
+   "id": "t_1011_01",
+   "subject": "starcap",
+   "unit": "starcap38",
+   "headset": "starcap38",
+   "camera": "23",
+   "category": "camera",
+   "critical": true,
+   "description": "Records at 30 fps every session, camera cable reseated twice",
+   "reporter": "Sara (office)",
+   "created_at": "2026-10-11T10:07:00+03:00",
+   "age_days": 0,
+   "photos": 1
+  },
+  {
+   "id": "t_0915_32",
+   "subject": "starcap",
+   "unit": "starcap126",
+   "headset": "starcap126",
+   "camera": "44",
+   "category": "storage",
+   "critical": false,
+   "description": "Takes stop after a few minutes, 'disk full' on a half-empty card",
+   "reporter": "Hany M.",
+   "created_at": "2026-09-15T14:44:00+03:00",
+   "age_days": 26,
+   "photos": 0
+  },
+  {
+   "id": "t_0920_31",
+   "subject": "starcap",
+   "unit": "starcap147",
+   "headset": "starcap147",
+   "camera": "120",
+   "category": "hardware",
+   "critical": false,
+   "description": "Fan rattles and the board gets very hot",
+   "reporter": "Omar K.",
+   "created_at": "2026-09-20T13:37:00+03:00",
+   "age_days": 21,
+   "photos": 1
+  },
+  {
+   "id": "t_0923_28",
+   "subject": "starcap",
+   "unit": "starcap91",
+   "headset": "starcap91",
+   "camera": "109",
+   "category": "software",
+   "critical": false,
+   "description": "Stuck on old firmware, never updates",
+   "reporter": "Islam R.",
+   "created_at": "2026-09-23T10:16:00+03:00",
+   "age_days": 18,
+   "photos": 1
+  },
+  {
+   "id": "t_0926_22",
+   "subject": "starcap",
+   "unit": "starcap25",
+   "headset": "starcap25",
+   "camera": "85",
+   "category": "camera",
+   "critical": false,
+   "description": "Right eye image is soft, looks out of focus",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-09-26T13:34:00+03:00",
+   "age_days": 15,
+   "photos": 1
+  },
+  {
+   "id": "t_1008_08",
+   "subject": "starcap",
+   "unit": "starcap152",
+   "headset": "starcap152",
+   "camera": "154",
+   "category": "power",
+   "critical": false,
+   "description": "Battery pack swollen, pulled from use",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-10-08T17:56:00+03:00",
+   "age_days": 3,
+   "photos": 0
+  }
+ ],
+ "recent_resolved": [
+  {
+   "id": "t_1006_r0",
+   "subject": "starcap",
+   "unit": "starcap115",
+   "headset": "starcap115",
+   "camera": "177",
+   "category": "hardware",
+   "critical": true,
+   "description": "USB-C port is loose; power cuts when the cable moves",
+   "reporter": "Mahmoud (field lead)",
+   "created_at": "2026-10-06T10:00:00+03:00",
+   "age_days": 5,
+   "photos": 1,
+   "resolved_at": "2026-10-11T12:15:00+03:00",
+   "resolution_note": "Cable replaced, 60 fps confirmed on QC"
+  },
+  {
+   "id": "t_1003_r1",
+   "subject": "starcap",
+   "unit": "starcap86",
+   "headset": "starcap86",
+   "camera": "86",
+   "category": "storage",
+   "critical": false,
+   "description": "SD card slot cracked, card pops out",
+   "reporter": "Islam R.",
+   "created_at": "2026-10-03T10:00:00+03:00",
+   "age_days": 8,
+   "photos": 1,
+   "resolved_at": "2026-10-11T13:15:00+03:00",
+   "resolution_note": "Board swapped, old one to RMA"
+  },
+  {
+   "id": "t_1005_r2",
+   "subject": "starcap",
+   "unit": "starcap75",
+   "headset": "starcap75",
+   "camera": "183",
+   "category": "software",
+   "critical": true,
+   "description": "Stuck on old firmware, never updates",
+   "reporter": "Sara (office)",
+   "created_at": "2026-10-05T10:00:00+03:00",
+   "age_days": 5,
+   "photos": 0,
+   "resolved_at": "2026-10-10T14:15:00+03:00",
+   "resolution_note": "Strap replaced"
+  },
+  {
+   "id": "t_1006_r3",
+   "subject": "starcap",
+   "unit": "starcap4",
+   "headset": "starcap4",
+   "camera": "119",
+   "category": "other",
+   "critical": false,
+   "description": "Operator reports headache, padding missing",
+   "reporter": "Hany M.",
+   "created_at": "2026-10-06T10:00:00+03:00",
+   "age_days": 3,
+   "photos": 0,
+   "resolved_at": "2026-10-09T15:15:00+03:00",
+   "resolution_note": "Reflashed to 1.67.0 and recalibrated"
+  },
+  {
+   "id": "t_1005_r4",
+   "subject": "starcap",
+   "unit": "starcap100",
+   "headset": "starcap100",
+   "camera": "121",
+   "category": "hardware",
+   "critical": true,
+   "description": "Strap clip snapped, the cap slides off while working",
+   "reporter": "Hany M.",
+   "created_at": "2026-10-05T10:00:00+03:00",
+   "age_days": 3,
+   "photos": 1,
+   "resolved_at": "2026-10-08T16:15:00+03:00",
+   "resolution_note": "Card reseated, no fault found"
+  },
+  {
+   "id": "t_1008_r5",
+   "subject": "starcap",
+   "unit": "starcap152",
+   "headset": "starcap152",
+   "camera": "40",
+   "category": "camera",
+   "critical": false,
+   "description": "Camera not detected after the cap was dropped",
+   "reporter": "Islam R.",
+   "created_at": "2026-10-08T10:00:00+03:00",
+   "age_days": -1,
+   "photos": 2,
+   "resolved_at": "2026-10-07T17:15:00+03:00",
+   "resolution_note": "Lens cleaned, lenscheck PASS"
+  }
+ ],
+ "needs_attention": [
+  {
+   "cap": "starcap9",
+   "camera": "27.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "5.8 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap48",
+   "camera": "51",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "5.6 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap58",
+   "camera": "70",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.6 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.6 h in takes with no usable video"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap77",
+   "camera": "48.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "3.8 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap128",
+   "camera": "131",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "1.7 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap31",
+   "camera": "52",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "5.2 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "0.4 h failed the p99 frame-timing rule"
+    }
+   ],
+   "days": [
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap88",
+   "camera": "93",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "3.4 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap162",
+   "camera": "167",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "3.7 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 3 times"
+    },
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "3 unclean reboots"
+    },
+    {
+     "code": "short",
+     "severity": "warn",
+     "label": "Short takes",
+     "detail": "10 of 17 takes are under 30 s"
+    }
+   ],
+   "days": [
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap13",
+   "camera": "34.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.9 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "storage",
+     "severity": "bad",
+     "label": "Storage",
+     "detail": "1 storage event (disk full, take refused)"
+    },
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.8 h in takes with no usable video"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap26",
+   "camera": "28.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "3.1 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 4 times"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap106",
+   "camera": "113",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.4 h at 30 fps: camera on USB 2"
+    },
+    {
+     "code": "short",
+     "severity": "warn",
+     "label": "Short takes",
+     "detail": "11 of 20 takes are under 30 s"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap5",
+   "camera": "16",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "6.1 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap44",
+   "camera": "61.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "4.9 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap97",
+   "camera": "101",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "2.9 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap140",
+   "camera": "145",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "fps30",
+     "severity": "bad",
+     "label": "30 fps",
+     "detail": "1.2 h at 30 fps: camera on USB 2"
+    }
+   ],
+   "days": [
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap21",
+   "camera": "26",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "no_footage",
+     "severity": "bad",
+     "label": "No footage",
+     "detail": "Out 08:02 to 18:40, nothing copied and no recording seen."
+    }
+   ],
+   "days": [
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap39",
+   "camera": "42",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "footage_missing",
+     "severity": "bad",
+     "label": "Footage missing",
+     "detail": "The recorder logged 5 rec_start events, but no takes reached the copy station."
+    }
+   ],
+   "days": [
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap68",
+   "camera": "71.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "no_footage",
+     "severity": "bad",
+     "label": "No footage",
+     "detail": "Out 07:55 to 19:12, nothing copied and no recording seen."
+    }
+   ],
+   "days": [
+    "2026-10-09"
+   ]
+  },
+  {
+   "cap": "starcap94",
+   "camera": "98",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "no_footage",
+     "severity": "bad",
+     "label": "No footage",
+     "detail": "Out 08:20 to 18:05, nothing copied and no recording seen."
+    }
+   ],
+   "days": [
+    "2026-10-09"
+   ]
+  },
+  {
+   "cap": "starcap121",
+   "camera": "126.1",
+   "severity": "bad",
+   "flags": [
+    {
+     "code": "storage",
+     "severity": "bad",
+     "label": "Storage",
+     "detail": "1 storage event (disk full, take refused)"
+    },
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "3 unclean reboots"
+    }
+   ],
+   "days": [
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap19",
+   "camera": "35",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "1.3 h failed the p99 frame-timing rule"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap23",
+   "camera": "39.1",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 3 times"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap83",
+   "camera": "44.1",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "1.9 h in takes with no usable video"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap101",
+   "camera": "109",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "2.0 h in takes with no frame timing"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap143",
+   "camera": "148",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 6 times"
+    },
+    {
+     "code": "short",
+     "severity": "warn",
+     "label": "Short takes",
+     "detail": "14 of 22 takes are under 30 s"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap150",
+   "camera": "30.1",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.8 h in takes with no usable video"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap36",
+   "camera": "41",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "0.6 h failed the p99 frame-timing rule"
+    }
+   ],
+   "days": [
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap54",
+   "camera": "67",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "4 unclean reboots"
+    }
+   ],
+   "days": [
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap117",
+   "camera": "122",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "short",
+     "severity": "warn",
+     "label": "Short takes",
+     "detail": "14 of 23 takes are under 30 s"
+    }
+   ],
+   "days": [
+    "2026-10-10",
+    "2026-10-11"
+   ]
+  },
+  {
+   "cap": "starcap52",
+   "camera": "55",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 3 times"
+    },
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "3 unclean reboots"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap73",
+   "camera": "76",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "short",
+     "severity": "warn",
+     "label": "Short takes",
+     "detail": "12 of 19 takes are under 30 s"
+    },
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 3 times"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap86",
+   "camera": "89",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "reboots",
+     "severity": "warn",
+     "label": "Reboots",
+     "detail": "5 unclean reboots"
+    },
+    {
+     "code": "broken",
+     "severity": "warn",
+     "label": "Broken takes",
+     "detail": "0.6 h in takes with no usable video"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  },
+  {
+   "cap": "starcap109",
+   "camera": "115",
+   "severity": "warn",
+   "flags": [
+    {
+     "code": "timing",
+     "severity": "warn",
+     "label": "Timing",
+     "detail": "0.9 h failed the p99 frame-timing rule"
+    },
+    {
+     "code": "camera_drops",
+     "severity": "warn",
+     "label": "Camera drops",
+     "detail": "Camera dropped off USB 3 times"
+    }
+   ],
+   "days": [
+    "2026-10-09",
+    "2026-10-10"
+   ]
+  }
+ ],
+ "repeat": [
+  {
+   "unit": "starcap91",
+   "subject": "starcap",
+   "tickets_30d": 4,
+   "open": 1,
+   "last_at": "2026-10-10T09:12:00+03:00"
+  },
+  {
+   "unit": "starcap112",
+   "subject": "starcap",
+   "tickets_30d": 3,
+   "open": 1,
+   "last_at": "2026-10-11T16:40:00+03:00"
+  },
+  {
+   "unit": "starcap66",
+   "subject": "starcap",
+   "tickets_30d": 2,
+   "open": 1,
+   "last_at": "2026-10-08T11:05:00+03:00"
+  },
+  {
+   "unit": "48.1",
+   "subject": "camera",
+   "tickets_30d": 2,
+   "open": 0,
+   "last_at": "2026-10-05T14:02:00+03:00"
+  },
+  {
+   "unit": "starcap5",
+   "subject": "starcap",
+   "tickets_30d": 2,
+   "open": 0,
+   "last_at": "2026-10-02T10:20:00+03:00"
+  }
+ ],
+ "blocked": [
+  "starcap1",
+  "starcap5",
+  "starcap7",
+  "starcap22",
+  "starcap25",
+  "starcap28",
+  "starcap31",
+  "starcap37",
+  "starcap40",
+  "starcap43",
+  "starcap54",
+  "starcap56",
+  "starcap65",
+  "starcap90",
+  "starcap94",
+  "starcap95",
+  "starcap102",
+  "starcap103",
+  "starcap111",
+  "starcap120",
+  "starcap122",
+  "starcap128",
+  "starcap132",
+  "starcap133",
+  "starcap144",
+  "starcap150",
+  "starcap165",
+  "starcap168"
+ ],
+ "broken_cams": [
+  "100",
+  "133",
+  "199",
+  "9"
+ ],
+ "my_status": [
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap40",
+   "status": "repair",
+   "since": "2026-10-11T19:40:00+03:00",
+   "text": "Footage missing twice this week. Reseated the SD slot, testing on the bench."
+  },
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap144",
+   "status": "repair",
+   "since": "2026-10-07T09:05:00+03:00",
+   "text": "Power plug loose at the board end; resets mid-take. Sent to Gaafar for the jack."
+  },
+  {
+   "subject_type": "camera",
+   "subject_id": "133",
+   "status": "repair",
+   "since": "2026-10-05T13:00:00+03:00",
+   "text": "Cracked lens. Replacement lens on order."
+  },
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap103",
+   "status": "dead",
+   "since": "2026-10-05T11:00:00+03:00",
+   "text": "Water damage, corrosion on the board. Oct 5 footage only on the SD."
+  },
+  {
+   "subject_type": "camera",
+   "subject_id": "199",
+   "status": "dead",
+   "since": "2026-09-29T15:20:00+03:00",
+   "text": "No image from either eye, sensor dead."
+  },
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap61",
+   "status": "lost",
+   "since": "2026-10-09T10:30:00+03:00",
+   "text": "Operator says he left it in a microbus. Chasing with the field lead."
+  },
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap149",
+   "status": "lost",
+   "since": "2026-10-06T12:00:00+03:00",
+   "text": "Not returned since 2 Oct, phone off."
+  },
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap112",
+   "status": "watch",
+   "since": "2026-10-11T18:02:00+03:00",
+   "text": "Reboot loop again? Pull kern.log and boot_id when it docks."
+  },
+  {
+   "subject_type": "cap",
+   "subject_id": "starcap5",
+   "status": "watch",
+   "since": "2026-10-11T20:15:00+03:00",
+   "text": "30 fps two days running. Swap the camera cable before it goes out."
+  },
+  {
+   "subject_type": "camera",
+   "subject_id": "48.1",
+   "status": "watch",
+   "since": "2026-10-12T09:02:00+03:00",
+   "text": "Overdue calibration. Grab it when starcap77 comes back."
+  }
+ ],
+ "notes_recent": [
+  {
+   "id": 411,
+   "subject_type": "cap",
+   "subject_id": "starcap23",
+   "created_at": "2026-10-12T10:41:00+03:00",
+   "text": "Camera drops x3 but all takes fine. Keep an eye on it.",
+   "status": null
+  },
+  {
+   "id": 412,
+   "subject_type": "cap",
+   "subject_id": "starcap66",
+   "created_at": "2026-10-12T09:58:00+03:00",
+   "text": "Ticket filed for the storage errors.",
+   "status": null
+  },
+  {
+   "id": 413,
+   "subject_type": "camera",
+   "subject_id": "164",
+   "created_at": "2026-10-12T09:20:00+03:00",
+   "text": "Calibrate before it goes out again.",
+   "status": null
+  },
+  {
+   "id": 410,
+   "subject_type": "camera",
+   "subject_id": "48.1",
+   "created_at": "2026-10-12T09:02:00+03:00",
+   "text": "Overdue calibration. Grab it when starcap77 comes back.",
+   "status": "watch"
+  },
+  {
+   "id": 409,
+   "subject_type": "cap",
+   "subject_id": "starcap5",
+   "created_at": "2026-10-11T20:15:00+03:00",
+   "text": "30 fps two days running. Swap the camera cable before it goes out.",
+   "status": "watch"
+  },
+  {
+   "id": 401,
+   "subject_type": "cap",
+   "subject_id": "starcap40",
+   "created_at": "2026-10-11T19:40:00+03:00",
+   "text": "Footage missing twice this week. Reseated the SD slot, testing on the bench.",
+   "status": "repair"
+  },
+  {
+   "id": 408,
+   "subject_type": "cap",
+   "subject_id": "starcap112",
+   "created_at": "2026-10-11T18:02:00+03:00",
+   "text": "Reboot loop again? Pull kern.log and boot_id when it docks.",
+   "status": "watch"
+  },
+  {
+   "id": 406,
+   "subject_type": "cap",
+   "subject_id": "starcap61",
+   "created_at": "2026-10-09T10:30:00+03:00",
+   "text": "Operator says he left it in a microbus. Chasing with the field lead.",
+   "status": "lost"
+  }
+ ],
+ "links": {
+  "tickets": "https://starcap.dev/tickets",
+  "file": "https://starcap.dev/maintenance"
+ },
+ "trend": [
+  {
+   "date": "2026-09-12",
+   "open": 19,
+   "opened": 2,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-13",
+   "open": 19,
+   "opened": 2,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-14",
+   "open": 20,
+   "opened": 0,
+   "resolved": 0
+  },
+  {
+   "date": "2026-09-15",
+   "open": 19,
+   "opened": 1,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-16",
+   "open": 22,
+   "opened": 2,
+   "resolved": 0
+  },
+  {
+   "date": "2026-09-17",
+   "open": 20,
+   "opened": 0,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-18",
+   "open": 19,
+   "opened": 0,
+   "resolved": 1
+  },
+  {
+   "date": "2026-09-19",
+   "open": 23,
+   "opened": 3,
+   "resolved": 0
+  },
+  {
+   "date": "2026-09-20",
+   "open": 23,
+   "opened": 2,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-21",
+   "open": 24,
+   "opened": 1,
+   "resolved": 1
+  },
+  {
+   "date": "2026-09-22",
+   "open": 24,
+   "opened": 1,
+   "resolved": 1
+  },
+  {
+   "date": "2026-09-23",
+   "open": 24,
+   "opened": 1,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-24",
+   "open": 24,
+   "opened": 2,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-25",
+   "open": 23,
+   "opened": 0,
+   "resolved": 1
+  },
+  {
+   "date": "2026-09-26",
+   "open": 24,
+   "opened": 2,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-27",
+   "open": 23,
+   "opened": 1,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-28",
+   "open": 22,
+   "opened": 0,
+   "resolved": 2
+  },
+  {
+   "date": "2026-09-29",
+   "open": 23,
+   "opened": 1,
+   "resolved": 0
+  },
+  {
+   "date": "2026-09-30",
+   "open": 25,
+   "opened": 4,
+   "resolved": 2
+  },
+  {
+   "date": "2026-10-01",
+   "open": 26,
+   "opened": 1,
+   "resolved": 1
+  },
+  {
+   "date": "2026-10-02",
+   "open": 24,
+   "opened": 0,
+   "resolved": 2
+  },
+  {
+   "date": "2026-10-03",
+   "open": 25,
+   "opened": 2,
+   "resolved": 2
+  },
+  {
+   "date": "2026-10-04",
+   "open": 26,
+   "opened": 4,
+   "resolved": 3
+  },
+  {
+   "date": "2026-10-05",
+   "open": 25,
+   "opened": 0,
+   "resolved": 2
+  },
+  {
+   "date": "2026-10-06",
+   "open": 29,
+   "opened": 4,
+   "resolved": 0
+  },
+  {
+   "date": "2026-10-07",
+   "open": 29,
+   "opened": 1,
+   "resolved": 1
+  },
+  {
+   "date": "2026-10-08",
+   "open": 34,
+   "opened": 4,
+   "resolved": 0
+  },
+  {
+   "date": "2026-10-09",
+   "open": 34,
+   "opened": 1,
+   "resolved": 1
+  },
+  {
+   "date": "2026-10-10",
+   "open": 34,
+   "opened": 1,
+   "resolved": 2
+  },
+  {
+   "date": "2026-10-11",
+   "open": 36,
+   "opened": 4,
+   "resolved": 2
+  }
+ ]
+}

@@ -1,0 +1,266 @@
+{
+ "camera": "48.1",
+ "base": "48",
+ "rev": 1,
+ "state": "overdue",
+ "days_left": -12,
+ "due_on": "2026-09-30",
+ "last_cal_at": "2026-08-31T10:04:00+03:00",
+ "retired": false,
+ "broken": false,
+ "fits": [
+  {
+   "camera": "48.1",
+   "base": "48",
+   "rev": 1,
+   "method": "opencv_fisheye_kb4",
+   "bench": "Robot bench",
+   "calibrated_at": "2026-08-31T10:04:00+03:00",
+   "first_ever": false,
+   "previous_at": "2026-07-30T11:12:00+03:00",
+   "rmse_left": 0.243,
+   "rmse_right": 0.267,
+   "rmse_stereo": 0.358,
+   "baseline_mm": 60.11,
+   "verdict": "PASS",
+   "evidence": "complete"
+  },
+  {
+   "camera": "48.1",
+   "base": "48",
+   "rev": 1,
+   "method": "basalt_kb4",
+   "bench": "Basalt",
+   "calibrated_at": "2026-07-30T11:12:00+03:00",
+   "first_ever": true,
+   "previous_at": null,
+   "rmse_left": 0.212,
+   "rmse_right": 0.229,
+   "rmse_stereo": 0.331,
+   "baseline_mm": 60.04,
+   "verdict": "PASS",
+   "evidence": "complete"
+  },
+  {
+   "camera": "48",
+   "base": "48",
+   "rev": 0,
+   "method": null,
+   "bench": "Charuco (old)",
+   "calibrated_at": "2026-06-18T15:40:00+03:00",
+   "first_ever": true,
+   "previous_at": null,
+   "rmse_left": 0.408,
+   "rmse_right": 0.384,
+   "rmse_stereo": 0.551,
+   "baseline_mm": 59.87,
+   "verdict": null,
+   "evidence": null
+  }
+ ],
+ "imu": null,
+ "usage": [
+  {
+   "date": "2026-09-13",
+   "hours": 6.19,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-14",
+   "hours": 5.48,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-15",
+   "hours": 5.37,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-16",
+   "hours": 6.69,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-17",
+   "hours": 6.94,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-19",
+   "hours": 6.78,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-20",
+   "hours": 6.39,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-21",
+   "hours": 4.57,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-22",
+   "hours": 6.98,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-24",
+   "hours": 6.63,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-26",
+   "hours": 5.26,
+   "caps": [
+    "starcap18"
+   ]
+  },
+  {
+   "date": "2026-09-27",
+   "hours": 5.86,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-09-28",
+   "hours": 5.47,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-09-29",
+   "hours": 5.98,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "hours": 6.13,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-03",
+   "hours": 5.36,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-04",
+   "hours": 6.25,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-05",
+   "hours": 6.99,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-06",
+   "hours": 6.63,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-08",
+   "hours": 6.89,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-10",
+   "hours": 4.97,
+   "caps": [
+    "starcap77"
+   ]
+  },
+  {
+   "date": "2026-10-11",
+   "hours": 4.99,
+   "caps": [
+    "starcap77"
+   ]
+  }
+ ],
+ "cap_history": [
+  {
+   "at": "2026-09-26T09:40:00+03:00",
+   "action": "camera.attached",
+   "cap": "starcap77",
+   "replaced": "47"
+  },
+  {
+   "at": "2026-09-26T09:31:00+03:00",
+   "action": "camera.detached",
+   "cap": "starcap18",
+   "replaced": null
+  },
+  {
+   "at": "2026-07-30T16:02:00+03:00",
+   "action": "camera.attached",
+   "cap": "starcap18",
+   "replaced": null
+  }
+ ],
+ "tickets": [
+  {
+   "id": "t_1005_48",
+   "subject": "camera",
+   "unit": "48.1",
+   "headset": null,
+   "camera": "48.1",
+   "category": "camera",
+   "critical": false,
+   "description": "Slight purple tint in the left eye",
+   "reporter": "Islam R.",
+   "created_at": "2026-10-05T12:10:00+03:00",
+   "age_days": 6,
+   "photos": 2,
+   "resolved_at": "2026-10-06T10:00:00+03:00",
+   "resolution_note": "WB recalibrated, fine"
+  }
+ ],
+ "notes": [
+  {
+   "id": 410,
+   "subject_type": "camera",
+   "subject_id": "48.1",
+   "created_at": "2026-10-12T09:02:00+03:00",
+   "text": "Overdue calibration. Grab it when starcap77 comes back.",
+   "status": "watch"
+  }
+ ]
+}

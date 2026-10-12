@@ -1,0 +1,66 @@
+{
+ "stations": [
+  {
+   "id": "opm-a379442507524e3e",
+   "name": "opm@nodogoro",
+   "last_seen": "2026-10-12T04:14:29+03:00",
+   "age_s": 41131,
+   "state": "idle",
+   "message": "up, no transfers running",
+   "staging_free_gb": 356.0,
+   "pending_review": 0,
+   "error": null,
+   "waiting_caps": 0,
+   "status": "idle"
+  }
+ ],
+ "uploaders": [
+  {
+   "id": "ssd-bf6de1ae35a440ec",
+   "name": "CELL-2",
+   "last_seen": "2026-10-12T15:39:39+03:00",
+   "age_s": 21,
+   "state": "no_data",
+   "level": "error",
+   "message": "Drive(s) detected (/media/nodogoro/SSD 6, /media/nodogoro/SSD 5, /media/nodogoro/SSD 7) but NO StarCap recordings found. Looked for *.mp4 / orangepi* / _manifest.json / a_b_c_d folders. Wrong disk, or already empty?",
+   "runs": {
+    "pending": 0,
+    "uploading": 0,
+    "done": 0,
+    "error": 0
+   },
+   "current": null,
+   "error": null,
+   "stuck": false,
+   "stuck_min": 0,
+   "status": "ok"
+  }
+ ],
+ "backlog": {
+  "takes": 58,
+  "hours": 33.4,
+  "oldest_h": 696.5,
+  "over_24h": {
+   "takes": 55,
+   "hours": 32.0
+  }
+ },
+ "lag": {
+  "checkout_to_cloud_h": {
+   "p50": 18.4,
+   "p90": 31.0,
+   "n": 6768
+  },
+  "copy_to_cloud_h": {
+   "p50": 7.7,
+   "p90": 10.2,
+   "n": 6900
+  }
+ },
+ "label": {
+  "at": "2026-10-12T15:26:00+03:00",
+  "age_min": 14,
+  "ok": true,
+  "waiting": 44
+ }
+}

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StarCap Tracker</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<!-- Shared fills. Not display:none: Firefox drops patterns defined inside a hidden SVG. -->
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="hatch-pending" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--hatch-bg)"/>
+      <rect width="2" height="5" style="fill:var(--b-pending)"/>
+    </pattern>
+    <pattern id="hatch-partial" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="2.4" height="5" style="fill:var(--panel)" opacity="0.72"/>
+    </pattern>
+  </defs>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="#/day" aria-label="StarCap Tracker, go to Day">
+    <img src="icon.svg" alt="" width="26" height="26"><span>StarCap Tracker</span>
+  </a>
+  <nav class="tabs" aria-label="Views">
+    <a href="#/day" data-tab="day">Day</a>
+    <a href="#/calibration" data-tab="calibration">Calibration</a>
+    <a href="#/maintenance" data-tab="maintenance">Maintenance</a>
+    <a href="#/field" data-tab="field">Field</a>
+    <a href="#/pipeline" data-tab="pipeline">Pipeline</a>
+    <a href="#/trends" data-tab="trends">Trends</a>
+  </nav>
+  <div class="hdr-right">
+    <span class="demo-tag" id="demo-tag" hidden title="Reading tests/fixtures/api, not the live cache">demo data</span>
+    <button class="sync-chip" id="sync-chip" type="button" aria-live="polite">
+      <i class="sdot"></i><span class="stext">loading…</span>
+    </button>
+    <button class="ghost" id="summary-btn" type="button">Summary</button>
+  </div>
+</header>
+
+<main id="main" tabindex="-1"></main>
+
+<dialog class="drawer" id="drawer" aria-labelledby="drawer-title">
+  <div class="drawer-in" id="drawer-in"></div>
+</dialog>
+
+<dialog class="modal" id="summary-dlg" aria-labelledby="sum-title">
+  <div class="modal-in">
+    <div class="modal-h">
+      <h2 id="sum-title">Morning summary</h2>
+      <span class="mut" id="sum-date"></span>
+      <button class="icon-btn" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <pre class="sum-text" id="sum-text" tabindex="0" autofocus aria-label="Summary text"></pre>
+    <div class="modal-f">
+      <span class="msg" id="sum-msg" role="status"></span>
+      <button class="ghost" type="button" id="sum-copy">Copy</button>
+      <button type="button" id="sum-write">Add to Slack file</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="sr-only" id="sr-live" aria-live="polite"></div>
+</body>
+</html>
