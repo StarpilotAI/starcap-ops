@@ -24,7 +24,7 @@ for it; or `sudo apt install python3-psycopg2`).
 | **Day** | Yesterday, the day before, or any date: caps out, caps that recorded, caps that got nothing, hours and **good hours**, timing pass rate, hours at 30 fps, hours on cameras past calibration. One row per cap with its flags; click it for its takes and events. |
 | **Calibration** | Today's fits against the 10/day target (intrinsics + stereo per fit, camera-IMU separately); what to put on the bench today (cameras in the office, overdue ones in use first) and which to **catch when back** from the field; when the backlog clears; a 30-day forecast with the spikes; coverage. |
 | **Maintenance** | The dashboard's tickets (open, new, closed, time to fix, repeat offenders), caps the data says are broken that have **no ticket yet**, and your own notes and statuses (repair / dead / lost / watch). |
-| **Field** | Caps out more than 3 days, and caps out and silent for 24 h or more, with who has them. |
+| **Field** | Caps out more than 3 days, and caps out and silent for 24 h or more, with who has them; and **NanoPi QC**: which NanoPis never passed StarCap QC, the ones out in the field first. |
 | **Pipeline** | Takes copied over a day ago that never reached the cloud, check-out → cloud time, the SSD uploader, and the copy station, which is only flagged when it is quiet while returned caps' footage waits (it runs 20:00–04:00). |
 | **Trends** | 30 days of all of the above. |
 
@@ -51,6 +51,10 @@ for it; or `sudo apt install python3-psycopg2`).
 
 Every threshold is in `config.py` and can be overridden with an environment variable
 (`STARCAP_TRACKER_CAL_PER_DAY=12`, ...).
+
+QC status (✓ / ✗ / "no QC" on the Day page, a QC history on each cap page) is read from
+StarCap QC's own reports on this laptop (`~/starcap-qc/reports`), and only shown for NanoPi
+caps. QC sends nothing to the dashboard, so a QC run on another laptop doesn't show here.
 
 ## Where the numbers come from
 

@@ -1171,5 +1171,112 @@
    "operator": "Amr Saeed",
    "task": "Tailoring"
   }
- ]
+ ],
+ "qc": {
+  "available": true,
+  "nanopi": 83,
+  "passed": 63,
+  "failed": 1,
+  "never": 19,
+  "not_passed": [
+   {
+    "cap": "starcap92",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": true,
+    "runs": 0
+   },
+   {
+    "cap": "starcap104",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": true,
+    "runs": 0
+   },
+   {
+    "cap": "starcap106",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": true,
+    "runs": 0
+   },
+   {
+    "cap": "starcap112",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": true,
+    "runs": 0
+   },
+   {
+    "cap": "starcap123",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": true,
+    "runs": 0
+   },
+   {
+    "cap": "starcap133",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": true,
+    "runs": 0
+   },
+   {
+    "cap": "starcap89",
+    "status": "fail",
+    "at": "2026-10-10T17:44:00+03:00",
+    "failed_steps": [
+     "eMMC + SD card"
+    ],
+    "out_now": false,
+    "runs": 1
+   },
+   {
+    "cap": "starcap97",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": false,
+    "runs": 0
+   },
+   {
+    "cap": "starcap101",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": false,
+    "runs": 0
+   },
+   {
+    "cap": "starcap102",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": false,
+    "runs": 0
+   },
+   {
+    "cap": "starcap103",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": false,
+    "runs": 0
+   },
+   {
+    "cap": "starcap111",
+    "status": "never",
+    "at": null,
+    "failed_steps": [],
+    "out_now": false,
+    "runs": 0
+   }
+  ]
+ }
 }

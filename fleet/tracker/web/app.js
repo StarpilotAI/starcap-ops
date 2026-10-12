@@ -426,6 +426,23 @@ const STATUS = {
 };
 const stBadge = (s) => { const x = STATUS[s] || { label: s || "—", cls: "" }; return `<span class="st ${x.cls}"><i></i><span class="lg">${esc(x.label)}</span><span class="sh" aria-hidden="true">${esc(x.short || x.label)}</span></span>`; };
 const myTag = (s) => (s ? `<span class="tag st-${esc(s)}">${esc(s)}</span>` : "");
+/** StarCap QC, NanoPi caps only: null (an Orange Pi, QC isn't for it) renders nothing. */
+const QC = {
+  pass: { label: "✓ QC", cls: "ok", tip: (q) => `Passed StarCap QC ${fWhen(q.at)}${q.runs > 1 ? ` · ${plural(q.runs, "run")}` : ""}` },
+  fail: { label: "✗ QC", cls: "bad", tip: (q) => `Last StarCap QC failed ${fWhen(q.at)}${q.failed_steps?.length ? `: ${q.failed_steps.join(", ")}` : ""}${q.passed_at ? ` · passed before, ${fWhen(q.passed_at)}` : ""}` },
+  never: { label: "no QC", cls: "warn", tip: () => "Never been through StarCap QC" },
+};
+const QC_RANK = { fail: 0, never: 1, pass: 2 };
+const qcBadge = (q) => { const x = q && QC[q.status]; return x ? `<span class="pill ${x.cls}" data-tip="${esc(x.tip(q))}" tabindex="0">${esc(x.label)}</span>` : ""; };
+const qcSummary = (q) => (q.status === "never" ? "never been through QC" : q.status === "pass" ? `passed ${fWhen(q.at)}`
+  : `last run failed ${fWhen(q.at)}${q.passed_at ? `, passed before ${fWhen(q.passed_at)}` : ""}`);
+function qcRuns(runs) {
+  if (!runs.length) return empty("No finished QC run for this cap. Dock it at StarCap QC before it goes out.", "sm");
+  return `<div class="tablewrap"><table class="t"><thead><tr><th>Finished</th><th>Result</th><th>Failed checks</th><th>Firmware</th><th>Camera</th></tr></thead><tbody>${
+    runs.map((r) => `<tr><td>${esc(fTs(r.at))}</td><td><span class="pill ${r.verdict === "pass" ? "ok" : "bad"}">${r.verdict === "pass" ? "pass" : "fail"}</span></td>
+      <td>${r.failed_steps?.length ? esc(r.failed_steps.join(", ")) : '<span class="mut">—</span>'}</td>
+      <td class="mono">${esc(r.version || "—")}</td><td>${r.camera ? camLink(r.camera) : "—"}</td></tr>`).join("")}</tbody></table></div>`;
+}
 const capLink = (c) => (c ? `<a href="#/cap/${encodeURIComponent(c)}">${esc(c)}</a>` : "—");
 const camLink = (c) => (c ? `<a class="mono" href="#/camera/${encodeURIComponent(c)}">${esc(c)}</a>` : "—");
 
@@ -550,6 +567,7 @@ const CAP_FILTERS = [
   { key: "nothing", label: "No footage", test: (r) => r.status === "no_footage" || r.status === "footage_missing" },
   { key: "out", label: "Still out", test: (r) => r.status === "out" },
   { key: "fps30", label: "30 fps", test: (r) => (r.flags || []).some((f) => f.code === "fps30") },
+  { key: "noqc", label: "No QC", test: (r) => r.qc != null && r.qc.status !== "pass" },
 ];
 const STATUS_RANK = { no_footage: 0, footage_missing: 1, out: 2, waiting: 3, ok: 4 };
 const SEV_RANK = { bad: 0, warn: 1, info: 2 };
@@ -557,6 +575,7 @@ const CAP_COLS = [
   { key: "cap", label: "Cap", get: (r) => r.cap, cmp: natural },
   { key: "camera", label: "Camera", get: (r) => r.camera || "", cmp: natural },
   { key: "status", label: "Status", get: (r) => STATUS_RANK[r.status] ?? 9 },
+  { key: "qc", label: "QC", get: (r) => QC_RANK[r.qc?.status] ?? 9 },
   { key: "hours", label: "Hours", num: true, get: (r) => r.hours?.total || 0, desc: true },
   { key: "good_pct", label: "Good %", num: true, get: (r) => r.good_pct ?? -1, desc: true },
   { key: "timing", label: "Timing", num: true, get: (r) => r.timing_pass_pct ?? -1, desc: true },
@@ -620,6 +639,7 @@ function renderCapsTable(day) {
       <td><div class="capcell"><b>${esc(r.cap)}</b>${myTag(ms)}${r.open_tickets ? `<span class="tag" data-tip="${esc(plural(r.open_tickets, "open ticket"))}">${r.open_tickets} ticket${r.open_tickets > 1 ? "s" : ""}</span>` : ""}</div></td>
       <td class="mono">${esc(r.camera || "—")}${extraCams.length ? ` <span class="tag" data-tip="${esc("Also used: " + extraCams.join(", "))}">+${extraCams.length}</span>` : ""}</td>
       <td>${stBadge(r.status)}</td>
+      <td>${qcBadge(r.qc)}</td>
       <td class="num"><div class="hcell">${C.miniStack(r.hours, maxH, 76)}<span class="hv">${r.hours?.total ? h1(r.hours.total) : "—"}</span></div></td>
       <td class="num">${r.good_pct == null ? '<span class="mut">—</span>' : h1(r.good_pct)}</td>
       <td class="num">${r.timing_pass_pct == null ? '<span class="mut">—</span>' : h1(r.timing_pass_pct)}</td>
@@ -630,7 +650,7 @@ function renderCapsTable(day) {
   const wrap = $("#caps-wrap");
   const filtered = list.length !== rows.length;
   wrap.innerHTML = `<table class="t" id="caps-t">${thead(CAP_COLS, sort, "caps")}<tbody>${body ||
-    `<tr><td colspan="9" class="mut" style="text-align:center;padding:22px">No caps match${q ? ` "${esc(S.day.q)}"` : ""}.</td></tr>`}</tbody></table>
+    `<tr><td colspan="${CAP_COLS.length}" class="mut" style="text-align:center;padding:22px">No caps match${q ? ` "${esc(S.day.q)}"` : ""}.</td></tr>`}</tbody></table>
     ${filtered || sort ? `<div class="tfoot"><span>${list.length} of ${rows.length} caps${sort ? ` · sorted by ${esc(CAP_COLS.find((c) => c.key === sort.key).label.toLowerCase())}` : ""}</span>
       <button class="link" type="button" data-act="caps-reset">Reset to server order</button></div>` : ""}`;
 }
@@ -1202,7 +1222,23 @@ function renderField(f) {
     ${tiles}
     <h2 class="sec">Out over 3 days <span class="sub">longest first</span></h2>${fieldTable(f.long_out || []) || empty("<b>No cap has been out more than 3 days.</b>", "sm")}
     <h2 class="sec">Silent 24 h+ <span class="sub">no heartbeat since check-out or since they were last heard</span></h2>${fieldTable(f.silent || []) || empty("<b>Every cap out has been heard from in the last day.</b>", "sm")}
-    <details class="more"><summary>All ${int(outN)} caps out now</summary>${fieldTable(f.out || []) || empty("Nothing is out.", "sm")}</details>`;
+    <details class="more"><summary>All ${int(outN)} caps out now</summary>${fieldTable(f.out || []) || empty("Nothing is out.", "sm")}</details>
+    ${qcSection(f.qc)}`;
+}
+
+/** NanoPi caps and StarCap QC: who never passed it, the ones out in the field first. */
+function qcSection(q) {
+  if (!q) return "";
+  const head = `<h2 class="sec">NanoPi QC <span class="sub">${int(q.passed)} of ${int(q.nanopi)} passed StarCap QC · ${int(q.failed)} failed · ${int(q.never)} never · Orange Pis predate QC</span></h2>`;
+  if (!q.available) return head + empty("No StarCap QC reports on this laptop (<span class=\"mono\">~/starcap-qc/reports</span>), so QC status is unknown.", "sm");
+  const rows = q.not_passed || [];
+  if (!rows.length) return head + empty("<b>Every NanoPi in the fleet has passed QC.</b>", "sm");
+  const outN = rows.filter((r) => r.out_now).length;
+  const callout = outN ? `<div class="callout warn" style="margin-bottom:10px"><span><b>${esc(plural(outN, "NanoPi"))}</b> ${outN === 1 ? "is" : "are"} out in the field without a QC pass.</span></div>` : "";
+  return `${head}${callout}<div class="tablewrap"><table class="t"><thead><tr><th>Cap</th><th>QC</th><th>Last run</th><th>Failed checks</th><th>Where</th></tr></thead><tbody>${
+    rows.map((r) => `<tr><td>${capLink(r.cap)}</td><td>${qcBadge(r)}</td><td>${r.at ? esc(fWhen(r.at)) : '<span class="mut">—</span>'}</td>
+      <td>${r.failed_steps?.length ? esc(r.failed_steps.join(", ")) : '<span class="mut">—</span>'}</td>
+      <td>${r.out_now ? '<span class="pill blu">out now</span>' : '<span class="mut">in the office</span>'}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
 /* =============================================================== pipeline == */
@@ -1395,6 +1431,7 @@ function renderCap(c, arg) {
   const facts = [
     c.online ? '<span class="pill ok">online</span>' : `<span class="pill info">offline</span>`,
     on ? `<span class="pill blu">out ${h1(on.days_out)} d</span>` : '<span class="pill info">in the office</span>',
+    qcBadge(c.qc),
     msS ? myTag(msS) : "",
   ].join(" ");
   const sub = [c.board, c.version ? `v${c.version}` : null, c.camera_now ? `camera <a href="#/camera/${encodeURIComponent(c.camera_now)}">${esc(c.camera_now)}</a>` : null,
@@ -1423,6 +1460,7 @@ function renderCap(c, arg) {
       <div><h2 class="sec">Tickets</h2>${ticketList(c.tickets || [])}</div>
       <div><h2 class="sec">Camera history</h2>${historyList(c.camera_history || [], "camera")}</div>
     </div>
+    ${c.qc ? `<h2 class="sec">StarCap QC <span class="sub">${esc(qcSummary(c.qc))}</span></h2>${qcRuns(c.qc_runs || [])}` : ""}
     <div class="g57"><div><h2 class="sec">Add a note</h2><div class="panel">${noteForm({ type: "cap", id: c.cap })}</div></div>
       <div><h2 class="sec">Notes</h2><div class="panel" style="padding:4px 16px">${notesList(c.notes || [], false)}</div></div></div>`;
 }

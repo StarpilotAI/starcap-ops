@@ -25,6 +25,7 @@ import config
 import fleet
 import maint
 import pipeline as pipes
+import qc
 import rules
 import summary as digest
 
@@ -78,6 +79,18 @@ class _Req:
     @cached_property
     def open_items(self):
         return self.store.open_items()
+
+    @cached_property
+    def qc_runs(self):
+        return self.store.qc_runs()
+
+    @cached_property
+    def qc_by_cpu(self):
+        return qc.by_cpu(self.qc_runs)
+
+    def qc_status(self, cpu_id, board):
+        """StarCap QC status of a cap, None unless it is a NanoPi (see qc.py)."""
+        return qc.status(cpu_id, board, self.qc_by_cpu, qc.qc_cpus(self.qc_runs))
 
     @cached_property
     def cal_current(self):
@@ -227,7 +240,8 @@ def _latest(req, day):
 def _field_day(req, day, latest=None):
     t0, t1 = clock.day_bounds(day)
     items = req.store.items(t0, t1)
-    return rules.cap_days(items, req.store.field_takes(t0, t1), req.ctx, req.now, _events(req, items), latest)
+    rows = rules.cap_days(items, req.store.field_takes(t0, t1), req.ctx, req.now, _events(req, items), latest)
+    return [dict(r, qc=req.qc_status(r["cpu_id"], r["board"])) for r in rows]
 
 
 # --------------------------------------------------------------------------- #
@@ -289,6 +303,7 @@ def day_cap(store, date, cap):
                    key=lambda t: (t["started_at"] is None, t["started_at"] or t["created_at"]))
     events = _events(req, items)
     row = rules.cap_days(items, takes, req.ctx, req.now, events, _latest(req, day))[0]
+    row["qc"] = req.qc_status(row["cpu_id"], row["board"])
     return _edge({"date": day, "cap": row["cap"], "row": rules.rounded(row),
                   "takes": [rules.take_row(t, req.lenses) for t in takes],
                   "events": rules.event_log(events.get(cpu, ()), row, req.now)})
@@ -325,8 +340,11 @@ def field(store):
 
 
 def _field(req):
-    return fleet.view(req.now, req.heard_at, req.starcaps, req.devices, req.open_items, req.kamerat_out,
+    view = fleet.view(req.now, req.heard_at, req.starcaps, req.devices, req.open_items, req.kamerat_out,
                       req.blocked, req.lenses)
+    found = (req.store.kv_get("qc_source") or {}).get("found", False)
+    view["qc"] = qc.overview(req.starcaps, req.qc_runs, {i["cpu_id"] for i in req.open_items}, found)
+    return view
 
 
 def pipeline(store):
@@ -395,6 +413,8 @@ def cap(store, name):
             "camera": req.lenses.key(open_item["camera_id"]) if open_item.get("camera_id") else None},
         "camera_now": req.lenses.key(reg["camera_id"]) if reg.get("camera_id") else None,
         "my_status": note["status"] if note else None,
+        "qc": req.qc_status(cpu, reg.get("board")),
+        "qc_runs": qc.history(cpu, req.qc_by_cpu),
         "totals_30d": {"days_out": len(rows), "hours": round(sum(r["hours"]["total"] for _d, r in rows), 2),
                        "good": round(sum(r["hours"]["good"] for _d, r in rows), 2),
                        "no_footage_days": sum(r["status"] in rules.NOTHING for _d, r in rows)},

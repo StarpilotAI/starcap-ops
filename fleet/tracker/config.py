@@ -93,6 +93,11 @@ TREND_DAYS = 30
 EVENT_BACKFILL_DAYS = _num("EVENT_BACKFILL_DAYS", 8)   # device logs pulled the first time (one-off ~50 MB)
 EVENT_DEVICE_DAYS = 14                        # only devices heard from this recently
 
+# --- StarCap QC ----------------------------------------------------------------------
+# QC (~/starcap-qc) keeps one JSON report per run on the laptop it ran on and sends
+# nothing to the dashboard, so this is the only place its verdicts can be read.
+QC_REPORTS_DIR = Path(os.environ.get("STARCAP_TRACKER_QC_DIR", "~/starcap-qc/reports")).expanduser()
+
 # --- morning summary -------------------------------------------------------------
 SUMMARY_AT = os.environ.get("STARCAP_TRACKER_SUMMARY_AT", "09:00")
 SLACK_FILE = Path(os.environ.get("STARCAP_TRACKER_SLACK_FILE",

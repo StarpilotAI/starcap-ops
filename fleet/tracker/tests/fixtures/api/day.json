@@ -120,7 +120,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap9",
@@ -175,7 +176,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap44",
@@ -230,7 +232,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap128",
@@ -285,7 +288,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap63",
@@ -346,7 +350,8 @@
    ],
    "severity": "bad",
    "open_tickets": 1,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap97",
@@ -401,7 +406,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap88",
@@ -456,7 +462,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap5",
@@ -511,7 +518,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": "watch"
+   "my_status": "watch",
+   "qc": null
   },
   {
    "cap": "starcap31",
@@ -572,7 +580,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap112",
@@ -633,7 +642,14 @@
    ],
    "severity": "bad",
    "open_tickets": 1,
-   "my_status": null
+   "my_status": null,
+   "qc": {
+    "status": "pass",
+    "at": "2026-10-09T21:37:25+03:00",
+    "passed_at": "2026-10-09T21:37:25+03:00",
+    "failed_steps": [],
+    "runs": 2
+   }
   },
   {
    "cap": "starcap77",
@@ -694,7 +710,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap58",
@@ -761,7 +778,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap66",
@@ -822,7 +840,8 @@
    ],
    "severity": "bad",
    "open_tickets": 1,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap12",
@@ -877,7 +896,8 @@
    ],
    "severity": "bad",
    "open_tickets": 1,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap40",
@@ -932,7 +952,8 @@
    ],
    "severity": "bad",
    "open_tickets": 0,
-   "my_status": "repair"
+   "my_status": "repair",
+   "qc": null
   },
   {
    "cap": "starcap19",
@@ -987,7 +1008,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap36",
@@ -1042,7 +1064,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap83",
@@ -1098,7 +1121,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap150",
@@ -1159,7 +1183,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap101",
@@ -1214,7 +1239,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap23",
@@ -1269,7 +1295,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap54",
@@ -1324,7 +1351,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap117",
@@ -1379,7 +1407,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap71",
@@ -1434,7 +1463,8 @@
    ],
    "severity": "warn",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap8",
@@ -1489,7 +1519,8 @@
    ],
    "severity": "info",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap47",
@@ -1544,7 +1575,8 @@
    ],
    "severity": "info",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap133",
@@ -1599,7 +1631,8 @@
    ],
    "severity": "info",
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap91",
@@ -1654,7 +1687,14 @@
    ],
    "severity": "info",
    "open_tickets": 1,
-   "my_status": null
+   "my_status": null,
+   "qc": {
+    "status": "pass",
+    "at": "2026-10-09T21:37:25+03:00",
+    "passed_at": "2026-10-09T21:37:25+03:00",
+    "failed_steps": [],
+    "runs": 1
+   }
   },
   {
    "cap": "starcap34",
@@ -1702,7 +1742,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap50",
@@ -1750,7 +1791,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap2",
@@ -1798,7 +1840,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap158",
@@ -1846,7 +1889,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap14",
@@ -1894,7 +1938,14 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": {
+    "status": "pass",
+    "at": "2026-10-09T21:37:25+03:00",
+    "passed_at": "2026-10-09T21:37:25+03:00",
+    "failed_steps": [],
+    "runs": 2
+   }
   },
   {
    "cap": "starcap75",
@@ -1942,7 +1993,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap96",
@@ -1990,7 +2042,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap120",
@@ -2038,7 +2091,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap161",
@@ -2086,7 +2140,14 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": {
+    "status": "never",
+    "at": null,
+    "passed_at": null,
+    "failed_steps": [],
+    "runs": 0
+   }
   },
   {
    "cap": "starcap17",
@@ -2134,7 +2195,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap102",
@@ -2182,7 +2244,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap166",
@@ -2230,7 +2293,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap29",
@@ -2278,7 +2342,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   },
   {
    "cap": "starcap124",
@@ -2326,7 +2391,8 @@
    "flags": [],
    "severity": null,
    "open_tickets": 0,
-   "my_status": null
+   "my_status": null,
+   "qc": null
   }
  ],
  "off_trip": {

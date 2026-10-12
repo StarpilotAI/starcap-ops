@@ -60,7 +60,8 @@
   ],
   "severity": "bad",
   "open_tickets": 0,
-  "my_status": null
+  "my_status": null,
+  "qc": null
  },
  "takes": [
   {

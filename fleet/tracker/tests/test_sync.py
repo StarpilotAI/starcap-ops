@@ -256,6 +256,10 @@ class Base(unittest.TestCase):
         self.db = Path(self.tmp.name) / "tracker.db"
         self.store = Store(self.db)
         self.now = time.time()
+        self.qc_dir = Path(self.tmp.name) / "qc-reports"         # never the real ~/starcap-qc/reports
+        patch = mock.patch.object(config, "QC_REPORTS_DIR", self.qc_dir)
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def tearDown(self):
         self.store.close()
@@ -587,6 +591,40 @@ class Takes(Base):
         gone = data["takes"].pop(0)                                      # newest: inside the recent window
         s.run_once()
         self.assertNotIn(gone["id"], {t["id"] for t in self.store.takes_created(0, 2e10)})
+
+
+class QcReports(Base):
+    REPORT = {"report_id": "20261012-180027_80e439_c8488afffed8.json", "verdict": "fail", "station": "waleed",
+              "started": 1791817227.65, "finished": 1791817896.0, "headline": "2 checks failed",
+              "board": {"cpu_id": "c8488afffed82add", "name": "starcap185", "model": "FriendlyElec NanoPi R76S",
+                        "camera_id": 238, "version": "1.67.0"},
+              "steps": [{"key": "connect", "title": "Board answers", "state": "pass"},
+                        {"key": "soak", "title": "Soak take", "state": "fail"},
+                        {"key": "timing", "title": "Frame timing", "state": "fail"},
+                        {"key": "cleanup", "state": "skip"}]}
+
+    def test_a_report_becomes_a_row(self):
+        row = sync.qc_run("x.json", self.REPORT)
+        self.assertEqual({k: row[k] for k in ("id", "cpu_id", "name", "camera_id", "verdict", "failed_steps")},
+                         {"id": "20261012-180027_80e439_c8488afffed8.json", "cpu_id": "c8488afffed82add",
+                          "name": "starcap185", "camera_id": "238", "verdict": "fail",
+                          "failed_steps": ["Soak take", "Frame timing"]})
+        self.assertEqual((row["started_at"], row["finished_at"]), (1791817227.65, 1791817896.0))
+        self.assertIsNone(sync.qc_run("y.json", {"verdict": "cancelled", "board": {}}))   # never reached a board
+
+    def test_the_step_reads_the_folder_and_skips_junk(self):
+        self.qc_dir.mkdir()
+        (self.qc_dir / "a.json").write_text(json.dumps(self.REPORT))
+        (self.qc_dir / "b.json").write_text("{half a report")                    # still being written
+        (self.qc_dir / "c.json").write_text(json.dumps(["not", "a", "report"]))
+        (self.qc_dir / "a").mkdir()                                              # its log folder
+        self.assertEqual(self.syncer()._step_qc_runs(), 1)
+        self.assertEqual([r["failed_steps"] for r in self.store.qc_runs()], [["Soak take", "Frame timing"]])
+        self.assertEqual(self.store.kv_get("qc_source"), {"dir": str(self.qc_dir), "found": True, "reports": 1})
+
+    def test_no_qc_on_this_laptop_is_not_an_error(self):
+        self.assertEqual(self.syncer()._step_qc_runs(), 0)
+        self.assertFalse(self.store.kv_get("qc_source")["found"])
 
 
 class DeviceEvents(Base):

@@ -16,6 +16,33 @@
   "since": "2026-10-11T20:15:00+03:00",
   "text": "30 fps two days running. Swap the camera cable before it goes out."
  },
+ "qc": {
+  "status": "pass",
+  "at": "2026-10-09T21:37:25+03:00",
+  "passed_at": "2026-10-09T21:37:25+03:00",
+  "failed_steps": [],
+  "runs": 2
+ },
+ "qc_runs": [
+  {
+   "at": "2026-10-09T21:37:25+03:00",
+   "verdict": "pass",
+   "headline": "Every check passed.",
+   "failed_steps": [],
+   "version": "1.67.0",
+   "camera": "55.1"
+  },
+  {
+   "at": "2026-10-09T20:51:02+03:00",
+   "verdict": "fail",
+   "headline": "1 check failed",
+   "failed_steps": [
+    "Soak take"
+   ],
+   "version": "1.67.0",
+   "camera": "55.1"
+  }
+ ],
  "totals_30d": {
   "days_out": 21,
   "hours": 116.68,

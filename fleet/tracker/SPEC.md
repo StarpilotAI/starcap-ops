@@ -56,6 +56,7 @@ docstrings that explain *why*, small functions, `unittest` tests).
 | copy station | Redis hash `starcap:opm` (field = station_id, value JSON {station_name, last_seen ms, activity{state,message}, drives[{role,bytes_free,bytes_total}], pending_review, error}) |
 | uploaders | Redis hash `starcap:ssd` (field = uploader_id, value JSON {name, last_seen ms, detection{state,level,message}, runs[{run,status,bytes_total,bytes_done}], current{run,sent,total,rate_bps}, error, logs[]}) |
 | label pipeline | Redis string `starcap:ship:label:tick` (JSON {at ms, ok, last_ok_at ms, label{waiting}}) |
+| StarCap QC runs | local files `~/starcap-qc/reports/*.json` (config.QC_REPORTS_DIR): {report_id, verdict pass/fail/cancelled, started, finished, headline, station, board{cpu_id, name, model, camera_id, version}, steps[{key, title, state}]}. QC publishes nothing to the dashboard, so these files are the only record |
 
 `recordings` field paths (all inside `data`):
 
@@ -102,6 +103,7 @@ columns (`codes`, `photos`) come back already decoded. Booleans come back as `bo
 | `devices` | device_id PK, cpu_id, name, last_seen, software_version, board, status, recording, disk_free, disk_total, connection_type, camera, clock_synced |
 | `device_events` | (device_id, seq) PK, ts, type, msg |
 | `kv` | key PK, value (JSON), updated_at |
+| `qc_runs` (schema v2) | id PK (report_id), cpu_id, name, model, camera_id, version, verdict, started_at, finished_at, headline, failed_steps (list of step titles that failed), station |
 
 `kv` keys written by sync: `maint_blocked` (list[str]), `maint_broken_cam` (list[str]),
 `cameras_retired` (list[str]), `cameras_revs` (list[str], e.g. "61.1"),
@@ -270,6 +272,15 @@ caps in the last 7 days of takes.
 - Trend: open count at each day's end (created ≤ end and not resolved by end), opened,
   resolved.
 
+### StarCap QC (`qc.py`)
+
+- NanoPi caps only: a cap is NanoPi when its board says so or QC itself saw its cpu_id. An
+  Orange Pi gets `qc: null` (the Orange Pi fleet predates QC), never "never".
+- Status = the latest **finished** run (pass/fail); cancelled runs count for nothing. `never`
+  = a NanoPi with no finished run. `passed_at` = its newest pass; `failed_steps` only when the
+  latest run failed.
+- Not a flag: "never QC'd" isn't a fault, so it stays out of needs-attention.
+
 ### Field watch (`fleet.py`)
 
 - Out now = open items. `days_out` from checkout. `last_heard` = max devices.last_seen
@@ -360,7 +371,8 @@ local cache; only `/api/sync` touches production (read-only).
            "boots": 2, "version": "1.67.0", "expired_cal_hours": 0, "cal_days_left": 12,
            "events": {"power_on": 2, "unclean_boot": 0, "camera_lost": 0, "rec_dead": 0, "rec_corrupt": 0, "camera_usb2": 0, "storage": 0},
            "flags": [{"code": "fps30", "severity": "bad", "label": "30 fps", "detail": "2.1 h at 30 fps: camera on USB 2"}],
-           "severity": "bad", "open_tickets": 1, "my_status": null}],
+           "severity": "bad", "open_tickets": 1, "my_status": null,
+           "qc": {"status": "pass|fail|never", "at", "passed_at", "failed_steps": [], "runs": 2} | null}],
  "off_trip": {"takes": 37, "hours": 4.1, "caps": 9}}
 ```
 `kpis.*.prev` is the same number for the day before (null when unknown). `caps` sorted by
@@ -417,6 +429,8 @@ severity (bad, warn, info, none), then hours desc.
 **`GET /api/field`** →
 ```json
 {"fleet": {"total": 172, "out": 104, "office": 68, "online": 27, "blocked": 29},
+ "qc": {"available": true, "nanopi": 83, "passed": 63, "failed": 1, "never": 19,
+        "not_passed": [{"cap", "status": "fail|never", "at", "failed_steps", "out_now", "runs"}]},
  "long_out": [{"cap", "camera", "checkout_at", "days_out", "last_heard", "silent_h", "operator", "task"}],
  "silent": [<same shape>],
  "out": [<same shape, every cap out now, longest first>]}
@@ -441,7 +455,9 @@ severity (bad, warn, info, none), then hours desc.
 
 **`GET /api/cap/<name>`** →
 `{"cap", "cpu_id", "board", "version", "online", "last_heard", "out_now": {"checkout_at", "days_out", "camera"} | null,
-"camera_now", "my_status", "totals_30d": {"days_out", "hours", "good", "no_footage_days"},
+"camera_now", "my_status", "qc": <as on day rows> | null,
+"qc_runs": [{"at", "verdict", "headline", "failed_steps", "version", "camera"}, newest first],
+"totals_30d": {"days_out", "hours", "good", "no_footage_days"},
 "days": [{"date", "status", "camera", "hours": {...}, "takes", "flags"}], "tickets": [...],
 "camera_history": [{"at", "action", "camera", "replaced"}], "notes": [...]}` (days newest first)
 

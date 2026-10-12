@@ -92,13 +92,19 @@ TABLES = {
         ("msg", "TEXT"),
     ],
     "kv": [("key", "TEXT PRIMARY KEY"), ("value", "TEXT"), ("updated_at", "REAL")],
+    "qc_runs": [
+        ("id", "TEXT PRIMARY KEY"), ("cpu_id", "TEXT"), ("name", "TEXT"), ("model", "TEXT"),
+        ("camera_id", "TEXT"), ("version", "TEXT"), ("verdict", "TEXT"), ("started_at", "REAL"),
+        ("finished_at", "REAL"), ("headline", "TEXT"), ("failed_steps", "TEXT"), ("station", "TEXT"),
+    ],
 }
+ADDED_IN = {"qc_runs": 2}                # tables created by a later migration, not by v1
 PRIMARY_KEYS = {t: ("device_id", "seq") if t == "device_events" else (TABLES[t][0][0],) for t in TABLES}
 BOOL_COLS = {
     "takes": {"clock_fixed", "settled"}, "items": {"missing"}, "cameras": {"retired"},
     "tickets": {"critical"}, "devices": {"recording", "clock_synced"},
 }
-JSON_COLS = {"takes": {"codes"}}
+JSON_COLS = {"takes": {"codes"}, "qc_runs": {"failed_steps"}}
 CACHE_TABLES = tuple(TABLES)          # what clear_cache() empties (kv included)
 
 NOTE_SUBJECTS = ("cap", "camera")
@@ -106,14 +112,17 @@ NOTE_STATUSES = ("ok", "watch", "repair", "dead", "lost")
 NOTE_TEXT_MAX = 4000
 
 
+def _create(table):
+    body = [f"{name} {kind}" for name, kind in TABLES[table]]
+    if table == "device_events":
+        # The composite primary key IS the (device_id, seq) index SPEC asks for.
+        body.append("PRIMARY KEY (device_id, seq)")
+    return f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(body)})"
+
+
 def _ddl():
-    parts = []
-    for table, cols in TABLES.items():
-        body = [f"{name} {kind}" for name, kind in cols]
-        if table == "device_events":
-            # The composite primary key IS the (device_id, seq) index SPEC asks for.
-            body.append("PRIMARY KEY (device_id, seq)")
-        parts.append(f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(body)})")
+    """Schema v1, as shipped on 2026-10-12 (tables added later have their own migration)."""
+    parts = [_create(t) for t in TABLES if t not in ADDED_IN]
     parts += [
         # what the loaders filter on
         "CREATE INDEX IF NOT EXISTS takes_trip_item ON takes(trip_item_id)",
@@ -135,7 +144,10 @@ def _ddl():
 
 # Each entry upgrades the file by one PRAGMA user_version. Append; never edit one
 # that has shipped.
-MIGRATIONS = [_ddl()]
+MIGRATIONS = [
+    _ddl(),
+    [_create("qc_runs"), "CREATE INDEX IF NOT EXISTS qc_runs_cpu ON qc_runs(cpu_id, finished_at)"],
+]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
@@ -317,6 +329,10 @@ class Store:
 
     def tickets(self):
         return self._select("SELECT * FROM tickets ORDER BY created_at", table="tickets")
+
+    def qc_runs(self):
+        """Every StarCap QC report, oldest first."""
+        return self._select("SELECT * FROM qc_runs ORDER BY finished_at", table="qc_runs")
 
     def devices(self):
         return self._select("SELECT * FROM devices ORDER BY last_seen DESC", table="devices")

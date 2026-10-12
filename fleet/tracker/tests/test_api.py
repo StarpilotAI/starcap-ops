@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from fakestore import (FakeStore, at, cal_current, cal_version, camera, camera_event, device, device_event, item,
+from fakestore import (FakeStore, at, cal_current, cal_version, camera, camera_event, device, device_event, item, qc_run,
                        starcap, take, ticket)
 
 import api
@@ -30,7 +30,7 @@ HOURS_KEYS = {"total", "good", "fps30", "timing_fail", "untimed", "broken", "sho
 ROW_KEYS = {"cap", "cpu_id", "board", "camera", "cameras", "checkout_at", "returned_at", "task", "status", "takes",
             "clips", "short_takes", "hours", "good_pct", "timing_pass_pct", "fps", "nominal_fps", "p99_dev_ms_max",
             "boots", "version", "expired_cal_hours", "cal_days_left", "events", "flags", "severity",
-            "open_tickets", "my_status"}
+            "open_tickets", "my_status", "qc"}
 EVENT_KEYS = {"power_on", "unclean_boot", "camera_lost", "rec_dead", "rec_corrupt", "camera_usb2", "storage"}
 FLAG_KEYS = {"code", "severity", "label", "detail"}
 TAKE_KEYS = {"id", "started_at", "clock_fixed", "recorded_s", "bucket", "nominal_fps", "fps", "score", "p99_dev_ms",
@@ -60,7 +60,7 @@ UPLOADER_KEYS = {"id", "name", "last_seen", "age_s", "state", "level", "message"
 TREND_DAY_KEYS = {"date", "caps_out", "caps_recorded", "hours_total", "hours_good", "timing_pass_pct", "fps30_hours",
                   "expired_cal_hours", "cal_fits", "open_tickets", "overdue_cameras", "partial"}
 CAP_KEYS = {"cap", "cpu_id", "board", "version", "online", "last_heard", "out_now", "camera_now", "my_status",
-            "totals_30d", "days", "tickets", "camera_history", "notes"}
+            "qc", "qc_runs", "totals_30d", "days", "tickets", "camera_history", "notes"}
 CAMERA_KEYS = {"camera", "base", "rev", "state", "days_left", "due_on", "last_cal_at", "retired", "broken", "fits",
                "imu", "usage", "cap_history", "tickets", "notes"}
 
@@ -69,7 +69,7 @@ def world():
     """Three caps out yesterday: starcap1 recorded (some of it at 30 fps), starcap2 is
     still out, starcap3 came back with nothing although it logged a rec_start."""
     kv = {
-        "events_since": at("2026-10-01"),
+        "events_since": at("2026-10-01"), "qc_source": {"dir": "/qc", "found": True, "reports": 3},
         "maint_blocked": ["starcap2"], "maint_broken_cam": ["100"], "cameras_retired": ["9"],
         "cameras_revs": ["88.1"],
         "kamerat_out": {"starcap2": {"operator_name": "Mona", "checked_out_at": at(YDAY, 8.5), "camera": "50",
@@ -129,6 +129,11 @@ def world():
                         resolved_at=at(YDAY, 12), resolution_note="new cable"),
                  ticket(id="mt3", subject="camera", camera="100", headset="starcap3", created_at=at("2026-10-06"))],
         camera_events=[camera_event(at=at("2026-10-01"), camera="43", headset="starcap1", replaced="12")],
+        # starcap2: failed QC, then passed; starcap3: only a cancelled run (QC saw it, so it is a NanoPi)
+        qc_runs=[qc_run(cpu_id="cpu2", name="starcap2", verdict="fail", finished_at=at("2026-10-08", 15),
+                        failed_steps=["Camera"], headline="1 check failed"),
+                 qc_run(cpu_id="cpu2", name="starcap2", verdict="pass", finished_at=at("2026-10-09", 15)),
+                 qc_run(cpu_id="cpu3", name="starcap3", verdict="cancelled", finished_at=at("2026-10-09", 16))],
         kv=kv)
 
 
@@ -226,8 +231,11 @@ class Keys(Api):
 
     def test_field(self):
         f = api.field(self.store)
-        self.keys(f, {"fleet", "long_out", "silent", "out"})
+        self.keys(f, {"fleet", "long_out", "silent", "out", "qc"})
         self.keys(f["fleet"], {"total", "out", "office", "online", "blocked"})
+        self.keys(f["qc"], {"available", "nanopi", "passed", "failed", "never", "not_passed"})
+        for e in f["qc"]["not_passed"]:
+            self.keys(e, {"cap", "status", "at", "failed_steps", "out_now", "runs"})
         for e in f["out"] + f["silent"] + f["long_out"]:
             self.keys(e, OUT_KEYS)
 
@@ -332,6 +340,17 @@ class Values(Api):
         self.assertEqual((out["cap"], out["operator"], out["task"], out["silent_h"]),
                          ("starcap2", "Mona", "Repair Services", 25.5))
         self.assertEqual([e["cap"] for e in f["silent"]], ["starcap2"])
+
+    def test_qc_status_is_for_nanopis_only(self):
+        rows = {r["cap"]: r["qc"] for r in api.day(self.store, YDAY)["caps"]}
+        self.assertIsNone(rows["starcap1"])                                    # an Orange Pi: not QC'd by design
+        self.assertEqual((rows["starcap2"]["status"], rows["starcap2"]["runs"]), ("pass", 2))
+        self.assertEqual(rows["starcap3"]["status"], "never")                  # cancelled runs don't count
+        c = api.cap(self.store, "starcap2")
+        self.assertEqual([(r["verdict"], r["failed_steps"]) for r in c["qc_runs"]], [("pass", []), ("fail", ["Camera"])])
+        f = api.field(self.store)["qc"]
+        self.assertEqual((f["available"], f["nanopi"], f["passed"], f["failed"], f["never"]), (True, 2, 1, 0, 1))
+        self.assertEqual([e["cap"] for e in f["not_passed"]], ["starcap3"])
 
     def test_pipeline_values(self):
         p = api.pipeline(self.store)

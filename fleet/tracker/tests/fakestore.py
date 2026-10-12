@@ -84,6 +84,14 @@ def cal_current(**kw):
     return _row(CAL_CURRENT_COLS, {"id": f"cc{next(_ids)}", "kind": "stereo", "rev": 0}, kw)
 
 
+def qc_run(**kw):
+    """A qc_runs row as sync stores it."""
+    base = {"id": f"qc{next(_ids)}", "cpu_id": "cpu1", "name": "starcap1", "model": "FriendlyElec NanoPi R76S",
+            "camera_id": "43", "version": "1.67.0", "verdict": "pass", "started_at": None, "finished_at": None,
+            "headline": "Every check passed.", "failed_steps": [], "station": "waleed"}
+    return {**base, **kw}
+
+
 def current_for(versions):
     """The dashboard's current stereo row for each lens: its newest PASS-or-ungraded fit."""
     newest = {}
@@ -119,12 +127,13 @@ def _within(value, t0, t1):
 
 class FakeStore:
     def __init__(self, takes=(), items=(), starcaps=(), cameras=(), cal_versions=(), cal_current=(),
-                 camera_events=(), tickets=(), devices=(), device_events=(), kv=None):
+                 camera_events=(), tickets=(), devices=(), device_events=(), kv=None, qc_runs=()):
         self._takes, self._items, self._starcaps = list(takes), list(items), list(starcaps)
         self._cameras, self._cal_versions, self._cal_current = list(cameras), list(cal_versions), list(cal_current)
         self._camera_events, self._tickets = list(camera_events), list(tickets)
         self._devices, self._device_events = list(devices), list(device_events)
         self._kv = dict(kv or {})
+        self._qc_runs = list(qc_runs)
         self._notes, self._summaries, self._note_ids = [], {}, itertools.count(1)
 
     # -- loaders ---------------------------------------------------------------
@@ -137,6 +146,9 @@ class FakeStore:
 
     def cameras(self):
         return self._copy(self._cameras)
+
+    def qc_runs(self):
+        return self._copy(self._qc_runs, key=lambda r: r.get("finished_at") or 0)
 
     def cal_versions(self):
         return self._copy(self._cal_versions)

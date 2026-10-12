@@ -341,6 +341,25 @@ class Schema(Base):
             self.assertIn(name, indexes)
         self.assertEqual(len(self.s.notes()), 1)
 
+    def test_a_v1_cache_is_upgraded_in_place(self):
+        # the cache as first shipped on 2026-10-12, before QC runs were synced
+        self.s.close()
+        self.path.unlink()
+        with sqlite3.connect(self.path) as raw:
+            for stmt in store_mod.MIGRATIONS[0]:
+                raw.execute(stmt)
+            raw.execute("INSERT INTO notes (subject_type, subject_id, created_at, text) VALUES ('cap', 'starcap1', 1, 'mine')")
+            raw.execute("PRAGMA user_version=1")
+        self.s = Store(self.path)
+        with sqlite3.connect(self.path) as raw:
+            self.assertEqual(raw.execute("PRAGMA user_version").fetchone()[0], 2)
+        self.s.replace_all("qc_runs", [{"id": "r1", "cpu_id": "cpuA", "name": "starcap12", "model": "NanoPi",
+                                        "camera_id": "43", "version": "1.67.0", "verdict": "pass",
+                                        "started_at": 1.0, "finished_at": 2.0, "headline": "ok",
+                                        "failed_steps": ["Soak take"], "station": "waleed"}])
+        self.assertEqual(self.s.qc_runs()[0]["failed_steps"], ["Soak take"])
+        self.assertEqual([n["text"] for n in self.s.notes()], ["mine"])                  # notes untouched
+
     def test_newer_file_is_refused(self):
         self.s.close()
         with sqlite3.connect(self.path) as raw:

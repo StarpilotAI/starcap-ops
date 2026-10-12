@@ -72,7 +72,7 @@ EVENT_QUIET_SLACK_S = 900.0          # see _step_device_events: who can have new
 TICKETS_PER_MGET = 100
 
 STEPS = ("starcaps", "cameras", "cal_versions", "cal_current", "items", "takes",
-         "camera_events", "redis_small", "device_events", "prune")
+         "camera_events", "redis_small", "device_events", "qc_runs", "prune")
 
 K_LOGS = "starcap:logs:{}"
 
@@ -437,6 +437,23 @@ def uploader_from_ssd(field, doc, log_lines=20):
     }
 
 
+def qc_run(report_id, doc):
+    """One StarCap QC report (~/starcap-qc/reports/<id>.json) -> a qc_runs row, or None
+    for a report with no board identity (a run that never reached the board)."""
+    board = doc.get("board") if isinstance(doc.get("board"), dict) else {}
+    if not board.get("cpu_id"):
+        return None
+    steps = [st for st in doc.get("steps") or [] if isinstance(st, dict)]
+    return {"id": str(doc.get("report_id") or report_id), "cpu_id": str(board["cpu_id"]),
+            "name": board.get("name"), "model": board.get("model"),
+            "camera_id": None if board.get("camera_id") is None else str(board["camera_id"]),
+            "version": board.get("version"), "verdict": doc.get("verdict"),
+            "started_at": _ts(doc.get("started")), "finished_at": _ts(doc.get("finished")),
+            "headline": doc.get("headline"),
+            "failed_steps": [st.get("title") or st.get("key") for st in steps if st.get("state") == "fail"],
+            "station": doc.get("station")}
+
+
 def uploader_progress(prev, uploaders, now):
     """{uploader_id: {run, sent, changed_at}}: changed_at only moves when the upload in
     flight moves (a different run, or more bytes sent), so a stuck upload shows how long
@@ -559,7 +576,8 @@ class Syncer:
             "cal_versions": self._step_cal_versions, "cal_current": self._step_cal_current,
             "items": self._step_items, "takes": lambda: self._step_takes(full),
             "camera_events": self._step_camera_events, "redis_small": self._step_redis_small,
-            "device_events": self._step_device_events, "prune": self._step_prune,
+            "device_events": self._step_device_events, "qc_runs": self._step_qc_runs,
+            "prune": self._step_prune,
         }
         try:
             for name in STEPS:
@@ -769,6 +787,24 @@ class Syncer:
         self.store.upsert("device_events", rows)
         cursor["seen_upto"] = max([seen_upto or 0, *last_seen.values()]) or None
         self.store.kv_set("device_event_cursor", cursor)
+        return len(rows)
+
+    # ---------------------------------------------------------------- local files
+    def _step_qc_runs(self):
+        """StarCap QC's reports on this laptop (it publishes nothing else). No folder means
+        QC isn't installed here: nothing to read, not an error."""
+        folder = config.QC_REPORTS_DIR
+        rows = []
+        for path in sorted(folder.glob("*.json")) if folder.is_dir() else ():
+            try:
+                doc = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue                    # a report still being written, or a stray file
+            row = qc_run(path.name, doc) if isinstance(doc, dict) else None
+            if row:
+                rows.append(row)
+        self.store.replace_all("qc_runs", rows)
+        self.store.kv_set("qc_source", {"dir": str(folder), "found": folder.is_dir(), "reports": len(rows)})
         return len(rows)
 
     # ---------------------------------------------------------------- housekeeping
