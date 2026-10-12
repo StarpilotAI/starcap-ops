@@ -76,9 +76,8 @@ def day_lines(day):
     if k["hours_total"] > 0:
         out.append(f"- {hours(k['hours_total'])} h recorded, {hours(k['hours_good'])} h good ({k['good_pct']:.0f}%)"
                    + (f", timing pass {k['timing_pass_pct']:.1f}%" if k["timing_pass_pct"] is not None else ""))
-    fps30 = sorted((r for r in rows if any(f["code"] == "fps30" for f in r["flags"])),
-                   key=lambda r: -r["hours"]["fps30"])
-    if fps30:
+    fps30 = sorted((r for r in rows if r["hours"]["fps30"] > 0), key=lambda r: -r["hours"]["fps30"])
+    if fps30:                           # the same caps as the Day page's fps30_caps, worst first
         out.append(f"- 30 fps on {plural(len(fps30), 'cap')} ({hours(k['fps30_hours'])} h): "
                    + names(r["cap"] for r in fps30))
     if k["expired_cal_hours"] >= config.EXPIRED_CAL_MIN_H:
