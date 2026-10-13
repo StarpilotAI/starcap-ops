@@ -331,7 +331,35 @@ def maintenance(store, date=None):
 def _maintenance(req, day):
     window = clock.days_between(clock.shift_day(day, 1 - config.NEEDS_ATTENTION_DAYS), day)
     return maint.view(day, req.now, req.tickets, [(d, _field_day(req, d)) for d in window], req.statuses,
-                      req.store.notes(limit=NOTES_RECENT), req.blocked, req.broken)
+                      req.store.notes(limit=NOTES_RECENT), req.blocked, req.broken, _in_shop(req))
+
+
+def _in_shop(req):
+    """maint.in_shop, with each cap's last field day before its ticket from the day view."""
+    cap_cpu = {r["name"]: r["cpu_id"] for r in req.starcaps if r["name"]}
+    items = req.store.items(0, req.now + 1)
+    since = {}
+    for t in req.tickets:
+        if maint.is_open(t) and maint.subject(t) == "starcap" and maint.unit(t):
+            since[maint.unit(t)] = min(t["created_at"], since.get(maint.unit(t), t["created_at"]))
+    for cap in req.blocked:
+        since.setdefault(cap, req.now)
+    days, trips = {}, {}
+    for cap, t in since.items():
+        cpu = cap_cpu.get(cap)
+        before = [i for i in items if i["cpu_id"] == cpu and i["checkout_at"] < t]
+        if not before:
+            continue
+        last = max(before, key=lambda i: i["checkout_at"])
+        day = clock.cairo_date(last["checkout_at"])
+        if day not in days:
+            days[day] = {r["cpu_id"]: r for r in _field_day(req, day)}
+        r = days[day].get(cpu)
+        if r:
+            trips[cap] = {"day": day, "checkout_at": last["checkout_at"], "hours": round(r["hours"]["total"], 1),
+                          "good_pct": r.get("good_pct"), "flags": r.get("flags") or []}
+    return maint.in_shop(req.tickets, req.now, req.heard_at, cap_cpu, items, fleet.last_heard(req.devices),
+                         req.qc_by_cpu, req.statuses, trips, req.blocked, req.broken)
 
 
 def field(store):

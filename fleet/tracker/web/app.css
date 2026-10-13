@@ -588,3 +588,21 @@ table.t td.nw, table.t th.nw { white-space: nowrap; }
 .cchip a.mono { font-weight: 600; }
 details.more.tight { margin-top: 6px; }
 details.more.tight > summary { padding: 2px 0; font-size: 12.5px; }
+
+/* In maintenance */
+.shop-t td { vertical-align: top; padding-top: 7px; padding-bottom: 7px; }
+.shop-t tr.sev-bad td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+.shop-t tr.sev-warn td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.shop-t a.capb { color: var(--fg); font-weight: 600; }
+.shop-t .sm { font-size: 12px; margin-top: 2px; }
+.shop-t .pill.sm { font-size: 10.5px; padding: 0 5px; }
+.shop-t td.desc { max-width: 360px; }
+.shop-t .tk + .tk { margin-top: 4px; }
+.shop-t .tk .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shop-t td.trip { min-width: 150px; }
+.shop-t td.trip .pills { margin-top: 3px; }
+.shop-t td.mine { max-width: 180px; }
+.shop-t td.mine .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shop-t .act { all: unset; white-space: nowrap; cursor: pointer; font-size: 12.5px; font-weight: 550; color: var(--mut); padding: 2px 6px; border-radius: 6px; }
+.shop-t .act:hover, .shop-t tr:hover .act { color: var(--fg); }
+.shop-t .act:focus-visible { outline: 2px solid var(--blu); outline-offset: 1px; }

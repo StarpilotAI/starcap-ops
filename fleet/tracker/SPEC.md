@@ -262,6 +262,14 @@ caps in the last 7 days of takes.
 - Ticket unit = headset for subject 'starcap', camera for 'camera'. Age in days.
 - Open list: critical first, then oldest first. Stats: open, critical, opened and resolved
   on the date, median days to resolve (tickets resolved in the last 30 days), oldest open.
+- **In maintenance** (`in_shop`): one row per unit with an open ticket, plus blocked caps
+  and broken cameras without one. Each carries its open tickets (oldest first), my status,
+  its last field day before the oldest ticket (`last_trip`, from the day view), and a
+  `verdict`, the first of: out in the field now (bad) · went out N× since the ticket (warn)
+  · failed QC since (bad) · passed QC since (ok, "close the ticket?") · online now (info) ·
+  powered on since (info; warn "Quiet for N d" if nothing for QUIET_DAYS = 7) · just
+  reported (< 2 d, info) · untouched since the ticket (warn). A camera is "in the field
+  now" (bad) when an open check-out carries it. Sorted worst verdict, critical, oldest.
 - **Needs attention**: caps with a bad flag on any field day in
   [date − NEEDS_ATTENTION_DAYS + 1, date], or warn flags on ATTENTION_REPEAT_DAYS of them,
   with no open ticket on the cap or its camera, and my status not in (repair, dead, lost).
@@ -416,6 +424,14 @@ severity (bad, warn, info, none), then hours desc.
  "by_category": [{"category": "hardware", "open": 20, "last_30d": 50}],
  "open": [{"id", "subject", "unit", "headset", "camera", "category", "critical", "description",
            "reporter", "created_at", "age_days", "photos"}],
+ "in_shop": [{"subject": "cap"|"camera", "unit", "critical", "blocked", "broken", "since_at", "days",
+              "tickets": [{"category", "description", "reporter", "critical", "photos", "created_at"}],
+              "verdict": {"severity", "text", "detail"}, "my_status": {"status", "text", "since"} | null,
+              # caps: "out_now", "outs_since", "last_heard", "online", "camera",
+              #       "qc_since": {"verdict", "at", "failed_steps"} | null,
+              #       "last_trip": {"day", "checkout_at", "hours", "good_pct", "flags"} | null
+              # cameras: "on_cap", "out_now"
+             }],
  "recent_resolved": [<ticket + resolved_at, resolution_note>],
  "needs_attention": [{"cap": "starcap5", "camera": "16", "severity": "bad", "flags": [<flag>], "days": ["2026-10-11"]}],
  "repeat": [{"unit": "starcap91", "subject": "starcap", "tickets_30d": 4, "open": 1, "last_at": "..."}],

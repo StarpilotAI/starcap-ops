@@ -223,6 +223,107 @@ def current_statuses(notes):
     return out
 
 
+# --------------------------------------------------------------------------- #
+# in maintenance: what is actually going on with each unit
+# --------------------------------------------------------------------------- #
+VERDICT_RANK = {"bad": 0, "warn": 1, "info": 2, "ok": 3}
+QUIET_DAYS = 7                  # powered on after the ticket, then nothing for this long = stalled
+
+
+def in_shop(tickets, now, heard_at, cap_cpu, items, heard, qc_by_cpu, statuses, trips, blocked, broken):
+    """Every unit in maintenance (an open ticket, blocked from check-out, or a camera
+    marked broken), with its tickets and what the data says it has done since:
+
+    - cap_cpu {cap name: cpu_id}; items: check-outs (any age); heard {cpu_id: newest
+      heartbeat}, online is judged at `heard_at`; qc_by_cpu: qc.by_cpu;
+    - trips {cap: its last field day before the ticket, {"day", "checkout_at", "hours",
+      "good_pct", "flags"}};
+    - statuses: current_statuses.
+
+    `verdict` is the one line that answers "what's up with it", worst first: out in the
+    field anyway, went out since, failed / passed QC since, powered on since (someone is
+    on it), or untouched since the ticket."""
+    units = defaultdict(list)
+    for t in tickets:
+        if is_open(t) and unit(t) is not None:
+            units[(subject(t), str(unit(t)))].append(t)
+    for cap in blocked:
+        units.setdefault(("starcap", str(cap)), [])
+    for cam in broken:
+        if not any(s == "camera" and calib.base_of(u) == str(cam) for s, u in units):
+            units.setdefault(("camera", str(cam)), [])
+    name_of = {cpu: name for name, cpu in cap_cpu.items()}
+    rows = []
+    for (subj, u), ts in units.items():
+        ts = sorted(ts, key=lambda t: t["created_at"])
+        since = ts[0]["created_at"] if ts else None
+        row = {"subject": "camera" if subj == "camera" else "cap", "unit": u,
+               "critical": any(t.get("critical") for t in ts), "blocked": subj == "starcap" and u in blocked,
+               "broken": subj == "camera" and calib.base_of(u) in set(map(str, broken)),
+               "since_at": since, "days": round((now - since) / clock.DAY_S, 1) if since else None,
+               "tickets": [{"category": t.get("category"), "description": t.get("description"),
+                            "reporter": t.get("reporter_name"), "critical": bool(t.get("critical")),
+                            "photos": t.get("photos") or 0, "created_at": t["created_at"]} for t in ts]}
+        if subj == "camera":
+            out = [i for i in items if i.get("returned_at") is None and i.get("camera_id") is not None
+                   and calib.base_of(str(i["camera_id"])) == calib.base_of(u)]
+            row["on_cap"] = name_of.get(out[0]["cpu_id"]) if out else next((t.get("headset") for t in reversed(ts)), None)
+            row["out_now"] = bool(out)
+            row["verdict"] = (_v("bad", "In the field now", f"out on {row['on_cap']}") if out else
+                              _v("info", "In the office", "marked broken" if row["broken"] else None))
+        else:
+            cpu = cap_cpu.get(u)
+            mine = [i for i in items if cpu is not None and i["cpu_id"] == cpu]
+            last_heard = heard.get(cpu)
+            qc_since = next((r for r in qc_by_cpu.get(cpu, []) if since is None or r["finished_at"] >= since), None)
+            row.update({
+                "out_now": any(i.get("returned_at") is None for i in mine),
+                "outs_since": sum(1 for i in mine if since is not None and i["checkout_at"] >= since),
+                "last_heard": last_heard,
+                "online": last_heard is not None and heard_at - last_heard < config.ONLINE_S,
+                "qc_since": {"verdict": qc_since["verdict"], "at": qc_since["finished_at"],
+                             "failed_steps": list(qc_since.get("failed_steps") or [])} if qc_since else None,
+                "last_trip": trips.get(u),
+                "camera": next((t.get("camera") for t in reversed(ts) if t.get("camera")), None),
+            })
+            row["verdict"] = _cap_verdict(row, since, now)
+        my = statuses.get((row["subject"], u))
+        row["my_status"] = {"status": my["status"], "text": my.get("text"), "since": my["created_at"]} if my else None
+        rows.append(row)
+    return sorted(rows, key=lambda r: (VERDICT_RANK[r["verdict"]["severity"]], not r["critical"],
+                                       r["since_at"] if r["since_at"] is not None else now,
+                                       calib.natural_key(r["unit"])))
+
+
+def _v(severity, text, detail=None):
+    return {"severity": severity, "text": text, "detail": detail}
+
+
+def _cap_verdict(row, since, now):
+    q = row["qc_since"]
+    if row["out_now"]:
+        return _v("bad", "Out in the field now", "checked out with the ticket still open")
+    if row["outs_since"]:
+        return _v("warn", f"Went out {row['outs_since']}× since the ticket", "it was used, so is it fixed?")
+    if q and q["verdict"] == "fail":
+        return _v("bad", "Failed QC since the ticket", ", ".join(q["failed_steps"]) or None)
+    if q and q["verdict"] == "pass":
+        return _v("ok", "Passed QC since the ticket", "fixed? close the ticket")
+    if row["online"]:
+        return _v("info", "Online now", "powered on, likely on the bench")
+    if since is not None and row["last_heard"] is not None and row["last_heard"] >= since:
+        quiet = (now - row["last_heard"]) / clock.DAY_S
+        if quiet >= QUIET_DAYS:
+            return _v("warn", f"Quiet for {int(quiet)} d", "was powered on after the ticket, nothing since")
+        return _v("info", "Powered on since the ticket", "someone has had it on")
+    if since is None:
+        return _v("info", "Blocked, no open ticket", None)
+    if now - since < 2 * clock.DAY_S:
+        return _v("info", "Just reported", None)
+    return _v("warn", "Untouched since the ticket", "not powered on since it was reported"
+              if row["last_heard"] is not None else "never heard from")
+
+
 def status_list(statuses):
     rows = [{"subject_type": k[0], "subject_id": k[1], "status": n["status"], "since": n["created_at"],
              "text": n.get("text")} for k, n in statuses.items()]
@@ -232,7 +333,7 @@ def status_list(statuses):
 # --------------------------------------------------------------------------- #
 # the page
 # --------------------------------------------------------------------------- #
-def view(day, now, tickets, days, statuses, notes_recent, blocked, broken):
+def view(day, now, tickets, days, statuses, notes_recent, blocked, broken, shop=None):
     """GET /api/maintenance. `days` are the needs-attention field days (see
     needs_attention); `notes_recent` are store notes, newest first."""
     end = clock.day_bounds(day)[1]
@@ -243,6 +344,7 @@ def view(day, now, tickets, days, statuses, notes_recent, blocked, broken):
         "stats": stats(tickets, day, now, blocked, broken),
         "by_category": by_category(tickets, since, end),
         "open": open_list(tickets, now),
+        "in_shop": shop or [],
         "recent_resolved": recent_resolved(tickets, end, now),
         "needs_attention": needs_attention(days, OpenTickets(tickets), statuses),
         "repeat": repeat_offenders(tickets, since, end),

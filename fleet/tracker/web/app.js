@@ -494,7 +494,17 @@ function nextSort(s, col) {
 const sortNote = (cols, sort, dflt) => (sort ? `sorted by ${esc(cols.find((c) => c.key === sort.key).label.toLowerCase())}` : dflt);
 const kindOf = (cap) => S.units?.boards?.[cap] ?? null;
 const SEV_ORDER = { bad: 0, warn: 1, info: 2 };
+const VERDICT_RANK = { bad: 0, warn: 1, info: 2, ok: 3 };
 const MAINT_COLS = {
+  shop: [
+    { key: "unit", label: "Unit", get: (r) => [r.subject === "camera", r.unit], cmp: unitOrder },
+    { key: "board", label: "Board", get: (r) => (r.subject === "camera" ? null : kindOf(r.unit)), cmp: naturalLast },
+    { key: "days", label: "In for", num: true, get: (r) => r.days ?? -1, desc: true },
+    { key: "problem", label: "Problem", get: (r) => r.tickets?.[0]?.category || null, cmp: naturalLast },
+    { key: "verdict", label: "What's up", get: (r) => VERDICT_RANK[r.verdict?.severity] ?? 9 },
+    { key: "trip", label: "Last trip before it", get: (r) => r.last_trip?.day || null, cmp: naturalLast, desc: true },
+    { key: "mine", label: "You", get: (r) => r.my_status?.status || null, cmp: naturalLast },
+  ],
   attn: [
     { key: "cap", label: "Cap", get: (a) => a.cap, cmp: natural },
     { key: "board", label: "Board", get: (a) => kindOf(a.cap), cmp: naturalLast },
@@ -1045,6 +1055,34 @@ VIEWS.maintenance = {
 
 const MY = ["repair", "dead", "lost", "watch"];
 
+/** One unit in maintenance: its tickets, and what the data says it has done since. */
+function shopRow(r) {
+  const cam = r.subject === "camera";
+  const unit = cam ? `camera ${camLink(r.unit)}` : `<a class="capb" href="#/cap/${encodeURIComponent(r.unit)}">${esc(r.unit)}</a>`;
+  const extra = cam ? (r.on_cap ? `<div class="mut sm">${r.out_now ? "on" : "last on"} ${esc(r.on_cap)}</div>` : "")
+    : r.camera ? `<div class="mut sm">cam ${esc(r.camera)}</div>` : "";
+  const board = !cam && S.units?.boards?.[r.unit] ? esc(S.units.boards[r.unit]) : '<span class="mut">—</span>';
+  const tickets = r.tickets?.length ? r.tickets.map((t) => `<div class="tk">${t.critical ? '<span class="pill bad sm">critical</span> ' : ""}<span class="tag">${esc(t.category || "—")}</span>
+      <span class="clamp" data-tip="${esc(`${t.description || ""}${t.reporter ? ` (${t.reporter}, ${fWhen(t.created_at)})` : ""}`)}" dir="auto">${esc(t.description || "no description")}</span></div>`).join("")
+    : `<span class="mut">${r.blocked ? "blocked from check-out, no open ticket" : "marked broken, no open ticket"}</span>`;
+  const v = r.verdict || {};
+  // when it was last on, unless the verdict already says it ("Quiet for 12 d", "never heard from")
+  const heard = cam || /^Quiet/.test(v.text || "") || /never heard/.test(v.detail || "") ? ""
+    : r.online ? "online now" : r.last_heard ? `last on ${rel(r.last_heard)}` : "never heard from";
+  const why = `<span class="pill ${esc(v.severity || "info")}">${esc(v.text || "—")}</span>
+      ${v.detail || heard ? `<div class="mut sm">${[v.detail, heard].filter(Boolean).map(esc).join(" · ")}</div>` : ""}`;
+  const t = r.last_trip;
+  const trip = t ? `<a href="#/day/${esc(t.day)}" class="nw">${esc(fDay(t.day))}</a> <span class="mut">· ${t.hours ? `${h1(t.hours)} h${t.good_pct != null ? `, ${int(Math.round(t.good_pct))}% good` : ""}` : "no footage"}</span>${pills(t.flags)}`
+    : '<span class="mut">—</span>';
+  const ms = r.my_status;
+  const mine = ms ? `${myTag(ms.status)}${ms.text ? `<div class="mut sm clamp" data-tip="${esc(ms.text)}">${esc(ms.text)}</div>` : ""}`
+    : `<button class="act" type="button" data-act="note-prefill" data-subj="${esc(r.unit)}">Add note</button>`;
+  return `<tr class="sev-${esc(v.severity || "")}">
+    <td class="nw">${unit}${extra}</td><td class="nw">${board}</td>
+    <td class="num nw${r.days >= 14 ? " cwarn" : ""}">${r.days == null ? '<span class="mut">—</span>' : `${int(Math.floor(r.days))} d`}</td>
+    <td class="desc">${tickets}</td><td>${why}</td><td class="trip">${trip}</td><td class="mine">${mine}</td></tr>`;
+}
+
 function renderMaint(m) {
   const st = m.stats || {};
   const dn = wdName(m.date);
@@ -1082,6 +1120,12 @@ function renderMaint(m) {
   const board = `<div class="board">${MY.map((s) => `<div class="bcol"><h4>${esc(s)} <b>${byStatus[s].length}</b></h4>${byStatus[s].length
       ? `<ul>${byStatus[s].map((x) => `<li>${x.subject_type === "camera" ? camLink(x.subject_id) : capLink(x.subject_id)} <span class="mut">${esc(rel(x.since))}</span>
           <span class="t" data-tip="${esc(x.text || "")}">${esc(x.text || "")}</span></li>`).join("")}</ul>` : '<div class="none">none</div>'}</div>`).join("")}</div>`;
+  const shopRows = sortRows(m.in_shop || [], MAINT_COLS.shop, S.sorts.shop);
+  const nShopBad = shopRows.filter((r) => r.verdict?.severity === "bad" || r.verdict?.severity === "warn").length;
+  const shop = shopRows.length ? `<div class="tablewrap"><table class="t shop-t" id="shop-t">${thead(MAINT_COLS.shop, S.sorts.shop, "shop")}<tbody>
+      ${shopRows.map(shopRow).join("")}</tbody></table>
+      <div class="tfoot"><span>${plural(shopRows.length, "unit")} · ${int(nShopBad)} need a look · ${sortNote(MAINT_COLS.shop, S.sorts.shop, "worst first")}</span>${S.sorts.shop ? '<button class="link" type="button" data-act="sort-reset" data-table="shop">Reset order</button>' : ""}</div></div>`
+    : empty("<b>Nothing is in maintenance.</b>", "sm");
   const open = sortRows(m.open || [], MAINT_COLS.tickets, S.sorts.tickets);
   const shownT = S.ticketsAll ? open : open.slice(0, 15);
   const tRows = shownT.map((t) => `<tr>
@@ -1111,6 +1155,7 @@ function renderMaint(m) {
   return `<div class="page-head"><div><h1>Maintenance</h1><div class="sub">${esc(fDay(m.date))} · tickets from starcap.dev, notes and status are yours (kept on this laptop)</div></div>
       <div class="ctrls">${links.tickets ? `<a class="btnlike" style="padding:6px 13px;border-radius:9px" href="${esc(links.tickets)}" target="_blank" rel="noopener">All tickets on starcap.dev ↗</a>` : ""}</div></div>
     ${tiles}
+    <h2 class="sec">In maintenance <span class="sub">open tickets, blocked caps and broken cameras · what each one has done since it was reported</span></h2>${shop}
     <h2 class="sec">Needs attention <span class="sub">a bad flag, or warnings on 2 of the last 3 days · no ticket, no status from you</span></h2>${attn}
     <h2 class="sec">Open tickets <span class="sub">critical first, then oldest</span>${links.tickets ? `<a class="right" href="${esc(links.tickets)}" target="_blank" rel="noopener">starcap.dev/tickets ↗</a>` : ""}</h2>${tickets}
     <div class="g3">
@@ -1739,7 +1784,7 @@ const ACTIONS = {
     const inp = $("#nf-subj");
     if (!inp) return;
     inp.value = el.dataset.subj;
-    $("#nf-kind").textContent = "cap";
+    $("#nf-kind").textContent = subjectOf(el.dataset.subj)?.type || "cap";
     inp.closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => $("#nf-text")?.focus(), 350);
   },

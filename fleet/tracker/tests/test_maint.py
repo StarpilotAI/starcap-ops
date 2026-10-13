@@ -4,7 +4,7 @@
 """
 import unittest
 
-from fakestore import at, ticket
+from fakestore import at, item, qc_run, ticket
 
 import clock
 import maint
@@ -166,6 +166,69 @@ class Notes(unittest.TestCase):
                          {("cap", "starcap1"): "repair", ("camera", "43.1"): "lost"})
         self.assertEqual(maint.status_list(statuses)[0],
                          {"subject_type": "camera", "subject_id": "43.1", "status": "lost", "since": 6.0, "text": ""})
+
+
+class InShop(unittest.TestCase):
+    """What each unit in maintenance has done since its ticket."""
+    CAPS = {f"starcap{n}": f"cpu{n}" for n in range(1, 10)}
+    OPENED = at("2026-10-01")
+
+    def shop(self, tickets, items=(), heard=None, qc=(), statuses=None, trips=None, blocked=(), broken=(),
+             heard_at=NOW):
+        rows = maint.in_shop(tickets, NOW, heard_at, self.CAPS, list(items), heard or {}, qc_by_cpu(qc),
+                             statuses or {}, trips or {}, list(blocked), list(broken))
+        return {r["unit"]: r for r in rows}
+
+    def t(self, cap, **kw):
+        return ticket(headset=cap, critical=True, created_at=self.OPENED, **kw)
+
+    def test_each_verdict(self):
+        tickets = [self.t(f"starcap{n}") for n in range(1, 9)]
+        items = [item(cpu_id="cpu1", checkout_at=at("2026-10-11"), returned_at=None),          # out now
+                 item(cpu_id="cpu2", checkout_at=at("2026-10-05"), returned_at=at("2026-10-05", 20))]
+        heard = {"cpu5": NOW - 30, "cpu6": at("2026-10-10"), "cpu7": at("2026-10-02"), "cpu8": at("2026-09-20")}
+        qc = [qc_run(cpu_id="cpu3", verdict="fail", finished_at=at("2026-10-08"), failed_steps=["Camera"]),
+              qc_run(cpu_id="cpu4", verdict="pass", finished_at=at("2026-10-09")),
+              qc_run(cpu_id="cpu8", verdict="pass", finished_at=at("2026-09-25"))]               # before the ticket
+        got = {u: (r["verdict"]["severity"], r["verdict"]["text"]) for u, r in self.shop(tickets, items, heard, qc).items()}
+        self.assertEqual(got, {
+            "starcap1": ("bad", "Out in the field now"),
+            "starcap2": ("warn", "Went out 1× since the ticket"),
+            "starcap3": ("bad", "Failed QC since the ticket"),
+            "starcap4": ("ok", "Passed QC since the ticket"),
+            "starcap5": ("info", "Online now"),
+            "starcap6": ("info", "Powered on since the ticket"),
+            "starcap7": ("warn", "Quiet for 9 d"),
+            "starcap8": ("warn", "Untouched since the ticket")})
+
+    def test_worst_first_then_oldest(self):
+        tickets = [self.t("starcap1"), ticket(headset="starcap2", created_at=at("2026-09-01")),
+                   ticket(headset="starcap3", created_at=at("2026-10-12", 6))]                    # just reported
+        rows = maint.in_shop(tickets, NOW, NOW, self.CAPS, [], {}, {}, {}, {}, [], [])
+        self.assertEqual([r["unit"] for r in rows], ["starcap1", "starcap2", "starcap3"])         # critical first
+        self.assertEqual(rows[2]["verdict"]["text"], "Just reported")
+
+    def test_tickets_are_grouped_per_unit_and_blocked_and_broken_units_show_without_one(self):
+        tickets = [self.t("starcap1", description="type c"), self.t("starcap1", description="loose cable"),
+                   ticket(subject="camera", camera="43", headset="starcap2", created_at=self.OPENED)]
+        rows = self.shop(tickets, blocked=["starcap1", "starcap9"], broken=["43", "50"],
+                         items=[item(cpu_id="cpu3", camera_id="50", checkout_at=at("2026-10-11"), returned_at=None)])
+        self.assertEqual([t["description"] for t in rows["starcap1"]["tickets"]], ["type c", "loose cable"])
+        self.assertEqual((rows["starcap9"]["tickets"], rows["starcap9"]["verdict"]["text"]), ([], "Blocked, no open ticket"))
+        self.assertEqual((rows["43"]["on_cap"], rows["43"]["out_now"], rows["43"]["broken"]), ("starcap2", False, True))
+        self.assertEqual((rows["50"]["on_cap"], rows["50"]["verdict"]["severity"]), ("starcap3", "bad"))   # broken, in use
+
+    def test_my_status_and_last_trip_ride_along(self):
+        trip = {"day": "2026-09-30", "checkout_at": at("2026-09-30"), "hours": 4.2, "good_pct": 50.0, "flags": []}
+        rows = self.shop([self.t("starcap1")], statuses={("cap", "starcap1"): note(5, "starcap1", "repair", "at the shop")},
+                         trips={"starcap1": trip})
+        self.assertEqual(rows["starcap1"]["my_status"], {"status": "repair", "text": "at the shop", "since": 5.0})
+        self.assertEqual(rows["starcap1"]["last_trip"], trip)
+
+
+def qc_by_cpu(runs):
+    import qc
+    return qc.by_cpu(runs)
 
 
 if __name__ == "__main__":

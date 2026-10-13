@@ -45,7 +45,7 @@ QUEUE_KEYS = {"camera", "base", "state", "days_left", "due_on", "last_cal_at", "
               "hours_7d", "last_used", "plan_day", "late"}
 NEVER_KEYS = {"camera", "created_at", "hours_7d", "last_used", "out_now"}
 COVERAGE_KEYS = {"valid", "active", "valid_pct", "imu", "imu_pct", "imu_outdated"}
-MAINT_KEYS = {"date", "stats", "by_category", "open", "recent_resolved", "needs_attention", "repeat", "blocked",
+MAINT_KEYS = {"date", "stats", "by_category", "open", "in_shop", "recent_resolved", "needs_attention", "repeat", "blocked",
               "broken_cams", "my_status", "notes_recent", "links", "trend"}
 STATS_KEYS = {"open", "critical", "opened", "resolved", "median_resolve_days", "oldest_open_days", "blocked_caps",
               "broken_cams"}
