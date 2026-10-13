@@ -437,6 +437,12 @@ class Passes(Base):
         self.assertEqual(len(st.takes_created(0, 2e10)), 79)
         self.assertEqual(sorted(d["device_id"] for d in st.devices()), ["pi-1", "pi-2", "pi-3", "pi-4"])
 
+    def test_boards_never_blank_out_mid_pass(self):
+        s = self.syncer()
+        s.run_once()                                              # logs are now cached
+        s._step_starcaps()                                        # the next pass, before any later step
+        self.assertEqual({c["cpu_id"]: c["board"] for c in self.store.starcaps()}["cpuA"], "Orange Pi 5")
+
     def test_no_phone_number_anywhere_in_the_cache(self):
         self.syncer().run_once()
         self.store.close()

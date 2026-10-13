@@ -445,7 +445,9 @@ function qcRuns(runs) {
       <td>${r.failed_steps?.length ? esc(r.failed_steps.join(", ")) : '<span class="mut">—</span>'}</td>
       <td class="mono">${esc(r.version || "—")}</td><td>${r.camera ? camLink(r.camera) : "—"}</td></tr>`).join("")}</tbody></table></div>`;
 }
-const capLink = (c) => (c ? `<a href="#/cap/${encodeURIComponent(c)}">${esc(c)}</a>` : "—");
+/** A cap's board tag (NanoPi / Orange Pi) from /api/units, loaded before the first page. */
+const boardTag = (c) => { const b = S.units?.boards?.[c]; return b ? ` <span class="tag btag" data-tip="${esc(b)} board">${b === "NanoPi" ? "NanoPi" : "OPi"}</span>` : ""; };
+const capLink = (c) => (c ? `<a href="#/cap/${encodeURIComponent(c)}">${esc(c)}</a>${boardTag(c)}` : "—");
 const camLink = (c) => (c ? `<a class="mono" href="#/camera/${encodeURIComponent(c)}">${esc(c)}</a>` : "—");
 
 /** Sortable table header cells. cols: [{key, label, num, sort:false}] */
@@ -745,7 +747,7 @@ function drawerHTML(d, fallbackRow) {
   const takesTable = takes.length ? `<div class="tablewrap mini"><table class="t"><thead><tr><th class="num">Start</th><th class="num">Length</th><th>Bucket</th><th class="num">FPS</th>
       <th class="num" title="Share of frame gaps inside ±10 ms">Timing %</th><th class="num">p99 ms</th><th>Boot</th><th>Uploaded</th></tr></thead><tbody>${takeRows}</tbody></table></div>`
     : empty(r.status === "out" ? "Still out. Takes show up once the cap is back and copied." : r.status === "waiting" ? "Back, waiting for the copy station." : "No takes for this cap on this day.", "sm");
-  return `<div class="dr-head"><div class="row1"><h2 id="drawer-title">${esc(d.cap || r.cap)}</h2>${stBadge(r.status)}${myTag(statusOf(r.my_status))}
+  return `<div class="dr-head"><div class="row1"><h2 id="drawer-title">${esc(d.cap || r.cap)}</h2>${boardTag(d.cap || r.cap)}${stBadge(r.status)}${myTag(statusOf(r.my_status))}
       <button class="icon-btn x" type="button" data-act="close-drawer" aria-label="Close">✕</button></div>
       <div class="facts">${facts}</div></div>
     <div class="dr-body">${stats}
@@ -1005,7 +1007,7 @@ function renderMaint(m) {
   const attn = na.length ? `<div class="tablewrap"><table class="t attn-t"><thead><tr><th>Cap</th><th>Camera</th><th>Flags <span class="mut" style="font-weight:400">· hover for details</span></th>
       <th class="d3" data-tip="Which of the last 3 days it was flagged">${d3.map((d) => `<span>${esc(wdName(d))}</span>`).join("")}</th><th class="nw"></th></tr></thead><tbody>
       ${na.map((a) => `<tr class="sev-${esc(a.severity || "")}">
-        <td class="nw"><a class="capb" href="#/cap/${encodeURIComponent(a.cap)}">${esc(a.cap)}</a></td>
+        <td class="nw"><a class="capb" href="#/cap/${encodeURIComponent(a.cap)}">${esc(a.cap)}</a>${boardTag(a.cap)}</td>
         <td>${camLink(a.camera)}</td>
         <td>${pills(a.flags)}</td>
         <td class="d3" aria-label="${esc(`flagged ${a.days.map(fDay).join(", ")}`)}">${d3.map((d) => `<i class="${a.days.includes(d) ? "on" : ""}" title="${esc(fDay(d))}"></i>`).join("")}</td>
@@ -1457,7 +1459,7 @@ function renderCap(c, arg) {
       <td class="num">${d.takes ? int(d.takes) : '<span class="mut">—</span>'}</td><td>${pills(d.flags)}</td></tr>`).join("");
   const daysTable = days.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Day</th><th>Status</th><th>Camera</th><th class="num">Hours</th><th class="num">Takes</th><th>Flags</th></tr></thead><tbody>${dayRows}</tbody></table></div>`
     : empty("Not out in the last 30 days.", "sm");
-  return `${backLink()}<div class="page-head"><div><h1>${esc(c.cap)} <span style="vertical-align:4px">${facts}</span></h1><div class="sub">${sub}</div></div></div>
+  return `${backLink()}<div class="page-head"><div><h1>${esc(c.cap)} <span style="vertical-align:4px">${boardTag(c.cap)} ${facts}</span></h1><div class="sub">${sub}</div></div></div>
     ${msS && ms?.text ? `<div class="callout info" style="margin-bottom:14px">${myTag(msS)}<span>${esc(ms.text)}${ms.since ? ` <span class="mut">· ${esc(fWhen(ms.since))}</span>` : ""}</span></div>` : ""}
     ${tiles}
     <div style="margin-top:16px">${figure("c-cap30", "Hours by bucket, last 30 days", { legend: C.legend([...C.BUCKETS.map((b) => ({ label: b.label, color: b.color, hatch: b.hatch })), { label: "went out, got nothing", color: "var(--bad)", kind: "ring" }]) })}</div>
@@ -1702,4 +1704,4 @@ document.addEventListener("keydown", (e) => {
 $("#sync-chip").addEventListener("click", startSync);
 if (DEMO) $("#demo-tag").hidden = false;
 C.bindTips(document);
-route();
+ensureUnits().finally(() => route());

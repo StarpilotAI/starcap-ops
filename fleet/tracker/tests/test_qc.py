@@ -45,6 +45,11 @@ class Status(unittest.TestCase):
                 qc_run(cpu_id="n5", verdict="pass", finished_at=at("2026-10-09", 12))]
         self.assertEqual(status("n5", NANOPI, runs)["failed_steps"], [])
 
+    def test_board_kind(self):
+        self.assertEqual([qc.board_kind(NANOPI), qc.board_kind(ORANGEPI), qc.board_kind("Orange Pi 5B"),
+                          qc.board_kind(None, "x", {"x"}), qc.board_kind(None, "y", {"x"})],
+                         ["NanoPi", "Orange Pi", "Orange Pi", "NanoPi", None])
+
     def test_history_is_newest_first_and_finished_only(self):
         runs = [qc_run(cpu_id="n6", verdict="fail", finished_at=at("2026-10-08", 12), failed_steps=["Camera"]),
                 qc_run(cpu_id="n6", verdict="cancelled", finished_at=at("2026-10-08", 13)),

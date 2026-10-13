@@ -542,7 +542,11 @@ def write_summary(store, body):
 
 
 def units(store):
-    """GET /api/units: every cap name and camera (fitted lens id) for the pickers."""
+    """GET /api/units: every cap name and camera (fitted lens id) for the pickers, and
+    each cap's board kind (NanoPi / Orange Pi) for the tag next to every cap name."""
     req = _Req(store)
-    return {"caps": sorted({r["name"] for r in req.starcaps if r["name"]}, key=calib.natural_key),
-            "cameras": sorted({c["camera"] for c in req.cams}, key=calib.natural_key)}
+    seen = qc.qc_cpus(req.qc_runs)
+    boards = {r["name"]: qc.board_kind(r.get("board"), r["cpu_id"], seen) for r in req.starcaps if r["name"]}
+    return {"caps": sorted(boards, key=calib.natural_key),
+            "cameras": sorted({c["camera"] for c in req.cams}, key=calib.natural_key),
+            "boards": {k: v for k, v in boards.items() if v}}

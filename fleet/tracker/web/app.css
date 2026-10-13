@@ -175,6 +175,7 @@ a.tile:hover { text-decoration: none; border-color: var(--line2); }
 .pills { display: flex; flex-wrap: wrap; gap: 4px; }
 .tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--mut); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; line-height: 17px; white-space: nowrap; vertical-align: 1px; }
 .tag.st-repair { color: #e8c35c; } .tag.st-dead { color: #ff9b94; } .tag.st-lost { color: #ff9b94; } .tag.st-watch { color: #79b0ff; } .tag.st-ok { color: var(--ok); }
+.tag.btag { margin-left: 2px; font-weight: 550; }
 .chiplink { display: inline-block; font-family: var(--mono); font-size: 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--fg); margin: 0 4px 6px 0; }
 .chiplink:hover { border-color: var(--mut); text-decoration: none; }
 

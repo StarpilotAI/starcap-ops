@@ -474,7 +474,7 @@ A note: `{"id", "subject_type", "subject_id", "created_at", "text", "status"}`.
 **Summary**: `GET /api/summary?date=` → `{"date", "text", "written_at"}`;
 `POST /api/summary/write` body `{"date", "force"}` → `{"ok", "path", "written_at"}` or 409 if already written.
 
-**Units list for pickers**: `GET /api/units` → `{"caps": ["starcap1", ...], "cameras": ["1", "43.1", ...]}`.
+**Units list for pickers**: `GET /api/units` → `{"caps": ["starcap1", ...], "cameras": ["1", "43.1", ...], "boards": {"starcap1": "NanoPi" | "Orange Pi", ...}}` (`qc.board_kind`: a cap QC has seen is a NanoPi; caps with no known board are left out). The web app loads it before the first page and tags every cap name with its board.
 
 ## 5. Web (`web/`)
 

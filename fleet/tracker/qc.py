@@ -21,6 +21,13 @@ def is_nanopi(board):
     return "nanopi" in (board or "").lower()
 
 
+def board_kind(board, cpu_id=None, seen=()):
+    """"NanoPi", "Orange Pi" or None (no board on record and QC never saw it)."""
+    if is_nanopi(board) or cpu_id in seen:
+        return "NanoPi"
+    return "Orange Pi" if "orange" in (board or "").lower() else None
+
+
 def by_cpu(runs):
     """{cpu_id: its finished runs, newest first}."""
     out = {}

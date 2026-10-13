@@ -287,7 +287,7 @@ class Keys(Api):
 
     def test_summary_and_units(self):
         self.keys(api.summary(self.store), {"date", "text", "written_at"})
-        self.keys(api.units(self.store), {"caps", "cameras"})
+        self.keys(api.units(self.store), {"caps", "cameras", "boards"})
 
 
 class Values(Api):
@@ -409,7 +409,9 @@ class Values(Api):
 
     def test_units(self):
         self.assertEqual(api.units(self.store), {"caps": ["starcap1", "starcap2", "starcap3"],
-                                                 "cameras": ["9", "43", "50", "88.1", "100"]})
+                                                 "cameras": ["9", "43", "50", "88.1", "100"],
+                                                 "boards": {"starcap1": "Orange Pi", "starcap2": "NanoPi",
+                                                            "starcap3": "NanoPi"}})
 
     def test_my_status_on_the_day_row(self):
         api.add_note(self.store, {"subject_type": "cap", "subject_id": "starcap1", "status": "Watch"})

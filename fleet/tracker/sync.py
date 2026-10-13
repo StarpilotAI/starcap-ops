@@ -604,7 +604,9 @@ class Syncer:
         return self._postgres().query(sql, {"project": config.PROJECT, **params})
 
     def _step_starcaps(self):
-        return self.store.replace_all("starcaps", [normalise_starcap(r) for r in self._query(SQL_STARCAPS)])
+        n = self.store.replace_all("starcaps", [normalise_starcap(r) for r in self._query(SQL_STARCAPS)])
+        self.store.fill_starcap_boards()    # at once from the cached logs, or boards (and QC) blank out mid-pass
+        return n
 
     def _step_cameras(self):
         return self.store.replace_all("cameras", [normalise_camera(r) for r in self._query(SQL_CAMERAS)])
