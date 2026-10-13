@@ -25,6 +25,7 @@ const S = {
   syncing: false,
   units: null,
   day: { filter: "all", q: "", sort: null },
+  sorts: {},            // table id -> {key, dir} for the Maintenance tables (the Day table keeps S.day.sort)
   queueAll: false,
   demo: { notes: [], deleted: new Set(), written: null, nextId: 9000, syncUntil: 0 },
 };
@@ -94,6 +95,10 @@ const dur = (s) => {
 const gb = (b) => (b == null ? "—" : `${(b / 1e9).toFixed(1)} GB`);
 const plural = (n, w, ws = w + "s") => `${int(n)} ${n === 1 ? w : ws}`;
 const natural = (a, b) => String(a).localeCompare(String(b), "en", { numeric: true });
+/** natural order with blanks (null) after everything else */
+const naturalLast = (a, b) => (a == null) - (b == null) || (a == null ? 0 : natural(a, b));
+/** [is a camera, unit name]: caps first, then cameras, each in natural order */
+const unitOrder = (a, b) => a[0] - b[0] || natural(a[1], b[1]);
 const statusOf = (x) => (x == null ? null : typeof x === "string" ? x : x.status || null);
 
 /* ==================================================================== api == */
@@ -376,6 +381,14 @@ function paint(v, r, data, keepScroll) {
 }
 
 function refresh() { route({ keepScroll: true, background: true }); }
+/** Repaint the current page from its cached data (a sort click), then `after()`. */
+function rerender(after) {
+  const r = S.route, v = r && VIEWS[r.name];
+  const data = v?.cached?.(r.arg);
+  if (!data) { refresh(); return; }
+  paint(v, r, data, true);
+  after?.();
+}
 
 window.addEventListener("hashchange", () => route());
 
@@ -450,16 +463,62 @@ const boardTag = (c) => { const b = S.units?.boards?.[c]; return b ? ` <span cla
 const capLink = (c) => (c ? `<a href="#/cap/${encodeURIComponent(c)}">${esc(c)}</a>${boardTag(c)}` : "—");
 const camLink = (c) => (c ? `<a class="mono" href="#/camera/${encodeURIComponent(c)}">${esc(c)}</a>` : "—");
 
-/** Sortable table header cells. cols: [{key, label, num, sort:false}] */
-function thead(cols, sort, table) {
+/** Sortable table header cells. cols: [{key, label, num, sort:false, cls, html (label markup), tip}];
+ *  `extra` is appended as plain header cells (an actions column). */
+function thead(cols, sort, table, extra = "") {
   return `<thead><tr>${cols.map((c) => {
-    if (c.sort === false) return `<th${c.num ? ' class="num"' : ""}>${esc(c.label)}</th>`;
+    const cls = [c.num ? "num" : "", c.cls || ""].filter(Boolean).join(" ");
+    const lab = c.html || esc(c.label);
+    const tip = c.tip ? ` data-tip="${esc(c.tip)}"` : "";
+    if (c.sort === false) return `<th${cls ? ` class="${cls}"` : ""}${tip}>${lab}</th>`;
     const on = sort && sort.key === c.key;
     const ar = on ? (sort.dir > 0 ? "▲" : "▼") : "";
     const aria = on ? (sort.dir > 0 ? "ascending" : "descending") : "none";
-    return `<th class="sortable${c.num ? " num" : ""}" aria-sort="${aria}"><button class="sorter" type="button" data-act="sort" data-table="${table}" data-key="${c.key}">${esc(c.label)}<span class="ar">${ar}</span></button></th>`;
-  }).join("")}</tr></thead>`;
+    return `<th class="sortable${cls ? ` ${cls}` : ""}" aria-sort="${aria}"${tip}><button class="sorter" type="button" data-act="sort" data-table="${table}" data-key="${c.key}" aria-label="Sort by ${esc(c.label)}">${lab}<span class="ar">${ar}</span></button></th>`;
+  }).join("")}${extra}</tr></thead>`;
 }
+
+/** Rows sorted by a column of `cols`, ties broken by cap/unit name; unsorted when `sort` is null. */
+function sortRows(rows, cols, sort, name = (r) => r.cap || r.unit || "") {
+  const col = sort && cols.find((c) => c.key === sort.key);
+  if (!col) return rows;
+  const cmp = col.cmp || ((x, y) => x - y);
+  return [...rows].sort((x, y) => sort.dir * cmp(col.get(x), col.get(y)) || natural(name(x), name(y)));
+}
+/** Next sort on a header click: first direction, then reversed, then back to the server's order. */
+function nextSort(s, col) {
+  const first = col.desc ? -1 : 1;
+  if (!s || s.key !== col.key) return { key: col.key, dir: first };
+  return s.dir === first ? { key: col.key, dir: -first } : null;
+}
+const sortNote = (cols, sort, dflt) => (sort ? `sorted by ${esc(cols.find((c) => c.key === sort.key).label.toLowerCase())}` : dflt);
+const kindOf = (cap) => S.units?.boards?.[cap] ?? null;
+const SEV_ORDER = { bad: 0, warn: 1, info: 2 };
+const MAINT_COLS = {
+  attn: [
+    { key: "cap", label: "Cap", get: (a) => a.cap, cmp: natural },
+    { key: "board", label: "Board", get: (a) => kindOf(a.cap), cmp: naturalLast },
+    { key: "camera", label: "Camera", get: (a) => a.camera || null, cmp: naturalLast },
+    { key: "flags", label: "Flags", get: (a) => (SEV_ORDER[a.severity] ?? 9) * 100 - (a.flags?.length || 0) },
+    { key: "days", label: "Days", get: (a) => a.days?.length || 0, desc: true },
+  ],
+  tickets: [
+    { key: "priority", label: "Priority", get: (t) => (t.critical ? 0 : 1) },
+    { key: "unit", label: "Unit", get: (t) => [t.subject === "camera", t.unit], cmp: unitOrder },
+    { key: "board", label: "Board", get: (t) => (t.subject === "camera" ? null : kindOf(t.unit)), cmp: naturalLast },
+    { key: "category", label: "Category", get: (t) => t.category || null, cmp: naturalLast },
+    { key: "description", label: "Description", sort: false },
+    { key: "reporter", label: "Reporter", get: (t) => t.reporter || null, cmp: naturalLast },
+    { key: "age", label: "Age", num: true, get: (t) => t.age_days || 0, desc: true },
+    { key: "photos", label: "Ph.", tip: "Photos attached", num: true, get: (t) => t.photos || 0, desc: true },
+  ],
+  repeat: [
+    { key: "unit", label: "Unit", get: (r) => [r.subject === "camera", r.unit], cmp: unitOrder },
+    { key: "tickets", label: "Tickets 30 d", num: true, get: (r) => r.tickets_30d || 0, desc: true },
+    { key: "open", label: "Open", num: true, get: (r) => r.open || 0, desc: true },
+    { key: "last", label: "Last", get: (r) => -(Date.parse(r.last_at) || 0) },
+  ],
+};
 
 function figure(id, title, { val = "", legend = "", note = "" } = {}) {
   return `<figure class="chart-card"><figcaption><span class="ttl">${esc(title)}</span>${val ? `<span class="val">${val}</span>` : ""}
@@ -581,7 +640,7 @@ const CAP_COLS = [
   { key: "cap", label: "Cap", get: (r) => r.cap, cmp: natural },
   { key: "camera", label: "Camera", get: (r) => r.camera || "", cmp: natural },
   { key: "status", label: "Status", get: (r) => STATUS_RANK[r.status] ?? 9 },
-  { key: "board", label: "Board", get: (r) => boardKind(r) || "~", cmp: natural },
+  { key: "board", label: "Board", get: (r) => boardKind(r), cmp: naturalLast },
   { key: "qc", label: "QC", get: (r) => QC_RANK[r.qc?.status] ?? 9 },
   { key: "hours", label: "Hours", num: true, get: (r) => r.hours?.total || 0, desc: true },
   { key: "good_pct", label: "Good %", num: true, get: (r) => r.good_pct ?? -1, desc: true },
@@ -1000,40 +1059,45 @@ function renderMaint(m) {
       ${tile({ k: "Blocked caps", v: int(st.blocked_caps), tip: (m.blocked || []).join(", ") || "none" })}
       ${tile({ k: "Broken cameras", v: int(st.broken_cams), tip: (m.broken_cams || []).join(", ") || "none" })}
     </div>`;
-  const na = m.needs_attention || [];
+  const na = sortRows(m.needs_attention || [], MAINT_COLS.attn, S.sorts.attn);
   // a dense table, not cards: real days put ~30 caps here, and it is a work list to go down
   const d3 = [shiftDay(m.date, -2), shiftDay(m.date, -1), m.date];
   const nBad = na.filter((a) => a.severity === "bad").length;
-  const attn = na.length ? `<div class="tablewrap"><table class="t attn-t"><thead><tr><th>Cap</th><th>Camera</th><th>Flags <span class="mut" style="font-weight:400">· hover for details</span></th>
-      <th class="d3" data-tip="Which of the last 3 days it was flagged">${d3.map((d) => `<span>${esc(wdName(d))}</span>`).join("")}</th><th class="nw"></th></tr></thead><tbody>
+  const attnCols = MAINT_COLS.attn.map((c) => (c.key === "days"
+    ? { ...c, cls: "d3", tip: "Which of the last 3 days it was flagged", html: d3.map((d) => `<span>${esc(wdName(d))}</span>`).join("") }
+    : c.key === "flags" ? { ...c, html: 'Flags <span class="mut" style="font-weight:400">· hover for details</span>' } : c));
+  const attnHead = thead(attnCols, S.sorts.attn, "attn", '<th class="nw"></th>');
+  const attn = na.length ? `<div class="tablewrap"><table class="t attn-t" id="attn-t">${attnHead}<tbody>
       ${na.map((a) => `<tr class="sev-${esc(a.severity || "")}">
-        <td class="nw"><a class="capb" href="#/cap/${encodeURIComponent(a.cap)}">${esc(a.cap)}</a>${boardTag(a.cap)}</td>
+        <td class="nw"><a class="capb" href="#/cap/${encodeURIComponent(a.cap)}">${esc(a.cap)}</a></td>
+        <td class="nw">${S.units?.boards?.[a.cap] ? esc(S.units.boards[a.cap]) : '<span class="mut">—</span>'}</td>
         <td>${camLink(a.camera)}</td>
         <td>${pills(a.flags)}</td>
         <td class="d3" aria-label="${esc(`flagged ${a.days.map(fDay).join(", ")}`)}">${d3.map((d) => `<i class="${a.days.includes(d) ? "on" : ""}" title="${esc(fDay(d))}"></i>`).join("")}</td>
         <td class="nw acts">${links.file ? `<a class="act" href="${esc(links.file)}" target="_blank" rel="noopener">File ticket ↗</a>` : ""}<button class="act" type="button" data-act="note-prefill" data-subj="${esc(a.cap)}">Add note</button></td></tr>`).join("")}
-      </tbody></table><div class="tfoot"><span>${plural(na.length, "cap")} · ${int(nBad)} with a bad flag · worst first</span></div></div>`
+      </tbody></table><div class="tfoot"><span>${plural(na.length, "cap")} · ${int(nBad)} with a bad flag · ${sortNote(MAINT_COLS.attn, S.sorts.attn, "worst first")}</span>${S.sorts.attn ? '<button class="link" type="button" data-act="sort-reset" data-table="attn">Reset order</button>' : ""}</div></div>`
     : empty("<b>Nothing needs attention.</b> Every flagged cap has a ticket or a status.", "sm");
   const byStatus = Object.fromEntries(MY.map((s) => [s, []]));
   for (const x of m.my_status || []) if (byStatus[x.status]) byStatus[x.status].push(x);
   const board = `<div class="board">${MY.map((s) => `<div class="bcol"><h4>${esc(s)} <b>${byStatus[s].length}</b></h4>${byStatus[s].length
       ? `<ul>${byStatus[s].map((x) => `<li>${x.subject_type === "camera" ? camLink(x.subject_id) : capLink(x.subject_id)} <span class="mut">${esc(rel(x.since))}</span>
           <span class="t" data-tip="${esc(x.text || "")}">${esc(x.text || "")}</span></li>`).join("")}</ul>` : '<div class="none">none</div>'}</div>`).join("")}</div>`;
-  const open = m.open || [];
+  const open = sortRows(m.open || [], MAINT_COLS.tickets, S.sorts.tickets);
   const shownT = S.ticketsAll ? open : open.slice(0, 15);
   const tRows = shownT.map((t) => `<tr>
       <td>${t.critical ? '<span class="pill bad">critical</span>' : '<span class="pill info">normal</span>'}</td>
-      <td class="nw">${t.subject === "camera" ? `camera ${camLink(t.unit)}` : capLink(t.unit)}${t.subject !== "camera" && t.camera ? ` <span class="mut">· cam ${esc(t.camera)}</span>` : ""}</td>
+      <td class="nw">${t.subject === "camera" ? `camera ${camLink(t.unit)}` : `<a href="#/cap/${encodeURIComponent(t.unit)}">${esc(t.unit)}</a>`}${t.subject !== "camera" && t.camera ? ` <span class="mut">· cam ${esc(t.camera)}</span>` : ""}</td>
+      <td class="nw">${t.subject !== "camera" && S.units?.boards?.[t.unit] ? esc(S.units.boards[t.unit]) : '<span class="mut">—</span>'}</td>
       <td><span class="tag">${esc(t.category || "—")}</span></td>
       <td class="desc"><span class="clamp" data-tip="${esc(t.description || "")}">${esc(t.description || "")}</span></td>
       <td class="mut">${esc(t.reporter || "—")}</td>
       <td class="num${t.age_days >= 14 ? " cwarn" : ""}">${int(t.age_days)} d</td>
       <td class="num mut">${t.photos ? int(t.photos) : ""}</td></tr>`).join("");
-  const tickets = open.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Priority</th><th>Unit</th><th>Category</th><th>Description</th><th>Reporter</th><th class="num">Age</th><th class="num" data-tip="Photos attached">Ph.</th></tr></thead>
-      <tbody>${tRows}</tbody></table>${open.length > 15 ? `<div class="tfoot"><span>${S.ticketsAll ? `all ${open.length}` : `15 of ${open.length}`}, critical first</span>
+  const tickets = open.length ? `<div class="tablewrap"><table class="t" id="tickets-t">${thead(MAINT_COLS.tickets, S.sorts.tickets, "tickets")}
+      <tbody>${tRows}</tbody></table>${open.length > 15 ? `<div class="tfoot"><span>${S.ticketsAll ? `all ${open.length}` : `15 of ${open.length}`}, ${sortNote(MAINT_COLS.tickets, S.sorts.tickets, "critical first")}</span>
       <button class="link" type="button" data-act="tickets-all">${S.ticketsAll ? "Show fewer" : `Show all ${open.length}`}</button></div>` : ""}</div>` : empty("<b>No open tickets.</b>");
-  const rep = m.repeat || [];
-  const repeat = rep.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Unit</th><th class="num">Tickets 30 d</th><th class="num">Open</th><th>Last</th></tr></thead><tbody>
+  const rep = sortRows(m.repeat || [], MAINT_COLS.repeat, S.sorts.repeat);
+  const repeat = rep.length ? `<div class="tablewrap"><table class="t" id="repeat-t">${thead(MAINT_COLS.repeat, S.sorts.repeat, "repeat")}<tbody>
       ${rep.map((r) => `<tr><td>${r.subject === "camera" ? `camera ${camLink(r.unit)}` : capLink(r.unit)}</td><td class="num">${int(r.tickets_30d)}</td><td class="num">${int(r.open)}</td><td class="mut">${esc(rel(r.last_at))}</td></tr>`).join("")}
       </tbody></table></div>` : empty("No unit has more than one ticket this month.", "sm");
   const cats = m.by_category || [];
@@ -1649,7 +1713,13 @@ const ACTIONS = {
   "cap-filter": (el) => { S.day.filter = el.dataset.key; renderCapsTable(currentDay()); },
   "caps-reset": () => { S.day.sort = null; S.day.filter = "all"; S.day.q = ""; const q = $("#cap-q"); if (q) q.value = ""; renderCapsTable(currentDay()); },
   sort: (el) => {
-    if (el.dataset.table !== "caps") return;
+    const table = el.dataset.table;
+    if (MAINT_COLS[table]) {
+      S.sorts[table] = nextSort(S.sorts[table], MAINT_COLS[table].find((c) => c.key === el.dataset.key));
+      rerender(() => $(`#${table}-t button[data-key="${el.dataset.key}"]`)?.focus());
+      return;
+    }
+    if (table !== "caps") return;
     const col = CAP_COLS.find((c) => c.key === el.dataset.key);
     const first = col.desc ? -1 : 1;
     const s = S.day.sort;
@@ -1662,6 +1732,7 @@ const ACTIONS = {
   "open-cap": (el) => openCapDrawer(el.dataset.cap),
   "close-drawer": () => closeDrawer(),
   "queue-all": () => { S.queueAll = !S.queueAll; refresh(); },
+  "sort-reset": (el) => { S.sorts[el.dataset.table] = null; rerender(); },
   "tickets-all": () => { S.ticketsAll = !S.ticketsAll; refresh(); },
   "note-del": (el) => deleteNote(el.dataset.id),
   "note-prefill": (el) => {
