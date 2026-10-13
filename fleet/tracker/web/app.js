@@ -433,6 +433,8 @@ const QC = {
   never: { label: "no QC", cls: "warn", tip: () => "Never been through StarCap QC" },
 };
 const QC_RANK = { fail: 0, never: 1, pass: 2 };
+/** "NanoPi" / "Orange Pi" / null. A cap QC has a status for is a NanoPi even with no board on record. */
+const boardKind = (r) => (r.qc != null || /nanopi/i.test(r.board || "") ? "NanoPi" : /orange/i.test(r.board || "") ? "Orange Pi" : null);
 const qcBadge = (q) => { const x = q && QC[q.status]; return x ? `<span class="pill ${x.cls}" data-tip="${esc(x.tip(q))}" tabindex="0">${esc(x.label)}</span>` : ""; };
 const qcSummary = (q) => (q.status === "never" ? "never been through QC" : q.status === "pass" ? `passed ${fWhen(q.at)}`
   : `last run failed ${fWhen(q.at)}${q.passed_at ? `, passed before ${fWhen(q.passed_at)}` : ""}`);
@@ -567,6 +569,8 @@ const CAP_FILTERS = [
   { key: "nothing", label: "No footage", test: (r) => r.status === "no_footage" || r.status === "footage_missing" },
   { key: "out", label: "Still out", test: (r) => r.status === "out" },
   { key: "fps30", label: "30 fps", test: (r) => (r.flags || []).some((f) => f.code === "fps30") },
+  { key: "nanopi", label: "NanoPi", test: (r) => boardKind(r) === "NanoPi" },
+  { key: "orangepi", label: "Orange Pi", test: (r) => boardKind(r) === "Orange Pi" },
   { key: "noqc", label: "No QC", test: (r) => r.qc != null && r.qc.status !== "pass" },
 ];
 const STATUS_RANK = { no_footage: 0, footage_missing: 1, out: 2, waiting: 3, ok: 4 };
@@ -575,6 +579,7 @@ const CAP_COLS = [
   { key: "cap", label: "Cap", get: (r) => r.cap, cmp: natural },
   { key: "camera", label: "Camera", get: (r) => r.camera || "", cmp: natural },
   { key: "status", label: "Status", get: (r) => STATUS_RANK[r.status] ?? 9 },
+  { key: "board", label: "Board", get: (r) => boardKind(r) || "~", cmp: natural },
   { key: "qc", label: "QC", get: (r) => QC_RANK[r.qc?.status] ?? 9 },
   { key: "hours", label: "Hours", num: true, get: (r) => r.hours?.total || 0, desc: true },
   { key: "good_pct", label: "Good %", num: true, get: (r) => r.good_pct ?? -1, desc: true },
@@ -639,6 +644,7 @@ function renderCapsTable(day) {
       <td><div class="capcell"><b>${esc(r.cap)}</b>${myTag(ms)}${r.open_tickets ? `<span class="tag" data-tip="${esc(plural(r.open_tickets, "open ticket"))}">${r.open_tickets} ticket${r.open_tickets > 1 ? "s" : ""}</span>` : ""}</div></td>
       <td class="mono">${esc(r.camera || "—")}${extraCams.length ? ` <span class="tag" data-tip="${esc("Also used: " + extraCams.join(", "))}">+${extraCams.length}</span>` : ""}</td>
       <td>${stBadge(r.status)}</td>
+      <td${r.board ? ` data-tip="${esc(r.board)}"` : ""}>${boardKind(r) ? esc(boardKind(r)) : '<span class="mut">—</span>'}</td>
       <td>${qcBadge(r.qc)}</td>
       <td class="num"><div class="hcell">${C.miniStack(r.hours, maxH, 76)}<span class="hv">${r.hours?.total ? h1(r.hours.total) : "—"}</span></div></td>
       <td class="num">${r.good_pct == null ? '<span class="mut">—</span>' : h1(r.good_pct)}</td>
