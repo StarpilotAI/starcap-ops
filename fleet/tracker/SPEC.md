@@ -279,6 +279,9 @@ caps in the last 7 days of takes.
   powered on since (info; warn "Quiet for N d" if nothing for QUIET_DAYS = 7) · just
   reported (< 2 d, info) · untouched since the ticket (warn). A camera is "in the field
   now" (bad) when an open check-out carries it. Sorted worst verdict, critical, oldest.
+  The unit name opens its newest ticket with a photo (else its newest) on starcap.dev
+  (`links.ticket` + id), and each ticket line opens that ticket; units without a ticket
+  link to their cap / camera page. In the open-tickets table the unit opens that ticket.
 - **Needs attention**: caps with a bad flag on any field day in
   [date − NEEDS_ATTENTION_DAYS + 1, date], or warn flags on ATTENTION_REPEAT_DAYS of them,
   with no open ticket on the cap or its camera, and my status not in (repair, dead, lost).
@@ -434,7 +437,7 @@ severity (bad, warn, info, none), then hours desc.
  "open": [{"id", "subject", "unit", "headset", "camera", "category", "critical", "description",
            "reporter", "created_at", "age_days", "photos"}],
  "in_shop": [{"subject": "cap"|"camera", "unit", "critical", "blocked", "broken", "since_at", "days",
-              "tickets": [{"category", "description", "reporter", "critical", "photos", "created_at"}],
+              "tickets": [{"id", "category", "description", "reporter", "critical", "photos", "created_at"}],
               "verdict": {"severity", "text", "detail"}, "my_status": {"status", "text", "since"} | null,
               # caps: "out_now", "outs_since", "last_heard", "online", "camera",
               #       "qc_since": {"verdict", "at", "failed_steps"} | null,
@@ -447,7 +450,8 @@ severity (bad, warn, info, none), then hours desc.
  "blocked": ["starcap144"], "broken_cams": ["100"],
  "my_status": [{"subject_type": "cap", "subject_id": "starcap12", "status": "repair", "since": "...", "text": "..."}],
  "notes_recent": [<note>],
- "links": {"tickets": "https://starcap.dev/tickets", "file": "https://starcap.dev/maintenance"},
+ "links": {"tickets": "https://starcap.dev/tickets", "ticket": "https://starcap.dev/tickets?id=",
+           "file": "https://starcap.dev/maintenance"},
  "trend": [{"date": "...", "open": 36, "opened": 4, "resolved": 2}]}
 ```
 

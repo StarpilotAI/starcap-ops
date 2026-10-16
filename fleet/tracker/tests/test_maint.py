@@ -241,6 +241,7 @@ class InShop(unittest.TestCase):
         rows = self.shop(tickets, blocked=["starcap1", "starcap9"], broken=["43", "50"],
                          items=[item(cpu_id="cpu3", camera_id="50", checkout_at=at("2026-10-11"), returned_at=None)])
         self.assertEqual([t["description"] for t in rows["starcap1"]["tickets"]], ["type c", "loose cable"])
+        self.assertEqual([t["id"] for t in rows["starcap1"]["tickets"]], [tickets[0]["id"], tickets[1]["id"]])
         self.assertEqual((rows["starcap9"]["tickets"], rows["starcap9"]["verdict"]["text"]), ([], "Blocked, no open ticket"))
         self.assertEqual((rows["43"]["on_cap"], rows["43"]["out_now"], rows["43"]["broken"]), ("starcap2", False, True))
         self.assertEqual((rows["50"]["on_cap"], rows["50"]["verdict"]["severity"]), ("starcap3", "bad"))   # broken, in use

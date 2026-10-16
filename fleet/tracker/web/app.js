@@ -1093,15 +1093,31 @@ VIEWS.maintenance = {
 
 const MY = ["repair", "dead", "lost", "watch"];
 
-/** One unit in maintenance: its tickets, and what the data says it has done since. */
-function shopRow(r) {
+/** A ticket on starcap.dev, scrolled to and highlighted with its photos; null without links. */
+const ticketHref = (links, id) => (links?.ticket && id ? links.ticket + encodeURIComponent(id) : null);
+const photoTip = (n) => (n ? plural(n, "photo") : "no photos");
+
+/** One unit in maintenance: its tickets, and what the data says it has done since. The unit
+ *  opens its newest ticket with a photo (else its newest) on starcap.dev. */
+function shopRow(r, links) {
   const cam = r.subject === "camera";
-  const unit = cam ? `camera ${camLink(r.unit)}` : `<a class="capb" href="#/cap/${encodeURIComponent(r.unit)}">${esc(r.unit)}</a>`;
+  const tks = r.tickets || [];
+  const lead = [...tks].reverse().find((t) => t.photos) || tks[tks.length - 1];
+  const href = ticketHref(links, lead?.id);
+  const unit = href
+    ? `<a class="capb" href="${esc(href)}" target="_blank" rel="noopener" data-tip="${esc(`Open the ticket on starcap.dev · ${photoTip(lead.photos)}`)}">${cam ? `camera <span class="mono">${esc(r.unit)}</span>` : esc(r.unit)} <span class="mut">↗</span></a>`
+    : cam ? `camera ${camLink(r.unit)}` : `<a class="capb" href="#/cap/${encodeURIComponent(r.unit)}">${esc(r.unit)}</a>`;
   const extra = cam ? (r.on_cap ? `<div class="mut sm">${r.out_now ? "on" : "last on"} ${esc(r.on_cap)}</div>` : "")
     : r.camera ? `<div class="mut sm">cam ${esc(r.camera)}</div>` : "";
   const board = !cam && S.units?.boards?.[r.unit] ? esc(S.units.boards[r.unit]) : '<span class="mut">—</span>';
-  const tickets = r.tickets?.length ? r.tickets.map((t) => `<div class="tk">${t.critical ? '<span class="pill bad sm">critical</span> ' : ""}<span class="tag">${esc(t.category || "—")}</span>
-      <span class="clamp" data-tip="${esc(`${t.description || ""}${t.reporter ? ` (${t.reporter}, ${fWhen(t.created_at)})` : ""}`)}" dir="auto">${esc(t.description || "no description")}</span></div>`).join("")
+  const tickets = tks.length ? tks.map((t) => {
+    const h = ticketHref(links, t.id);
+    const tip = `${t.description || ""}${t.reporter ? ` (${t.reporter}, ${fWhen(t.created_at)})` : ""}${h ? ` · ${photoTip(t.photos)}` : ""}`;
+    const text = esc(t.description || "no description");
+    return `<div class="tk">${t.critical ? '<span class="pill bad sm">critical</span> ' : ""}<span class="tag">${esc(t.category || "—")}</span>
+      ${h ? `<a class="clamp" href="${esc(h)}" target="_blank" rel="noopener" data-tip="${esc(tip)}" dir="auto">${text}</a>`
+    : `<span class="clamp" data-tip="${esc(tip)}" dir="auto">${text}</span>`}</div>`;
+  }).join("")
     : `<span class="mut">${r.blocked ? "blocked from check-out, no open ticket" : "marked broken, no open ticket"}</span>`;
   const v = r.verdict || {};
   // when it was last on, unless the verdict already says it ("Quiet for 12 d", "never heard from")
@@ -1161,14 +1177,15 @@ function renderMaint(m) {
   const shopRows = sortRows(m.in_shop || [], MAINT_COLS.shop, S.sorts.shop);
   const nShopBad = shopRows.filter((r) => r.verdict?.severity === "bad" || r.verdict?.severity === "warn").length;
   const shop = shopRows.length ? `<div class="tablewrap"><table class="t shop-t" id="shop-t">${thead(MAINT_COLS.shop, S.sorts.shop, "shop")}<tbody>
-      ${shopRows.map(shopRow).join("")}</tbody></table>
+      ${shopRows.map((r) => shopRow(r, links)).join("")}</tbody></table>
       <div class="tfoot"><span>${plural(shopRows.length, "unit")} · ${int(nShopBad)} need a look · ${sortNote(MAINT_COLS.shop, S.sorts.shop, "worst first")}</span>${S.sorts.shop ? '<button class="link" type="button" data-act="sort-reset" data-table="shop">Reset order</button>' : ""}</div></div>`
     : empty("<b>Nothing is in maintenance.</b>", "sm");
   const open = sortRows(m.open || [], MAINT_COLS.tickets, S.sorts.tickets);
   const shownT = S.ticketsAll ? open : open.slice(0, 15);
   const tRows = shownT.map((t) => `<tr>
       <td>${t.critical ? '<span class="pill bad">critical</span>' : '<span class="pill info">normal</span>'}</td>
-      <td class="nw">${t.subject === "camera" ? `camera ${camLink(t.unit)}` : `<a href="#/cap/${encodeURIComponent(t.unit)}">${esc(t.unit)}</a>`}${t.subject !== "camera" && t.camera ? ` <span class="mut">· cam ${esc(t.camera)}</span>` : ""}</td>
+      <td class="nw">${ticketHref(links, t.id) ? `<a href="${esc(ticketHref(links, t.id))}" target="_blank" rel="noopener" data-tip="${esc(`Open the ticket on starcap.dev · ${photoTip(t.photos)}`)}">${t.subject === "camera" ? `camera <span class="mono">${esc(t.unit)}</span>` : esc(t.unit)} <span class="mut">↗</span></a>`
+        : t.subject === "camera" ? `camera ${camLink(t.unit)}` : `<a href="#/cap/${encodeURIComponent(t.unit)}">${esc(t.unit)}</a>`}${t.subject !== "camera" && t.camera ? ` <span class="mut">· cam ${esc(t.camera)}</span>` : ""}</td>
       <td class="nw">${t.subject !== "camera" && S.units?.boards?.[t.unit] ? esc(S.units.boards[t.unit]) : '<span class="mut">—</span>'}</td>
       <td><span class="tag">${esc(t.category || "—")}</span></td>
       <td class="desc"><span class="clamp" data-tip="${esc(t.description || "")}">${esc(t.description || "")}</span></td>

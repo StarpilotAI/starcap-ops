@@ -224,7 +224,7 @@ class Keys(Api):
             self.keys(s, {"subject_type", "subject_id", "status", "since", "text"})
         for n in m["notes_recent"]:
             self.keys(n, NOTE_KEYS)
-        self.keys(m["links"], {"tickets", "file"})
+        self.keys(m["links"], {"tickets", "ticket", "file"})
         for t in m["trend"]:
             self.keys(t, {"date", "open", "opened", "resolved"})
         self.assertTrue(m["open"] and m["recent_resolved"] and m["needs_attention"] and m["my_status"])

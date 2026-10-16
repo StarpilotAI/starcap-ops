@@ -281,7 +281,7 @@ def in_shop(tickets, now, heard_at, cap_cpu, items, heard, qc_by_cpu, statuses, 
                "critical": any(t.get("critical") for t in ts), "blocked": subj == "starcap" and u in blocked,
                "broken": subj == "camera" and calib.base_of(u) in set(map(str, broken)),
                "since_at": since, "days": round((now - since) / clock.DAY_S, 1) if since else None,
-               "tickets": [{"category": t.get("category"), "description": t.get("description"),
+               "tickets": [{"id": t["id"], "category": t.get("category"), "description": t.get("description"),
                             "reporter": t.get("reporter_name"), "critical": bool(t.get("critical")),
                             "photos": t.get("photos") or 0, "created_at": t["created_at"]} for t in ts]}
         if subj == "camera":
@@ -372,6 +372,8 @@ def view(day, now, tickets, days, statuses, notes_recent, blocked, broken, shop=
         "broken_cams": sorted(set(map(str, broken)), key=calib.natural_key),
         "my_status": status_list(statuses),
         "notes_recent": [note_row(n) for n in notes_recent],
-        "links": {"tickets": config.DASHBOARD_URL + "/tickets", "file": config.DASHBOARD_URL + "/maintenance"},
+        # "ticket" + a ticket id opens that one ticket, scrolled to and highlighted, photos shown
+        "links": {"tickets": config.DASHBOARD_URL + "/tickets", "ticket": config.DASHBOARD_URL + "/tickets?id=",
+                  "file": config.DASHBOARD_URL + "/maintenance"},
         "trend": trend(tickets, trend_days),
     }
