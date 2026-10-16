@@ -178,6 +178,15 @@ are "off-trip" (bench, QC, office) and are reported separately by `created_at` d
 - `status`: `out` if any of the cap's items for the day is not returned; else `ok` if it
   has takes; else `waiting` if returned < COPY_GRACE_H ago; else `footage_missing` if a
   `rec_start` event was seen in [first checkout, last return]; else `no_footage`.
+- `use` (only when status is `no_footage` / `footage_missing`, else null): did anyone
+  even try? `rules.field_use` -> {verdict, boots, out_min, heard_at, detail}. `lost` = a
+  rec_start on the trip; `silent` = not heard from (heartbeat) since the return, so the
+  trip's log is incomplete; `tried` = powered on in the field, no take; `unused` = never
+  powered on (boots in the last DESK_MIN before return are the desk docking it);
+  `unknown` = no device log that far back. KPI `caps_unused` counts `unused`.
+- `trip_tickets` (api, same rows only): tickets on the cap or a camera it carried that
+  were open at check-out (`when: "before"`) or filed up to TRIP_TICKET_AFTER_H after the
+  return (`"after"`); see `maint.trip_tickets`.
 - `hours`: total + per bucket. `good_pct` = good / total. `timing_pass_pct` =
   good / (good + timing_fail), None when 0.
 - `fps`: recorded_s-weighted mean of take fps; `nominal_fps`: the most common nominal.
@@ -369,7 +378,7 @@ local cache; only `/api/sync` touches production (read-only).
  "arrival": {"caps_out": 91, "arrived": 84, "still_out": 3, "waiting": 2, "no_footage": 1, "footage_missing": 1, "pct": 92},
  "kpis": {"caps_out": {"value": 91, "prev": 82}, "caps_recorded": {...}, "caps_no_footage": {...},
           "hours_total": {...}, "hours_good": {...}, "good_pct": {...}, "timing_pass_pct": {...},
-          "fps30_hours": {...}, "fps30_caps": {...}, "expired_cal_hours": {...}},
+          "fps30_hours": {...}, "fps30_caps": {...}, "expired_cal_hours": {...}, "caps_unused": {...}},
  "hours": {"total": 587.0, "good": 512.3, "fps30": 46.0, "timing_fail": 5.1, "untimed": 2.0, "broken": 13.5, "short": 3.1, "pending": 5.0},
  "caps": [{"cap": "starcap34", "cpu_id": "2cfc...", "board": "Orange Pi 5", "camera": "43.1", "cameras": ["43.1"],
            "checkout_at": "...", "returned_at": "...", "task": "Repair Services", "status": "ok",
@@ -379,7 +388,7 @@ local cache; only `/api/sync` touches production (read-only).
            "boots": 2, "version": "1.67.0", "expired_cal_hours": 0, "cal_days_left": 12,
            "events": {"power_on": 2, "unclean_boot": 0, "camera_lost": 0, "rec_dead": 0, "rec_corrupt": 0, "camera_usb2": 0, "storage": 0},
            "flags": [{"code": "fps30", "severity": "bad", "label": "30 fps", "detail": "2.1 h at 30 fps: camera on USB 2"}],
-           "severity": "bad", "open_tickets": 1, "my_status": null,
+           "severity": "bad", "open_tickets": 1, "my_status": null, "use": null, "trip_tickets": [],
            "qc": {"status": "pass|fail|never", "at", "passed_at", "failed_steps": [], "runs": 2} | null}],
  "off_trip": {"takes": 37, "hours": 4.1, "caps": 9}}
 ```

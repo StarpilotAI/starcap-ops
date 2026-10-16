@@ -241,7 +241,14 @@ def _field_day(req, day, latest=None):
     t0, t1 = clock.day_bounds(day)
     items = req.store.items(t0, t1)
     rows = rules.cap_days(items, req.store.field_takes(t0, t1), req.ctx, req.now, _events(req, items), latest)
-    return [dict(r, qc=req.qc_status(r["cpu_id"], r["board"])) for r in rows]
+    return [_dressed(req, r) for r in rows]
+
+
+def _dressed(req, row):
+    """A cap-day plus its QC status and, when it got nothing, the tickets around its trip."""
+    tickets = (maint.trip_tickets(req.tickets, row["cap"], row["cameras"], row["checkout_at"], row["returned_at"],
+                                  req.now) if row["status"] in rules.NOTHING else [])
+    return dict(row, qc=req.qc_status(row["cpu_id"], row["board"]), trip_tickets=tickets)
 
 
 # --------------------------------------------------------------------------- #
@@ -302,8 +309,7 @@ def day_cap(store, date, cap):
     takes = sorted((t for t in req.store.field_takes(t0, t1) if t["trip_item_id"] in ids),
                    key=lambda t: (t["started_at"] is None, t["started_at"] or t["created_at"]))
     events = _events(req, items)
-    row = rules.cap_days(items, takes, req.ctx, req.now, events, _latest(req, day))[0]
-    row["qc"] = req.qc_status(row["cpu_id"], row["board"])
+    row = _dressed(req, rules.cap_days(items, takes, req.ctx, req.now, events, _latest(req, day))[0])
     return _edge({"date": day, "cap": row["cap"], "row": rules.rounded(row),
                   "takes": [rules.take_row(t, req.lenses) for t in takes],
                   "events": rules.event_log(events.get(cpu, ()), row, req.now)})

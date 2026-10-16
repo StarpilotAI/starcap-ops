@@ -25,12 +25,12 @@ DAY_KEYS = {"date", "weekday", "is_today", "latest_version", "events_from", "eve
             "hours", "caps", "off_trip"}
 ARRIVAL_KEYS = {"caps_out", "arrived", "still_out", "waiting", "no_footage", "footage_missing", "pct"}
 KPI_KEYS = {"caps_out", "caps_recorded", "caps_no_footage", "hours_total", "hours_good", "good_pct",
-            "timing_pass_pct", "fps30_hours", "fps30_caps", "expired_cal_hours"}
+            "timing_pass_pct", "fps30_hours", "fps30_caps", "expired_cal_hours", "caps_unused"}
 HOURS_KEYS = {"total", "good", "fps30", "timing_fail", "untimed", "broken", "short", "pending"}
 ROW_KEYS = {"cap", "cpu_id", "board", "camera", "cameras", "checkout_at", "returned_at", "task", "status", "takes",
             "clips", "short_takes", "hours", "good_pct", "timing_pass_pct", "fps", "nominal_fps", "p99_dev_ms_max",
             "boots", "version", "expired_cal_hours", "cal_days_left", "events", "flags", "severity",
-            "open_tickets", "my_status", "qc"}
+            "open_tickets", "my_status", "qc", "use", "trip_tickets"}
 EVENT_KEYS = {"power_on", "unclean_boot", "camera_lost", "rec_dead", "rec_corrupt", "camera_usb2", "storage"}
 FLAG_KEYS = {"code", "severity", "label", "detail"}
 TAKE_KEYS = {"id", "started_at", "clock_fixed", "recorded_s", "bucket", "nominal_fps", "fps", "score", "p99_dev_ms",

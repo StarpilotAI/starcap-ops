@@ -88,6 +88,33 @@ class Tickets(unittest.TestCase):
         self.assertEqual((on_cap, on_cam), (["old"], ["cam"]))
 
 
+class TripTickets(unittest.TestCase):
+    OUT, BACK = at(DAY, 9), at(DAY, 22)
+
+    def trip(self, *tickets):
+        return [(t["when"], t["id"]) for t in maint.trip_tickets(list(tickets), "starcap5", ["43"], self.OUT,
+                                                                  self.BACK, NOW + 5 * clock.DAY_S)]
+
+    def test_filed_during_or_soon_after(self):
+        a = ticket(id="a", headset="starcap5", created_at=at(DAY, 23))
+        b = ticket(id="b", headset="starcap5", created_at=self.BACK + 47 * 3600)
+        late = ticket(id="late", headset="starcap5", created_at=self.BACK + 49 * 3600)
+        self.assertEqual(self.trip(a, b, late), [("after", "a"), ("after", "b")])
+
+    def test_open_at_check_out(self):
+        still = ticket(id="still", headset="starcap5", created_at=at("2026-10-01"))
+        closed_later = ticket(id="cl", headset="starcap5", created_at=at("2026-10-01"), status="resolved",
+                              resolved_at=at(DAY, 12))
+        closed_before = ticket(id="cb", headset="starcap5", created_at=at("2026-10-01"), status="resolved",
+                               resolved_at=at("2026-10-05"))
+        self.assertEqual(self.trip(still, closed_later, closed_before), [("before", "still"), ("before", "cl")])
+
+    def test_its_camera_counts_other_caps_do_not(self):
+        cam = ticket(id="cam", subject="camera", camera="43.1", headset="starcap9", created_at=at(DAY, 23))
+        other = ticket(id="o", headset="starcap9", created_at=at(DAY, 23))
+        self.assertEqual(self.trip(cam, other), [("after", "cam")])
+
+
 class NeedsAttention(unittest.TestCase):
     def attention(self, days, tickets=(), notes=()):
         return maint.needs_attention(days, maint.OpenTickets(tickets), maint.current_statuses(notes))

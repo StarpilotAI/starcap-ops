@@ -70,6 +70,12 @@ SHORT_TAKES_MIN = _num("SHORT_TAKES_MIN", 10)   # ...and a short-take flag at le
 REBOOTS_MIN = _num("REBOOTS_MIN", 5)                 # unclean boots in a day
 POWER_ON_LOOP_MIN = _num("POWER_ON_LOOP_MIN", 20)    # power-ons in a day = reboot loop
 CAMERA_DROPS_MIN = _num("CAMERA_DROPS_MIN", 10)
+# "Got nothing" caps: was it used at all? A power-on this close to check-in is the cap
+# being docked at the desk (starcap121 on 2026-10-12 booted 3 min before its return),
+# not someone trying to record. Tickets filed up to TRIP_TICKET_AFTER_H after the return
+# are still about that trip (starcap90's came 26 h later).
+DESK_MIN = _num("DESK_MIN", 15)
+TRIP_TICKET_AFTER_H = _num("TRIP_TICKET_AFTER_H", 48)
 EXPIRED_CAL_MIN_H = _num("EXPIRED_CAL_MIN_H", 0.1)   # under 6 min on an expired lens isn't worth a flag
 NEEDS_ATTENTION_DAYS = _num("NEEDS_ATTENTION_DAYS", 3)
 ATTENTION_REPEAT_DAYS = _num("ATTENTION_REPEAT_DAYS", 2)   # warn-only caps must repeat; one bad day is enough

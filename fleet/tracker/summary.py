@@ -71,8 +71,10 @@ def day_lines(day):
     if not rows:
         return ["- no caps out"]
     nothing = [r["cap"] for r in rows if r["status"] in rules.NOTHING]
+    unused = [r["cap"] for r in rows if r["status"] in rules.NOTHING and (r.get("use") or {}).get("verdict") == "unused"]
     out = [f"- {plural(k['caps_out'], 'cap')} out, {k['caps_recorded']} recorded"
-           + (f", {len(nothing)} got nothing ({names(nothing)})" if nothing else "")]
+           + (f", {len(nothing)} got nothing ({names(nothing)})" if nothing else "")
+           + (f", {len(unused)} of them never switched on ({names(unused)})" if unused else "")]
     if k["hours_total"] > 0:
         out.append(f"- {hours(k['hours_total'])} h recorded, {hours(k['hours_good'])} h good ({k['good_pct']:.0f}%)"
                    + (f", timing pass {k['timing_pass_pct']:.1f}%" if k["timing_pass_pct"] is not None else ""))

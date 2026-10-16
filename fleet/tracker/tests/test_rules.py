@@ -171,6 +171,48 @@ class Status(unittest.TestCase):
         self.assertEqual(row["status"], "no_footage")
         self.assertIn("no device log that far back", row["flags"][0]["detail"])
 
+    def use(self, events, it=None, events_since=at("2026-10-01"), heard=at("2026-10-12", 9)):
+        it = it or trip()
+        ctx = context(devices=[device(device_id="d5", cpu_id="cpu5", last_seen=heard)], events_since=events_since)
+        evs = [device_event(device_id="d5", ts=at(DAY, h), type=kind) for h, kind in events]
+        return row_for([], [it], ctx=ctx, events=evs)["use"]
+
+    def test_never_switched_on_is_unused(self):
+        use = self.use([])
+        self.assertEqual(use["verdict"], "unused")
+        self.assertEqual(use["detail"], "out 10.0 h, never switched on")
+        self.assertEqual(self.use([], it=trip(out_h=18, back_h=18 + 4 / 60))["detail"], "out 4 min, never switched on")
+
+    def test_a_boot_while_docked_at_check_in_is_not_a_try(self):
+        use = self.use([(18 - 3 / 60, "power_on")])          # 3 min before the 18:00 return
+        self.assertEqual(use["verdict"], "unused")
+        self.assertIn("only booted when docked", use["detail"])
+
+    def test_switched_on_without_a_take_is_tried(self):
+        use = self.use([(10, "power_on"), (12, "power_on"), (12, "camera_lost")])
+        self.assertEqual((use["verdict"], use["boots"]), ("tried", 2))
+
+    def test_a_take_started_is_lost_footage(self):
+        self.assertEqual(self.use([(10, "power_on"), (10.1, "rec_start")])["verdict"], "lost")
+
+    def test_not_online_since_the_return_is_silent_not_unused(self):
+        self.assertEqual(self.use([], heard=at(DAY, 7))["verdict"], "silent")
+        self.assertEqual(self.use([(10, "power_on")], heard=at(DAY, 12))["verdict"], "silent")
+        # a take it did log still says the footage is lost, whatever came after
+        self.assertEqual(self.use([(10, "rec_start")], heard=at(DAY, 12))["verdict"], "lost")
+
+    def test_no_log_is_unknown(self):
+        self.assertEqual(self.use([], events_since=at(DAY, 12))["verdict"], "unknown")
+
+    def test_only_got_nothing_rows_carry_a_use(self):
+        it = trip()
+        self.assertIsNone(row_for([field_take(it)], [it])["use"])
+
+    def test_unused_kpi(self):
+        rows = [{"use": {"verdict": v}, "status": "no_footage", "clips": 0, "hours": dict.fromkeys(rules.HOURS, 0.0),
+                 "expired_cal_hours": 0.0} for v in ("unused", "unused", "tried")]
+        self.assertEqual(rules.day_kpis(rows)["caps_unused"], 2)
+
     def test_two_checkouts_of_one_cap_merge(self):
         a, b = trip(out_h=8, back_h=12), trip(out_h=13, back_h=None)
         row = row_for([field_take(a)], [a, b])

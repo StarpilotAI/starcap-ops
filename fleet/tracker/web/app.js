@@ -608,12 +608,14 @@ function renderDay(day, arg) {
       <div class="bar chart bar" id="c-arrival"></div>
       ${partial ? `<div class="note">Hours and counts keep growing until the rest is copied, so a drop vs ${esc(prevDay)} stays gray until the day is final.</div>` : ""}
       ${day.events_complete === false ? `<div class="note">Device logs here start ${day.events_from ? esc(fDay(day.events_from.slice(0, 10))) : "later"}: for this day the reboot, camera-drop and storage flags can't show, and a cap that came back empty reads "no footage" either way.</div>` : ""}</section>`;
-  const nothingCaps = (day.caps || []).filter((r) => r.status === "no_footage" || r.status === "footage_missing").map((r) => r.cap);
+  const nothingRows = (day.caps || []).filter((r) => r.status === "no_footage" || r.status === "footage_missing");
+  const useN = (vd) => nothingRows.filter((r) => r.use?.verdict === vd).length;
+  const useSub = ["unused", "tried", "lost", "silent", "unknown"].filter((vd) => useN(vd)).map((vd) => `${useN(vd)} ${USE[vd].short}`).join(" · ");
   const T = (key, label, kind, extra = {}) => tile({ k: label, d: delta(key, k[key], kind, prevDay, partial), ...extra });
   const tiles = `<section class="tiles t8" aria-label="Key numbers">
       ${T("caps_out", "Caps out", "int", { v: int(v("caps_out")) })}
       ${T("caps_recorded", "Recorded", "int", { v: int(v("caps_recorded")), unit: "caps" })}
-      ${T("caps_no_footage", "Got nothing", "int", { v: int(v("caps_no_footage")), cls: v("caps_no_footage") > 0 ? "bad" : "", sub: esc(nothingCaps.join(", ")), tip: `${int(a.no_footage || 0)} with no footage, ${int(a.footage_missing || 0)} recorded but nothing arrived` })}
+      ${T("caps_no_footage", "Got nothing", "int", { v: int(v("caps_no_footage")), cls: v("caps_no_footage") > 0 ? "bad" : "", sub: esc(useSub), tip: "From each cap's device log: never switched on in the field, switched on but never started a take, or takes started but no footage came back. The list is below the tiles." })}
       ${T("hours_total", "Hours recorded", "h", { v: h1(v("hours_total")), unit: "h" })}
       ${T("good_pct", "Good share", "pt", { v: pct(v("good_pct")), sub: `${h1(v("hours_good"))} h good`, tip: "Share of hours that are good: 60 fps, p99 frame timing within ±10 ms, clips of 30 s or more" })}
       ${T("timing_pass_pct", "Timing pass", "pt", { v: pct(v("timing_pass_pct")), tip: "Good hours over good + timing-fail hours (OpenAI p99 rule: ≤ 1% of frame gaps outside ±10 ms)" })}
@@ -627,11 +629,47 @@ function renderDay(day, arg) {
       <div style="margin-top:10px">${bucketLegend(hrs, hrs.total)}</div></section>`;
   const ot = day.off_trip;
   const foot = ot && ot.takes ? `<p class="footnote">Off-trip, not counted above: ${plural(ot.takes, "take")} · ${hU(ot.hours)} on ${plural(ot.caps, "cap")} (bench, QC, office), counted by the day they were copied.</p>` : "";
-  return `${head}${arrival}${tiles}${hoursPanel}
+  return `${head}${arrival}${tiles}${nothingPanel(nothingRows)}${hoursPanel}
     <h2 class="sec">Caps <span class="sub">${plural((day.caps || []).length, "cap")} checked out · click a row for its takes and events</span></h2>
     <div class="toolbar"><div class="chips" role="group" aria-label="Filter caps" id="cap-chips"></div>
       <input class="search" type="search" id="cap-q" placeholder="Find a cap or camera" aria-label="Find a cap or camera" value="${esc(S.day.q)}"></div>
     <div class="tablewrap" id="caps-wrap"></div>${foot}`;
+}
+
+/* Why a cap got nothing (rules.field_use): did anyone even try to record with it? */
+const USE = {
+  unused: { label: "Not used", short: "not used", cls: "info", tip: "Never switched on in the field: nobody tried to record with it" },
+  tried: { label: "Tried, didn't record", short: "tried", cls: "bad", tip: "Switched on in the field but never started a take: a cap or camera fault" },
+  lost: { label: "Recorded, footage lost", short: "lost", cls: "bad", tip: "Takes started, but no footage came back" },
+  silent: { label: "Not heard from", short: "no log", cls: "warn", tip: "Hasn't been online since it came back, so this trip's log never arrived. It may well have recorded: check its card" },
+  unknown: { label: "Unknown", short: "unknown", cls: "info", tip: "No device log for this trip" },
+};
+const USE_ORDER = ["tried", "lost", "silent", "unused", "unknown"];
+
+function tripTickets(list) {
+  if (!list?.length) return '<span class="mut">none</span>';
+  return list.map((t) => `<div data-tip="${esc(`${t.when === "before" ? "Open when it went out" : "Filed"} ${fTs(t.created_at)}${t.resolved_at ? ` · resolved ${fTs(t.resolved_at)}` : ""}${t.resolution_note ? ` · ${t.resolution_note}` : ""}`)}" tabindex="0">
+      <span class="pill ${t.status === "resolved" ? "ok" : "warn"}">${t.when === "before" ? "in maintenance" : t.status === "resolved" ? "ticket, resolved" : "ticket, open"}</span>
+      <span class="mut">${esc(fWhen(t.created_at))}</span> ${esc(t.subject === "camera" ? `cam ${t.camera}: ` : "")}${esc(t.description || t.category || "")}</div>`).join("");
+}
+
+function nothingPanel(rows) {
+  if (!rows.length) return "";
+  const rank = (r) => USE_ORDER.indexOf(r.use?.verdict ?? "unknown");
+  const list = [...rows].sort((x, y) => rank(x) - rank(y) || natural(x.cap, y.cap));
+  const body = list.map((r) => {
+    const u = USE[r.use?.verdict] || USE.unknown;
+    return `<tr class="click" tabindex="0" data-act="open-cap" data-cap="${esc(r.cap)}">
+      <td><b>${esc(r.cap)}</b></td>
+      <td class="mono" style="white-space:nowrap">${esc(fHM(r.checkout_at))}–${esc(fHM(r.returned_at))}</td>
+      <td><span class="pill ${u.cls}" data-tip="${esc(u.tip)}" tabindex="0">${esc(u.label)}</span></td>
+      <td>${esc(r.use?.detail || "")}${r.use?.verdict === "silent" ? ` <span class="mut">(last heard ${esc(r.use.heard_at ? fWhen(r.use.heard_at) : "never")})</span>` : ""}</td>
+      <td>${tripTickets(r.trip_tickets)}</td></tr>`;
+  }).join("");
+  return `<section class="panel" style="margin-top:14px" aria-label="Why caps got nothing">
+      <div class="panel-h"><h3>Why they got nothing</h3><span class="right">from each cap's device log · tickets open at check-out or filed within 48 h of return</span></div>
+      <div class="tablewrap"><table class="t"><thead><tr><th>Cap</th><th>Out</th><th>Used?</th><th>What the log shows</th><th>Maintenance</th></tr></thead>
+      <tbody>${body}</tbody></table></div></section>`;
 }
 
 const CAP_FILTERS = [

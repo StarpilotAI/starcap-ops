@@ -133,6 +133,10 @@ class Context:
     def __init__(self, starcaps, devices, lenses, cal, tickets, statuses, events_since=None):
         self.caps = {r["cpu_id"]: r for r in starcaps}
         self.cpu_of = {d["device_id"]: d["cpu_id"] for d in devices}
+        self.heard = {}                  # cpu_id -> last heartbeat of any of its devices
+        for d in devices:
+            if d.get("last_seen"):
+                self.heard[d["cpu_id"]] = max(self.heard.get(d["cpu_id"], 0), d["last_seen"])
         self.lenses, self.cal, self.tickets, self.statuses = lenses, cal, tickets, statuses
         self.events_since = events_since
 
@@ -242,10 +246,48 @@ def _cap_day(cpu_id, items, takes, ctx, now, events, latest):
     usb2 = any(bucket(t) == "fps30" and on_usb2(t) for t in takes)
     row["flags"] = flags(row, latest, now, rec_starts, expired_h, usb2, logged)
     row["severity"] = row["flags"][0]["severity"] if row["flags"] else None
+    row["use"] = (field_use(seen, out_at, back_at, rec_starts, logged, ctx.heard.get(cpu_id))
+                  if row["status"] in NOTHING else None)
     row["open_tickets"] = len(ctx.tickets.on(name, cameras))
     note = ctx.statuses.get(("cap", name))
     row["my_status"] = note["status"] if note else None
     return row
+
+
+def field_use(seen, out_at, back_at, rec_starts, logged, heard=None):
+    """Why a cap came back with nothing, from its device log: "unused" (never switched
+    on in the field, so nobody tried), "tried" (switched on, never started a take),
+    "lost" (takes started, footage never arrived), "silent" or "unknown" (no device log).
+    Boots in the last DESK_MIN before check-in are the desk docking it and don't count.
+
+    The log only reaches the dashboard when the cap is online, so a cap not heard from
+    since it came back has a log that stops short: "never switched on" would be a guess.
+    starcap78 and 174 on 2026-10-13 read empty while their tickets said the card still
+    held the day's data (broken Type-C / LAN port): that is "silent"."""
+    out_min = (back_at - out_at) / 60
+    if not logged:
+        return {"verdict": "unknown", "boots": None, "out_min": round(out_min),
+                "detail": "no device log for this trip, so whether it was used can't be told"}
+    desk = back_at - config.DESK_MIN * 60
+    boots = sum(e["type"] == "power_on" and e["ts"] < desk for e in seen)
+    docked = any(e["type"] == "power_on" and e["ts"] >= desk for e in seen)
+    if not rec_starts and (heard is None or heard < back_at):
+        return {"verdict": "silent", "boots": boots, "out_min": round(out_min), "heard_at": heard,
+                "detail": "not online since it came back, so this trip's log never arrived: "
+                          "it may have recorded, check its card"}
+    if rec_starts:
+        verdict, detail = "lost", f"started {rec_starts} take{'s' * (rec_starts != 1)}, but no footage came back"
+    elif boots:
+        verdict, detail = "tried", f"switched on {boots} time{'s' * (boots != 1)} in the field, never started a take"
+    else:
+        verdict = "unused"
+        detail = (f"out {_dur(out_min)}, never switched on"
+                  + (" (only booted when docked at check-in)" if docked else ""))
+    return {"verdict": verdict, "boots": boots, "out_min": round(out_min), "heard_at": heard, "detail": detail}
+
+
+def _dur(minutes):
+    return f"{minutes:.0f} min" if minutes < 90 else f"{minutes / 60:.1f} h"
 
 
 def flags(row, latest, now, rec_starts, expired_h, usb2=False, logged=True):
@@ -327,6 +369,7 @@ def day_kpis(rows):
     return {"caps_out": len(rows),
             "caps_recorded": sum(r["clips"] > 0 for r in rows),
             "caps_no_footage": sum(r["status"] in NOTHING for r in rows),
+            "caps_unused": sum((r.get("use") or {}).get("verdict") == "unused" for r in rows),
             "hours_total": round(h["total"], 2), "hours_good": round(h["good"], 2),
             "good_pct": pct(h["good"], h["total"]),
             "timing_pass_pct": pct(h["good"], h["good"] + h["timing_fail"]),

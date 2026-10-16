@@ -97,6 +97,26 @@ def unit_tickets(tickets, now, cap=None, camera=None):
     return [history_row(t, now) for t in sorted(mine, key=lambda t: -t["created_at"])]
 
 
+def trip_tickets(tickets, cap, cameras, out_at, back_at, now):
+    """Tickets that speak to one check-out: already open on the cap or a camera it
+    carried when it went out ("before"), or filed from check-out until
+    TRIP_TICKET_AFTER_H after the return ("after"). Oldest first."""
+    bases = {calib.base_of(c) for c in cameras if c}
+    until = (now if back_at is None else back_at) + config.TRIP_TICKET_AFTER_H * 3600
+    out = []
+    for t in sorted(tickets, key=lambda t: t["created_at"]):
+        mine = ((subject(t) == "starcap" and t.get("headset") == cap)
+                or (subject(t) == "camera" and t.get("camera") is not None and calib.base_of(t["camera"]) in bases))
+        if not mine:
+            continue
+        if t["created_at"] < out_at:
+            if is_open(t) or (t.get("resolved_at") or 0) > out_at:
+                out.append(dict(history_row(t, now), when="before"))
+        elif t["created_at"] <= until:
+            out.append(dict(history_row(t, now), when="after"))
+    return out
+
+
 def open_list(tickets, now):
     """Critical first, then oldest first."""
     return [ticket_row(t, now) for t in sorted((t for t in tickets if is_open(t)),
