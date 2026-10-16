@@ -38,6 +38,7 @@ heartbeat moved since the previous pass.
 import argparse
 import fcntl
 import json
+import math
 import os
 import re
 import sys
@@ -161,7 +162,10 @@ select id, cpu_id, trip_item_id, trip_id, created_at, updated_at, recorded_s, ke
        d->'timing'->'score' as score,
        d->'timing'->'p99_dev_ms' as p99_dev_ms,
        d->'timing'->'out_of_band_pct' as out_of_band_pct,
-       d->'timing'->'drop_pct' as drop_pct
+       d->'timing'->'drop_pct' as drop_pct,
+       d->'analysis'->>'sheet_path' as sheet_path,
+       d->'analysis'->'grid' as sheet_grid,
+       d->'analysis'->'frames' as sheet_frames
   from (select id, cpu_id, trip_item_id, trip_id,
                extract(epoch from created_at)::float8 as created_at,
                extract(epoch from updated_at)::float8 as updated_at,
@@ -252,7 +256,32 @@ def normalise_take(r):
         "fps": fps if fps is not None else _num(r.get("fps_stereo")),
         "p99_dev_ms": _num(r.get("p99_dev_ms")), "out_of_band_pct": _num(r.get("out_of_band_pct")),
         "score": _num(r.get("score")), "drop_pct": _num(r.get("drop_pct")),
+        "sheet_path": r.get("sheet_path") or None,
+        "sheet_grid": sheet_grid(r.get("sheet_grid"), r.get("sheet_frames")),
     }
+
+
+def sheet_grid(grid, frames=None):
+    """analysis.grid -> where each tile sits in the contact-sheet image, or None.
+
+    The copy station lays one tile per period_s (a minute) in rows of `cols`, each tile
+    tile_w x tile_h with `pad` px around it (2026-10-16: 8 x 480x300, pad 2). `tiles` is
+    how many are real: analysis.frames, else total_s / period_s; the rest of the last row
+    is blank. Anything not a positive number makes the whole grid None (the drawer then
+    shows the plain image)."""
+    if not isinstance(grid, dict):
+        return None
+    g = {k: _int(grid.get(k)) for k in ("cols", "rows", "tile_w", "tile_h")}
+    if any(v is None or v <= 0 for v in g.values()):
+        return None
+    g["pad"] = max(_int(grid.get("pad")) or 0, 0)
+    room = g["cols"] * g["rows"]
+    n = _int(frames)
+    if not n or n <= 0:
+        total, period = _num(grid.get("total_s")), _num(grid.get("period_s"))
+        n = math.ceil(total / period) if total and period and period > 0 else room
+    g["tiles"] = max(1, min(n, room))
+    return g
 
 
 def normalise_item(r):

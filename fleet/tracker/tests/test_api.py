@@ -34,7 +34,8 @@ ROW_KEYS = {"cap", "cpu_id", "board", "camera", "cameras", "checkout_at", "retur
 EVENT_KEYS = {"power_on", "unclean_boot", "camera_lost", "rec_dead", "rec_corrupt", "camera_usb2", "storage"}
 FLAG_KEYS = {"code", "severity", "label", "detail"}
 TAKE_KEYS = {"id", "started_at", "clock_fixed", "recorded_s", "bucket", "nominal_fps", "fps", "score", "p99_dev_ms",
-             "out_of_band_pct", "drop_pct", "camera", "boot", "version", "codes", "fault", "uploaded_at"}
+             "out_of_band_pct", "drop_pct", "camera", "boot", "version", "codes", "fault", "uploaded_at",
+             "has_sheet", "sheet_grid", "sheet_url"}
 CAL_KEYS = {"date", "target", "today", "counts", "plan_today", "catch_when_back", "queue", "never", "broken",
             "forecast", "spikes", "clear_by", "behind_from", "history", "coverage"}
 CAL_TODAY_KEYS = {"done", "recal", "new", "imu", "fits", "imu_fits"}
@@ -108,7 +109,8 @@ def world():
                item(id="i3", cpu_id="cpu3", camera_id="88", checkout_at=at(YDAY, 9), returned_at=at(YDAY, 19)),
                item(id="i0", cpu_id="cpu1", camera_id="43", checkout_at=at(PREV, 8), returned_at=at(PREV, 18))],
         takes=[take(id="t1", cpu_id="cpu1", trip_item_id="i1", camera_unit="43", started_at=at(YDAY, 9),
-                    created_at=at(YDAY, 20), recorded_s=3600, boot_id="f361aaaa", uploaded_at=at(YDAY, 23)),
+                    created_at=at(YDAY, 20), recorded_s=3600, boot_id="f361aaaa", uploaded_at=at(YDAY, 23),
+                    sheet_path="analysis/pi-1/t1/contactsheet.jpg"),
                take(id="t2", cpu_id="cpu1", trip_item_id="i1", camera_unit="43", started_at=at(YDAY, 10),
                     created_at=at(YDAY, 20), recorded_s=1800, nominal_fps=30, boot_id="f361aaaa"),
                take(id="t3", cpu_id="cpu1", trip_item_id="i1", camera_unit="43", started_at=at(YDAY, 11),
@@ -183,7 +185,8 @@ class Keys(Api):
 
     def test_day_cap(self):
         d = api.day_cap(self.store, YDAY, "starcap1")
-        self.keys(d, {"date", "cap", "row", "takes", "events"})
+        self.keys(d, {"date", "cap", "row", "takes", "events", "links"})
+        self.keys(d["links"], {"recording"})
         self.keys(d["row"], ROW_KEYS)
         for t in d["takes"]:
             self.keys(t, TAKE_KEYS)
@@ -314,6 +317,18 @@ class Values(Api):
         self.assertEqual([t["bucket"] for t in d["takes"]], ["good", "fps30", "short"])
         self.assertEqual((d["takes"][0]["boot"], d["takes"][0]["camera"]), ("f361", "43"))
         self.assertEqual([e["type"] for e in d["events"]], ["power_on", "rec_start", "camera_lost"])
+
+    def test_day_cap_contact_sheets(self):
+        class Signer:
+            def url(self, path):
+                return path and "signed:" + path
+        d = api.day_cap(self.store, YDAY, "starcap1", Signer())
+        self.assertEqual([(t["has_sheet"], t["sheet_url"]) for t in d["takes"]],
+                         [(True, "signed:analysis/pi-1/t1/contactsheet.jpg"), (False, None), (False, None)])
+        self.assertEqual(d["links"]["recording"], "https://starcap.dev/recordings?rec=")
+        # no key to sign with: the take still says it has a sheet, the link is null
+        d = api.day_cap(self.store, YDAY, "starcap1")
+        self.assertEqual((d["takes"][0]["has_sheet"], d["takes"][0]["sheet_url"]), (True, None))
 
     def test_calibration_values(self):
         c = api.calibration(self.store)

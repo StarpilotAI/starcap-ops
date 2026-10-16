@@ -23,7 +23,8 @@ from store import Store  # noqa: E402
 SPEC = {
     "takes": "id cpu_id trip_item_id trip_id created_at updated_at first_copied_at uploaded_at started_at "
              "clock_fixed boot_id software_version board camera_unit usb_path recorded_s kept_s settled "
-             "readiness_status codes fault_kind nominal_fps fps p99_dev_ms out_of_band_pct score drop_pct",
+             "readiness_status codes fault_kind nominal_fps fps p99_dev_ms out_of_band_pct score drop_pct sheet_path "
+             "sheet_grid",
     "items": "id trip_id cpu_id camera_id checkout_at returned_at missing task destination",
     "starcaps": "cpu_id name camera_id board created_at",
     "cameras": "id status retired created_at",
@@ -352,13 +353,37 @@ class Schema(Base):
             raw.execute("PRAGMA user_version=1")
         self.s = Store(self.path)
         with sqlite3.connect(self.path) as raw:
-            self.assertEqual(raw.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(raw.execute("PRAGMA user_version").fetchone()[0], store_mod.SCHEMA_VERSION)
         self.s.replace_all("qc_runs", [{"id": "r1", "cpu_id": "cpuA", "name": "starcap12", "model": "NanoPi",
                                         "camera_id": "43", "version": "1.67.0", "verdict": "pass",
                                         "started_at": 1.0, "finished_at": 2.0, "headline": "ok",
                                         "failed_steps": ["Soak take"], "station": "waleed"}])
         self.assertEqual(self.s.qc_runs()[0]["failed_steps"], ["Soak take"])
         self.assertEqual([n["text"] for n in self.s.notes()], ["mine"])                  # notes untouched
+
+    def test_a_v2_cache_gains_sheet_paths_and_re_pulls_its_takes(self):
+        # the cache before contact sheets (2026-10-16): takes without sheet_path, a takes cursor
+        self.s.close()
+        self.path.unlink()
+        with sqlite3.connect(self.path) as raw:
+            for stmt in store_mod.MIGRATIONS[0] + store_mod.MIGRATIONS[1]:
+                raw.execute(stmt)
+            raw.execute("INSERT INTO takes (id, created_at) VALUES ('old', 1)")
+            raw.execute("INSERT INTO kv (key, value, updated_at) VALUES ('takes_cursor', '{\"backfilled_at\": 1}', 1)")
+            raw.execute("INSERT INTO kv (key, value, updated_at) VALUES ('sync', '{}', 1)")
+            raw.execute("INSERT INTO notes (subject_type, subject_id, created_at, text) VALUES ('cap', 'starcap1', 1, 'mine')")
+            raw.execute("PRAGMA user_version=2")
+            self.assertNotIn("sheet_path", [r[1] for r in raw.execute("PRAGMA table_info(takes)")])
+        self.s = Store(self.path)
+        self.assertIsNone(self.s.kv_get("takes_cursor"))                                  # next sync pulls everything
+        self.assertEqual(self.s.kv_get("sync"), {})
+        old = self.s.takes_created(0, 10)[0]
+        self.assertEqual((old["sheet_path"], old["sheet_grid"]), (None, None))
+        grid = {"cols": 8, "rows": 1, "tile_w": 480, "tile_h": 300, "pad": 2, "tiles": 4}
+        self.s.upsert("takes", [dict(old, sheet_path="analysis/c/r/contactsheet.jpg", sheet_grid=grid)])
+        new = self.s.takes_created(0, 10)[0]
+        self.assertEqual((new["sheet_path"], new["sheet_grid"]), ("analysis/c/r/contactsheet.jpg", grid))
+        self.assertEqual([n["text"] for n in self.s.notes()], ["mine"])
 
     def test_newer_file_is_refused(self):
         self.s.close()

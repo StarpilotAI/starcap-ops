@@ -297,8 +297,9 @@ def _day(req, day):
             "off_trip": rules.off_trip(req.store.takes_off_trip(t0, t1))}
 
 
-def day_cap(store, date, cap):
-    """GET /api/day/cap: one cap's row, its takes (by start) and its event log."""
+def day_cap(store, date, cap, sheets=None):
+    """GET /api/day/cap: one cap's row, its takes (by start) and its event log. `sheets`
+    (gcs.Signer) signs each take's contact-sheet link; without one, sheet_url is null."""
     req = _Req(store)
     day, cpu = _date(req, date, None), _starcap(req, cap)["cpu_id"]
     t0, t1 = clock.day_bounds(day)
@@ -311,8 +312,11 @@ def day_cap(store, date, cap):
     events = _events(req, items)
     row = _dressed(req, rules.cap_days(items, takes, req.ctx, req.now, events, _latest(req, day))[0])
     return _edge({"date": day, "cap": row["cap"], "row": rules.rounded(row),
-                  "takes": [rules.take_row(t, req.lenses) for t in takes],
-                  "events": rules.event_log(events.get(cpu, ()), row, req.now)})
+                  "takes": [dict(rules.take_row(t, req.lenses),
+                                 sheet_url=sheets.url(t.get("sheet_path")) if sheets else None) for t in takes],
+                  "events": rules.event_log(events.get(cpu, ()), row, req.now),
+                  # + a take id opens it on starcap.dev: both sheets, the labeler's marks, the video
+                  "links": {"recording": config.DASHBOARD_URL + "/recordings?rec="}})
 
 
 # --------------------------------------------------------------------------- #

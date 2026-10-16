@@ -67,6 +67,8 @@ docstrings that explain *why*, small functions, `unittest` tests).
 | boot_id, software_version, board | `analysis.device_info.{boot_id, software_version, board}` |
 | camera_unit | `analysis.device_info.camera.unit` ("43.1"), fallback trip_items.camera_id |
 | usb_path | `analysis.device_info.camera.usb_path` |
+| sheet_path | `analysis.sheet_path` ("analysis/<card>/<run>/contactsheet.jpg", the after-cut contact sheet, in gs://starcap-videos-eu) |
+| sheet_grid | `analysis.grid` + `analysis.frames` -> {cols, rows, tile_w, tile_h, pad, tiles}; `sync.sheet_grid`. One tile per `period_s` (60 s), `cols` (8) a row, each tile_w x tile_h (480x300) with `pad` (2) px around it; `tiles` = frames, else ceil(total_s / period_s), at most cols x rows |
 | fault_kind | `analysis.fault.kind` ('unrecoverable' or null) |
 | codes | `readiness_summary.codes` (array; 'no_chunks' = no video) |
 | fps | `readiness.streams.left.fps`, fallback `readiness.streams.stereo.fps` |
@@ -85,6 +87,8 @@ is indexed. Never select the whole `data` column (one scan took 22 s).
 
 `Store(path)` opens/creates SQLite (WAL, `check_same_thread=False`, one `threading.RLock`
 around every call). Schema is created on open and versioned with `PRAGMA user_version`.
+v2 (2026-10-13) added `qc_runs`; v3 (2026-10-16) adds `takes.sheet_path` / `sheet_grid` and
+drops the takes cursor, so the next sync re-pulls the whole history once to fill them.
 All loaders return `list[dict]` whose keys are exactly the columns below. JSON-ish
 columns (`codes`, `photos`) come back already decoded. Booleans come back as `bool`.
 
@@ -92,7 +96,7 @@ columns (`codes`, `photos`) come back already decoded. Booleans come back as `bo
 
 | table | columns |
 |---|---|
-| `takes` | id PK, cpu_id, trip_item_id, trip_id, created_at, updated_at, first_copied_at, uploaded_at, started_at, clock_fixed, boot_id, software_version, board, camera_unit, usb_path, recorded_s, kept_s, settled, readiness_status, codes (list[str]), fault_kind, nominal_fps (int\|None), fps, p99_dev_ms, out_of_band_pct, score, drop_pct |
+| `takes` | id PK, cpu_id, trip_item_id, trip_id, created_at, updated_at, first_copied_at, uploaded_at, started_at, clock_fixed, boot_id, software_version, board, camera_unit, usb_path, recorded_s, kept_s, settled, readiness_status, codes (list[str]), fault_kind, nominal_fps (int\|None), fps, p99_dev_ms, out_of_band_pct, score, drop_pct, sheet_path, sheet_grid (dict\|None) |
 | `items` | id PK, trip_id, cpu_id, camera_id, checkout_at, returned_at, missing, task, destination |
 | `starcaps` | cpu_id PK, name, camera_id, board, created_at |
 | `cameras` | id PK, status, retired, created_at |
@@ -400,8 +404,17 @@ severity (bad, warn, info, none), then hours desc.
 
 **`GET /api/day/cap?date=&cap=`** → `{"date", "cap", "row": <cap-day row>, "takes": [{"id", "started_at",
 "clock_fixed", "recorded_s", "bucket", "nominal_fps", "fps", "score", "p99_dev_ms", "out_of_band_pct",
-"drop_pct", "camera", "boot": "f361", "version", "codes", "fault", "uploaded_at"}], "events": [{"at", "type", "msg"}]}`
+"drop_pct", "camera", "boot": "f361", "version", "codes", "fault", "uploaded_at", "has_sheet", "sheet_grid",
+"sheet_url"}], "events": [{"at", "type", "msg"}], "links": {"recording": "https://starcap.dev/recordings?rec="}}`
 (events: only the types counted in `events`, plus rec_start/rec_stop, newest last.)
+`sheet_url` is a read link to the take's contact sheet that `gcs.Signer` signs locally (V4,
+GET only, SHEET_LINK_S = 1 h, reused until a quarter of its life is left) with the dashboard's
+GOOGLE_SERVICE_ACCOUNT_JSON_INLINE in SHEET_BUCKET (starcap-videos-eu; env.local's GCS_BUCKET
+is the old US bucket). Null when the take has no sheet (`has_sheet` false) or there is no key
+(`has_sheet` true; the server logs "contact sheets off: <why>" at start). In the drawer a take
+row opens its sheet underneath: each real tile is cut out of the one image with
+background-position and wrapped four a row (up to 120 tiles), plus `links.recording` + id,
+which opens it on starcap.dev with both sheets, the labeler's marks and the video.
 
 **`GET /api/calibration?date=`** (default today) →
 ```json

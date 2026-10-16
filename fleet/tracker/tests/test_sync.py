@@ -277,6 +277,10 @@ class Normalise(unittest.TestCase):
         t = sync.normalise_take(raw_take("a", 1791700000.0, nominal_fps=60.0, fps_left=None, fps_stereo=59.9,
                                          camera_unit=43, settled=None, codes=None))
         self.assertEqual(list(t), [c for c, _ in __import__("store").TABLES["takes"]])
+        self.assertIsNone(t["sheet_path"])
+        self.assertEqual(sync.normalise_take(raw_take("a", 1791700000.0, sheet_path="analysis/c/a/contactsheet.jpg"))
+                         ["sheet_path"], "analysis/c/a/contactsheet.jpg")
+
         self.assertEqual(t["uploaded_at"], 1791805884.76)                     # ms -> s
         self.assertEqual(t["started_at"], 1791703324.0)                       # "+0300" = 07:22:04Z
         self.assertEqual(t["first_copied_at"], 1791705600.0)                  # "...Z"
@@ -287,6 +291,17 @@ class Normalise(unittest.TestCase):
         self.assertIsNone(t["settled"])
         self.assertEqual(t["codes"], [])
         self.assertIs(t["clock_fixed"], True)
+
+    def test_sheet_grid(self):
+        # real rows, 2026-10-16: a 5 s take, a 183 s take, and a cut take (frames = tiles kept)
+        g = {"pad": 2, "cols": 8, "rows": 1, "tile_h": 300, "tile_w": 480, "total_s": 5.1, "period_s": 60}
+        self.assertEqual(sync.sheet_grid(g), {"cols": 8, "rows": 1, "tile_w": 480, "tile_h": 300, "pad": 2, "tiles": 1})
+        self.assertEqual(sync.sheet_grid(dict(g, total_s=183.2))["tiles"], 4)
+        self.assertEqual(sync.sheet_grid(dict(g, rows=7, total_s=3185.4), 54)["tiles"], 54)
+        self.assertEqual(sync.sheet_grid(dict(g, total_s=9999))["tiles"], 8)          # never past the image
+        self.assertEqual(sync.sheet_grid(dict(g, total_s=None))["tiles"], 8)
+        for bad in (None, "x", {}, dict(g, cols=0), dict(g, tile_w="wide")):
+            self.assertIsNone(sync.sheet_grid(bad))
 
     def test_take_odd_values(self):
         t = sync.normalise_take(raw_take("a", 1.0, fps_left="n/a", fps_stereo=None, score="99.5", nominal_fps=None,

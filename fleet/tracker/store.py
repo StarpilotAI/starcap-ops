@@ -45,7 +45,8 @@ TABLES = {
         ("camera_unit", "TEXT"), ("usb_path", "TEXT"), ("recorded_s", "REAL"), ("kept_s", "REAL"),
         ("settled", "INTEGER"), ("readiness_status", "TEXT"), ("codes", "TEXT"),
         ("fault_kind", "TEXT"), ("nominal_fps", "INTEGER"), ("fps", "REAL"), ("p99_dev_ms", "REAL"),
-        ("out_of_band_pct", "REAL"), ("score", "REAL"), ("drop_pct", "REAL"),
+        ("out_of_band_pct", "REAL"), ("score", "REAL"), ("drop_pct", "REAL"), ("sheet_path", "TEXT"),
+        ("sheet_grid", "TEXT"),
     ],
     "items": [
         ("id", "TEXT PRIMARY KEY"), ("trip_id", "TEXT"), ("cpu_id", "TEXT"), ("camera_id", "TEXT"),
@@ -99,12 +100,14 @@ TABLES = {
     ],
 }
 ADDED_IN = {"qc_runs": 2}                # tables created by a later migration, not by v1
+COLUMNS_ADDED_IN = {("takes", "sheet_path"): 3, ("takes", "sheet_grid"): 3}   # ALTERed in later
 PRIMARY_KEYS = {t: ("device_id", "seq") if t == "device_events" else (TABLES[t][0][0],) for t in TABLES}
 BOOL_COLS = {
     "takes": {"clock_fixed", "settled"}, "items": {"missing"}, "cameras": {"retired"},
     "tickets": {"critical"}, "devices": {"recording", "clock_synced"},
 }
-JSON_COLS = {"takes": {"codes"}, "qc_runs": {"failed_steps"}}
+JSON_COLS = {"takes": {"codes", "sheet_grid"}, "qc_runs": {"failed_steps"}}
+JSON_NULL_IS_NONE = {"sheet_grid"}   # an absent object stays None; an absent list reads as []
 CACHE_TABLES = tuple(TABLES)          # what clear_cache() empties (kv included)
 
 NOTE_SUBJECTS = ("cap", "camera")
@@ -112,8 +115,10 @@ NOTE_STATUSES = ("ok", "watch", "repair", "dead", "lost")
 NOTE_TEXT_MAX = 4000
 
 
-def _create(table):
-    body = [f"{name} {kind}" for name, kind in TABLES[table]]
+def _create(table, version):
+    """CREATE TABLE as of schema `version`: columns added later come from their own ALTER."""
+    body = [f"{name} {kind}" for name, kind in TABLES[table]
+            if COLUMNS_ADDED_IN.get((table, name), 0) <= version]
     if table == "device_events":
         # The composite primary key IS the (device_id, seq) index SPEC asks for.
         body.append("PRIMARY KEY (device_id, seq)")
@@ -122,7 +127,7 @@ def _create(table):
 
 def _ddl():
     """Schema v1, as shipped on 2026-10-12 (tables added later have their own migration)."""
-    parts = [_create(t) for t in TABLES if t not in ADDED_IN]
+    parts = [_create(t, 1) for t in TABLES if t not in ADDED_IN]
     parts += [
         # what the loaders filter on
         "CREATE INDEX IF NOT EXISTS takes_trip_item ON takes(trip_item_id)",
@@ -146,7 +151,11 @@ def _ddl():
 # that has shipped.
 MIGRATIONS = [
     _ddl(),
-    [_create("qc_runs"), "CREATE INDEX IF NOT EXISTS qc_runs_cpu ON qc_runs(cpu_id, finished_at)"],
+    [_create("qc_runs", 2), "CREATE INDEX IF NOT EXISTS qc_runs_cpu ON qc_runs(cpu_id, finished_at)"],
+    # each take's contact sheet and its tile layout; dropping the takes cursor makes the next
+    # sync re-pull the whole history, so takes synced before these columns get them too
+    ["ALTER TABLE takes ADD COLUMN sheet_path TEXT", "ALTER TABLE takes ADD COLUMN sheet_grid TEXT",
+     "DELETE FROM kv WHERE key = 'takes_cursor'"],
 ]
 SCHEMA_VERSION = len(MIGRATIONS)
 
@@ -493,10 +502,11 @@ def _decode(table, row):
             row[c] = bool(row[c])
     for c in JSON_COLS.get(table, ()):
         if c in row:
+            empty = None if c in JSON_NULL_IS_NONE else []
             try:
-                row[c] = json.loads(row[c]) if row[c] is not None else []
+                row[c] = json.loads(row[c]) if row[c] is not None else empty
             except ValueError:
-                row[c] = []
+                row[c] = empty
     return row
 
 

@@ -807,6 +807,7 @@ async function openCapDrawer(cap) {
   try {
     const d = await get("day_cap", { date, cap });
     if (!drawer.open) return;
+    S.drawer = d;                 // the take rows open their contact sheets from it
     inner.innerHTML = drawerHTML(d, row);
     mountDrawer(d);
   } catch (e) {
@@ -842,8 +843,8 @@ function drawerHTML(d, fallbackRow) {
     const extra = [t.fault ? `fault: ${t.fault}` : "", (t.codes || []).length ? `codes: ${t.codes.join(", ")}` : ""].filter(Boolean).join(" · ");
     return `<span class="st"${extra ? ` data-tip="${esc(extra)}"` : ""}><i class="sw rect${b?.hatch ? " hatch" : ""}" style="--k:${b?.color || "var(--mut)"};width:9px;height:9px;border-radius:2px"></i>${esc(b?.label || t.bucket)}</span>`;
   };
-  const takeRows = takes.map((t) => `<tr>
-      <td class="num">${esc(fHM(t.started_at))}${t.clock_fixed ? ` <span class="tag" data-tip="Start time corrected after NTP synced">NTP</span>` : ""}</td>
+  const takeRows = takes.map((t, i) => `<tr class="click take" tabindex="0" data-act="take-sheet" data-i="${i}" aria-expanded="false">
+      <td class="num"><span class="chev" aria-hidden="true">▸</span>${esc(fHM(t.started_at))}${t.clock_fixed ? ` <span class="tag" data-tip="Start time corrected after NTP synced">NTP</span>` : ""}</td>
       <td class="num">${dur(t.recorded_s)}</td>
       <td>${bucketCell(t)}</td>
       <td class="num${t.nominal_fps === 30 ? " cbad" : ""}">${t.fps == null ? "—" : Number(t.fps).toFixed(2)}</td>
@@ -860,10 +861,62 @@ function drawerHTML(d, fallbackRow) {
     <div class="dr-body">${stats}
       ${hrs.total ? `<div class="chart bar" id="c-dr-hours" style="margin-top:14px"></div><div style="margin-top:8px">${bucketLegend(hrs, hrs.total, true)}</div>` : ""}
       ${flags}
-      <h2 class="sec">Takes <span class="sub">${plural(takes.length, "take")}${takes.length ? ` · ${ok} clips, ${takes.length - ok} short` : ""}</span></h2>${takesTable}
+      <h2 class="sec">Takes <span class="sub">${plural(takes.length, "take")}${takes.length ? ` · ${ok} clips, ${takes.length - ok} short · click one for its contact sheet` : ""}</span></h2>${takesTable}
       <h2 class="sec">Events <span class="sub">times in Cairo</span></h2>${eventsTimeline(d.events || [])}
       <p class="footnote" style="display:flex;gap:16px;flex-wrap:wrap">${capLink(d.cap || r.cap).replace(">", ">Cap page: ")} ${cams.map((c) => `<a href="#/camera/${encodeURIComponent(c)}">Camera page: ${esc(c)}</a>`).join(" ")}</p>
     </div>`;
+}
+
+/* A take's contact sheet. The copy station's image is `cols` tiles a row, one per minute,
+ * so a 5 s take is one thumbnail beside seven blanks and a whole sheet squeezed into the
+ * drawer is ~55 px tall. Each real tile is cut out of the one image with background-position
+ * and wrapped at SHEET_TILE_W; the browser still loads the image once. */
+const SHEET_TILE_W = 150;          // four a row in the 720 px drawer, scrollbar included
+const SHEET_MAX_TILES = 120;          // two hours; a 10 h take opens whole on click
+
+function takeSheet(t, links) {
+  const rec = links?.recording && t.id ? links.recording + encodeURIComponent(t.id) : null;
+  const more = rec ? `<div class="sheet-more"><a href="${esc(rec)}" target="_blank" rel="noopener">Open on starcap.dev ↗</a>
+      <span class="mut">both sheets, the labeler's ✕ marks, the video</span></div>` : "";
+  if (!t.sheet_url) {
+    return `<div class="mut">${t.has_sheet ? "This take has a contact sheet, but the tracker has no key to sign a link to it."
+      : "No contact sheet yet. The copy station makes one when it copies the card."}</div>${more}`;
+  }
+  const g = t.sheet_grid;
+  if (!g) {
+    return `<a href="${esc(t.sheet_url)}" target="_blank" rel="noopener"><img class="sheet-img" src="${esc(t.sheet_url)}" alt="Contact sheet"></a>${more}`;
+  }
+  const s = SHEET_TILE_W / g.tile_w;
+  const size = `${(g.cols * g.tile_w + (g.cols + 1) * g.pad) * s}px ${(g.rows * g.tile_h + (g.rows + 1) * g.pad) * s}px`;
+  const n = Math.min(g.tiles, SHEET_MAX_TILES);
+  const tiles = Array.from({ length: n }, (_, i) => {
+    const x = (g.pad + (i % g.cols) * (g.tile_w + g.pad)) * s, y = (g.pad + Math.floor(i / g.cols) * (g.tile_h + g.pad)) * s;
+    return `<i style="background-position:${-x}px ${-y}px"></i>`;
+  }).join("");
+  const rest = g.tiles > n ? `<div class="mut sm">+ ${plural(g.tiles - n, "more minute")}: click the sheet for all of it</div>` : "";
+  return `<a class="sheet-tiles" href="${esc(t.sheet_url)}" target="_blank" rel="noopener" data-tip="Open the whole sheet"
+      style="--tw:${SHEET_TILE_W}px;--th:${g.tile_h * s}px;--bs:${size};--img:url('${esc(t.sheet_url)}')">${tiles}</a>${rest}${more}`;
+}
+
+function toggleTakeSheet(el) {
+  const next = el.nextElementSibling;
+  if (next?.classList.contains("sheet-row")) {
+    next.remove();
+    el.setAttribute("aria-expanded", "false");
+    return;
+  }
+  const t = S.drawer?.takes?.[Number(el.dataset.i)];
+  if (!t) return;
+  el.insertAdjacentHTML("afterend", `<tr class="sheet-row"><td colspan="${el.cells.length}">${takeSheet(t, S.drawer.links)}</td></tr>`);
+  el.setAttribute("aria-expanded", "true");
+  if (t.sheet_url) {
+    // a background image fires no error, so load it once more (the same URL, from cache) to hear one
+    const probe = new Image();
+    const box = el.nextElementSibling.querySelector(".sheet-tiles, .sheet-img");
+    probe.onerror = () => box?.replaceWith(Object.assign(document.createElement("div"),
+      { className: "mut", textContent: "Couldn't load the sheet from the bucket. starcap.dev may still have it." }));
+    probe.src = t.sheet_url;
+  }
 }
 
 function eventsTimeline(events) {
@@ -1831,6 +1884,7 @@ const ACTIONS = {
   },
   "open-cap": (el) => openCapDrawer(el.dataset.cap),
   "close-drawer": () => closeDrawer(),
+  "take-sheet": (el) => toggleTakeSheet(el),
   "queue-all": () => { S.queueAll = !S.queueAll; refresh(); },
   "sort-reset": (el) => { S.sorts[el.dataset.table] = null; rerender(); },
   "tickets-all": () => { S.ticketsAll = !S.ticketsAll; refresh(); },

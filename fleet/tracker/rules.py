@@ -117,7 +117,8 @@ def take_row(take, lenses):
             "out_of_band_pct": take.get("out_of_band_pct"), "drop_pct": take.get("drop_pct"),
             "camera": calib.take_key(take, lenses), "boot": (take.get("boot_id") or "")[:4] or None,
             "version": take.get("software_version"), "codes": take.get("codes") or [],
-            "fault": take.get("fault_kind"), "uploaded_at": take.get("uploaded_at")}
+            "fault": take.get("fault_kind"), "uploaded_at": take.get("uploaded_at"),
+            "has_sheet": bool(take.get("sheet_path")), "sheet_grid": take.get("sheet_grid")}
 
 
 # --------------------------------------------------------------------------- #

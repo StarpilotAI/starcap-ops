@@ -33,6 +33,7 @@ from urllib.parse import parse_qs, urlparse
 import api
 import clock
 import config
+import gcs
 import sync
 from store import Store
 
@@ -152,6 +153,7 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "StarCapTracker"
     store = None        # set in main()
     loops = None
+    sheets = None       # gcs.Signer for contact-sheet links, set in main()
     demo = False
 
     # -- plumbing ---------------------------------------------------------- #
@@ -230,7 +232,7 @@ class Handler(BaseHTTPRequestHandler):
         routes = {
             "/api/status": lambda: api.status(s, self.loops.state()),
             "/api/day": lambda: api.day(s, _q(q, "date")),
-            "/api/day/cap": lambda: api.day_cap(s, _q(q, "date"), _q(q, "cap")),
+            "/api/day/cap": lambda: api.day_cap(s, _q(q, "date"), _q(q, "cap"), self.sheets),
             "/api/calibration": lambda: api.calibration(s, _q(q, "date")),
             "/api/maintenance": lambda: api.maintenance(s, _q(q, "date")),
             "/api/field": lambda: api.field(s),
@@ -293,6 +295,10 @@ def serve(args):
     Handler.demo = args.demo
     loops = None
     if not args.demo:
+        try:
+            Handler.sheets = gcs.Signer.from_env()
+        except gcs.NoKey as e:
+            print(f"contact sheets off: {e}", flush=True)
         store = Store(args.db)
         loops = Loops(store, sync.Syncer(store))
         Handler.store, Handler.loops = store, loops

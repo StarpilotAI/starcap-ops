@@ -32,7 +32,8 @@ def _row(columns, defaults, kw):
 TAKE_COLS = ("id", "cpu_id", "trip_item_id", "trip_id", "created_at", "updated_at", "first_copied_at",
              "uploaded_at", "started_at", "clock_fixed", "boot_id", "software_version", "board",
              "camera_unit", "usb_path", "recorded_s", "kept_s", "settled", "readiness_status", "codes",
-             "fault_kind", "nominal_fps", "fps", "p99_dev_ms", "out_of_band_pct", "score", "drop_pct")
+             "fault_kind", "nominal_fps", "fps", "p99_dev_ms", "out_of_band_pct", "score", "drop_pct", "sheet_path",
+             "sheet_grid")
 ITEM_COLS = ("id", "trip_id", "cpu_id", "camera_id", "checkout_at", "returned_at", "missing", "task", "destination")
 STARCAP_COLS = ("cpu_id", "name", "camera_id", "board", "created_at")
 CAMERA_COLS = ("id", "status", "retired", "created_at")

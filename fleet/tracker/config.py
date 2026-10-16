@@ -44,6 +44,11 @@ ENV_FILES = [
 ]
 
 DASHBOARD_URL = "https://starcap.dev"
+# Contact sheets: the cap-day drawer shows each take's sheet through a read link this
+# tool signs itself (gcs.py). The footage bucket is starcap-videos-eu; env.local's
+# GCS_BUCKET still names the old US bucket, so it is not read.
+SHEET_BUCKET = os.environ.get("STARCAP_TRACKER_SHEET_BUCKET", "starcap-videos-eu")
+SHEET_LINK_S = _num("SHEET_LINK_S", 3600)       # how long one signed sheet link works
 PROJECT = "egypt"                    # recordings / trips / starcaps project_id
 TZ = ZoneInfo("Africa/Cairo")        # a "day" is a Cairo calendar day
 

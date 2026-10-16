@@ -327,6 +327,17 @@ dialog.drawer[open] { animation: slidein .18s ease-out; }
 .dr-head .facts b { color: var(--fg); font-weight: 550; }
 .dr-body { padding: 4px 20px 0; }
 .dr-body h2.sec { margin-top: 22px; }
+/* a take's contact sheet, opened under its row */
+table.t tr.take .chev { display: inline-block; width: 12px; margin-right: 4px; color: var(--mut); font-size: 10px; transition: transform .12s; }
+table.t tr.take[aria-expanded="true"] .chev { transform: rotate(90deg); color: var(--fg); }
+table.t tr.take[aria-expanded="true"] td { border-bottom-color: transparent; }
+table.t tr.sheet-row td { padding: 4px 12px 14px; background: var(--bg); }
+.sheet-tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+.sheet-tiles i { width: var(--tw); height: var(--th); border-radius: 4px; background-color: var(--panel2);
+  background-image: var(--img); background-size: var(--bs); background-repeat: no-repeat; }
+.sheet-tiles:hover i { outline: 1px solid var(--line2); }
+.sheet-img { display: block; width: 100%; height: auto; border-radius: 4px; }
+.sheet-more { margin-top: 8px; font-size: 12.5px; display: flex; gap: 8px; flex-wrap: wrap; }
 .flaglist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .flaglist li { display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
 .flaglist li .pill { flex: none; }
