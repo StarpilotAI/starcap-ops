@@ -688,6 +688,12 @@ def build_fix(info, actions, stamp):
             '  *) echo "DID=rebuilt wbcorrect from source (kernel now $M)" ;;\n'
             'esac')
 
+    # The Orange Pi 5 image mounts root with commit=600: ext4 holds these edits in
+    # memory for up to ten minutes, and a board unplugged in that window comes back
+    # with only part of the fix (starcap7, 2026-10-17: .git gone, but the pin drop-in
+    # missing and the .git backup a 0-byte file).
+    s.append('sync && echo "DID=synced to disk"')
+
     if needs_restart(info, actions):
         # The restart IS the update trigger: uploader.py starts with was_online=False,
         # so its first pass on the docked ethernet link calls maybe_update(force=True).
