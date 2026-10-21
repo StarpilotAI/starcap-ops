@@ -73,6 +73,7 @@ button { font: inherit; }
 .band { display: flex; align-items: center; gap: 18px; padding: 18px 22px; color: #fff; background: var(--idle); }
 .s-pass .band { background: var(--pass); } .s-fail .band { background: var(--fail); }
 .s-warn .band, .s-nooutput .band { background: var(--warn); }
+.s-id .band { background: var(--run); }
 .s-running .band { background: var(--run);
   background-image: linear-gradient(110deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.13) 50%, rgba(255,255,255,0) 70%);
   background-size: 250% 100%; animation: sweep 1.6s linear infinite; }
@@ -195,8 +196,8 @@ td.cpu-cell .mono { font-size: 13px; }
 td.ttl { min-width: 180px; }
 .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; background: var(--idle); }
 .d-pass { background: var(--pass); } .d-fail { background: var(--fail); }
-.d-warn, .d-nooutput { background: var(--warn); } .d-running { background: var(--run); }
-.t-pass { color: var(--pass-ink); } .t-fail { color: var(--fail-ink); } .t-warn, .t-nooutput { color: var(--warn-ink); }
+.d-warn, .d-nooutput { background: var(--warn); } .d-id { background: var(--run); } .d-running { background: var(--run); }
+.t-pass { color: var(--pass-ink); } .t-fail { color: var(--fail-ink); } .t-warn, .t-nooutput { color: var(--warn-ink); } .t-id { color: var(--run); }
 .muted { color: var(--muted); }
 .empty { color: var(--muted); padding: 8px 0; }
 
@@ -335,6 +336,7 @@ const META = {
   fail:     { word: 'FAIL',     icon: 'cross', short: 'FAIL',   guide: '' },
   warn:     { word: 'CHECK',    icon: 'bang',  short: 'CHECK',  guide: '' },
   nooutput: { word: 'NO LOG',   icon: 'quest', short: 'NO LOG', guide: 'Nothing came out of the board. Check the wiring below, then power-cycle it again.' },
+  id:       { word: 'ID READ',  icon: 'check', short: 'ID',     guide: 'Read from the chip itself in maskrom. Power-cycle the board to leave maskrom.' },
   running:  { word: 'CHECKING', icon: 'spin',  short: '…',      guide: 'Keep the power on. This takes a few seconds.' },
   idle:     { word: 'READY',    icon: 'plug',  short: '',       guide: '' },
 };
@@ -780,7 +782,7 @@ $('#sound').onchange = e => {
   if (soundOn) beep('pass');
 };
 
-const FAV = { pass: '#17803a', fail: '#c42b2b', warn: '#a15c00', nooutput: '#a15c00', running: '#0b5cad', idle: '#59636e' };
+const FAV = { pass: '#17803a', fail: '#c42b2b', warn: '#a15c00', nooutput: '#a15c00', id: '#0b5cad', running: '#0b5cad', idle: '#59636e' };
 let lastFav = '';
 function renderTitle() {
   const b = state && state.boot;

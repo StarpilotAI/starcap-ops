@@ -38,7 +38,8 @@ KERNEL = re.compile(r"Starting kernel|Booting Linux on physical CPU|Linux versio
 # the serial-console login prints it as "CPUID=<16 hex>". Both are anchored to the
 # whole line: the shell's echo of the login's own command line contains "CPUID=$(",
 # and "PreSerial: 0, raw, ..." from U-Boot must not count either.
-SERIAL = re.compile(r"(?:\bSerial\s*:\s*|^CPUID=)([0-9a-f]{16})$")
+SERIAL = re.compile(r"(?:\bSerial\s*:\s*|^CPUID=)([0-9a-f]{15,16})$")   # %llx: may drop a leading 0
+OTP_RAW = re.compile(r"^OTP=([0-9a-f]{32})$")       # cpuid/ maskrom program's raw fuse bytes
 NAME = re.compile(r"^STARCAP_NAME=(starcap\w+)$")
 LOGIN = re.compile(r"login:\s*$")
 CRASH = re.compile(r"Kernel panic|Internal error: Oops|SError Interrupt|Bad page state|"
@@ -112,6 +113,8 @@ class Boot:
         self.cpu_id = None
         self.name = None
         self.crashes = []
+        self.maskrom_id = False      # the cpuid/ maskrom program printed the ID
+        self.otp_raw = None
         self.cut = False             # the Splitter saw the power go (noise then silence, or a new banner)
         self.notes = []              # extra verdict lines from the reader ("adapter dropped off")
         # Filled in by the live reader (ramcheck.Hub), not by parsing.
@@ -173,6 +176,14 @@ class Boot:
         m = SERIAL.search(line)
         if m:
             self.cpu_id = m.group(1)
+            if line.startswith("CPUID="):
+                self.maskrom_id = True
+        m = OTP_RAW.search(line)
+        if m:
+            self.otp_raw = m.group(1)
+        if line.startswith("CPUID_ERROR="):
+            self.maskrom_id = True
+            self.notes.append("The ID program ran but could not read the fuses: " + line)
         m = NAME.search(line)
         if m:
             self.name = m.group(1)
@@ -223,6 +234,15 @@ class Boot:
         `finished` = the line went quiet (or the power went), so a board stuck
         mid-way is final. Until then only proof is final: the blob gives up after
         its one retry, so two ERRs are FAULTY RAM even while the line is live."""
+        if self.maskrom_id and not self.attempts:
+            # The cpuid/ program sent in maskrom: no RAM check ran, by design.
+            if not self.cpu_id:
+                return {"status": "warn", "title": "ID program ran, but read no ID",
+                        "details": list(self.notes)}
+            return {"status": "id", "title": "Board identified from its fuses",
+                    "details": [f"cpu_id {self.cpu_id}, read from the chip itself in maskrom",
+                                *( [f"raw fuse bytes: {self.otp_raw}"] if self.otp_raw else []),
+                                "Nothing was written to the board. Power-cycle it to leave maskrom."]}
         d = []
         if self.dram_type:
             d.append(f"RAM chip: {self.dram_type} at {self.dram_mhz} MHz")

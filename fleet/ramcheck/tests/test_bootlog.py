@@ -416,3 +416,33 @@ class Boundaries(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MaskromId(unittest.TestCase):
+    """Output of cpuid/ (the SRAM program sent in maskrom)."""
+
+    def test_identified(self):
+        b = Boot()
+        for raw in ["\x00\r\n", "CPUID=ed013a06c1afc69f\r\n",
+                    "OTP=0b30557a9fc4e90e33587da2c7ec1136\r\n", "CPUID=ed013a06c1afc69f\r\n"]:
+            b.feed(raw)
+        v = b.verdict(True)
+        self.assertEqual((v["status"], b.cpu_id), ("id", "ed013a06c1afc69f"))
+        self.assertEqual(b.otp_raw, "0b30557a9fc4e90e33587da2c7ec1136")
+
+    def test_leading_zero_dropped_by_llx(self):
+        b = Boot()
+        b.feed("CPUID=d013a06c1afc69f\r\n")              # 15 digits
+        self.assertEqual(b.cpu_id, "d013a06c1afc69f")
+
+    def test_fuse_read_timeout_is_not_an_id(self):
+        b = Boot()
+        b.feed("CPUID_ERROR=otp-timeout\r\n")
+        v = b.verdict(True)
+        self.assertEqual(v["status"], "warn")
+        self.assertIsNone(b.cpu_id)
+
+    def test_echoed_command_is_not_an_id(self):
+        b = Boot()
+        b.feed("pi@NanoPi-R76S:~$ echo CPUID=$(tr -d '\\000' </proc/device-tree/serial-number)\r\n")
+        self.assertIsNone(b.cpu_id)

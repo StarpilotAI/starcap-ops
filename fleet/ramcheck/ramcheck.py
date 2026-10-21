@@ -637,8 +637,8 @@ def serve(hub, port):
 
 
 # ---------------------------------------------------------------- replay
-REPLAY_EXIT = {"pass": 0, "fail": 1, "warn": 2, "nooutput": 3}
-SEVERITY = ["pass", "nooutput", "warn", "fail"]
+REPLAY_EXIT = {"pass": 0, "id": 0, "fail": 1, "warn": 2, "nooutput": 3}
+SEVERITY = ["pass", "id", "nooutput", "warn", "fail"]
 
 
 def replay(path):

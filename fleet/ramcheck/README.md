@@ -52,3 +52,6 @@ the same RAM program first.
   sticker or the registry is wrong.
 
 Every power-on is saved in `logs/` (gitignored) as `<time>_<name>.log` + `.json`.
+
+For a dead board with no label and no SD card, [`cpuid/`](cpuid/README.md) makes
+the chip print its own cpu_id in maskrom (not yet proven on hardware).
