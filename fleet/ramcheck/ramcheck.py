@@ -51,6 +51,7 @@ from urllib.parse import parse_qs, urlparse
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import bootlog  # noqa: E402
+import maskrom  # noqa: E402
 
 LOG_DIR = os.path.join(HERE, "logs")
 REGISTRY = os.path.join(HERE, "..", "opm-name", "board_registry.json")
@@ -206,6 +207,8 @@ class Hub:
         self._cache = {}
         self._cache_lock = threading.Lock()
         self._sent_verdict = None
+        self.usb = None              # Rockchip board on USB (maskrom.find_board)
+        self.cpuid_job = {"state": "idle", "msg": ""}
         os.makedirs(log_dir, exist_ok=True)
         self._load_history()
 
@@ -298,7 +301,8 @@ class Hub:
                     "login": self.bot.state()}
         return {"port": self.port, "port_error": self.port_error, "boot": info,
                 "label": self.label, "can_write": self.can_write,
-                "history": self.history[:30]}
+                "history": self.history[:30], "usb": self.usb,
+                "cpuid_job": dict(self.cpuid_job)}
 
     def _verdict_event(self, b, finished):
         return {"id": b.id, "stage": b.stage, "verdict": b.verdict(finished),
@@ -414,6 +418,41 @@ class Hub:
             b.rec.clear()
             b.rec.update(rec)                # same dict the history holds
         self.emit("history", self.history[:30])
+
+    # -- reading the cpu_id from a board in maskrom (cpuid/)
+    def set_usb(self, dev):
+        with self.lock:
+            if dev != self.usb:
+                self.usb = dev
+                if dev is None and self.cpuid_job["state"] != "running":
+                    self.cpuid_job = {"state": "idle", "msg": ""}
+                self.emit("state", self.snapshot())
+
+    def start_cpuid(self, send=None):
+        """Send cpuid/ to the board in maskrom, in the background. -> (ok, msg)."""
+        send = send or maskrom.send_cpuid
+        with self.lock:
+            dev = self.usb
+            if self.cpuid_job["state"] == "running":
+                return False, "already sending"
+            if not dev:
+                return False, "no board on USB: connect the A-to-A cable"
+            if dev["mode"] != "maskrom":
+                return False, ("the board is in loader mode, not maskrom: power it off, "
+                               "hold MASKROM, power on")
+            if not dev["writable"]:
+                return False, ("no permission on the board's USB: run ./install.sh once "
+                               "(udev rule), then replug the A-to-A cable")
+            self.cpuid_job = {"state": "running", "msg": "Sending the ID program…"}
+            self.emit("state", self.snapshot())
+
+        def run():
+            ok, msg = send()
+            with self.lock:
+                self.cpuid_job = {"state": "done" if ok else "error", "msg": msg}
+                self.emit("state", self.snapshot())
+        threading.Thread(target=run, daemon=True).start()
+        return True, "sending"
 
     def set_label(self, name):
         label = normalise_name(name)
@@ -535,6 +574,16 @@ def reader(hub, patterns=TTY_GLOBS, stop=None):
             hub.port_lost(path)
 
 
+def usb_watcher(hub, stop=None, find=maskrom.find_board):
+    """Notice a board appearing in maskrom (A-to-A cable) for the Read ID button."""
+    while not (stop and stop.is_set()):
+        try:
+            hub.set_usb(find())
+        except OSError:
+            pass
+        time.sleep(1.0)
+
+
 def ticker(hub, stop=None):
     """Close a power-on once the line goes quiet, so a hung board gets a final verdict."""
     while not (stop and stop.is_set()):
@@ -621,6 +670,9 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError
         except ValueError:
             return self._json({"error": "bad request"}, 400)
+        if u.path == "/api/cpuid":
+            ok, msg = self.hub.start_cpuid()
+            return self._json({"ok": ok, "msg": msg}, 200 if ok else 409)
         if u.path == "/api/label":
             name = body.get("name")
             label = self.hub.set_label(name if isinstance(name, str) else None)
@@ -692,6 +744,7 @@ def main():
         return
     threading.Thread(target=reader, args=(hub, (a.tty,) if a.tty else TTY_GLOBS), daemon=True).start()
     threading.Thread(target=ticker, args=(hub,), daemon=True).start()
+    threading.Thread(target=usb_watcher, args=(hub,), daemon=True).start()
     print(f"RAM Check on {url}  (Ctrl+C to stop)")
     if not a.no_browser:
         threading.Timer(0.8, webbrowser.open, (url,)).start()

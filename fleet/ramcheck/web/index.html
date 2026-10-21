@@ -144,6 +144,8 @@ button { font: inherit; }
 .alert { border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; font-weight: 600; }
 .alert.bad { background: var(--fail-soft); color: var(--fail-ink); border: 1px solid var(--fail); }
 .alert.warn { background: var(--warn-soft); color: var(--warn-ink); border: 1px solid var(--warn); }
+.alert.info { background: var(--panel2); color: var(--ink); border: 1px solid var(--run); font-weight: 500; }
+.alert.info b { font-weight: 700; }
 .alert-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 
 form.label { display: flex; gap: 8px; margin: 0; }
@@ -266,6 +268,7 @@ details.card .wiring b { color: var(--ink); }
       </div>
       <div class="src" id="cpusrc"></div>
       <div id="alerts"></div>
+      <div id="chipid"></div>
       <dl class="facts" id="facts"></dl>
       <div class="labelbox" id="labelbox">
         <form class="label" id="labelform" autocomplete="off">
@@ -484,7 +487,7 @@ function renderIdent() {
   else if (!b) src = 'Power-cycle a board to start.';
   else if (label) src = `No cpu_id on file for ${label}. Check the number on the sticker.`;
   else if (b.stage === 'login' && !b.finished && state.can_write) src = 'Reading it from the board…';
-  else src = 'A board that boots reports it. If it fails the RAM check, type its sticker number below.';
+  else src = 'A board that boots reports it. If it fails the RAM check, read it from the chip over USB (below), or type its sticker number.';
   $('#cpusrc').textContent = src;
 
   let alerts = '';
@@ -511,6 +514,40 @@ function renderIdent() {
 
   const inp = $('#label');
   if (document.activeElement !== inp && !labelDirty) inp.value = label || '';
+  renderChipId();
+}
+
+// Read the cpu_id from the chip itself: cpuid/ sent over USB in maskrom.
+function renderChipId() {
+  const box = $('#chipid');
+  const usb = state && state.usb ? obj(state.usb) : null;
+  const job = obj(state && state.cpuid_job);
+  const b = state && state.boot;
+  const ident = obj(b && b.identity);
+  const ramDead = b && b.verdict && ['fail', 'warn'].includes(b.verdict.status);
+  let h = '';
+  if (usb && usb.mode === 'maskrom') {
+    const busy = job.state === 'running';
+    h = `<div class="alert info"><b>Board in maskrom on USB.</b> Read its cpu_id straight from the chip (works with dead RAM, writes nothing).
+      <div class="alert-acts"><button class="btn primary" type="button" id="readchip"${busy ? ' disabled' : ''}>${busy ? 'Reading…' : 'Read CPU ID from the chip'}</button></div>`;
+    if (job.msg && job.state !== 'idle') h += `<div class="src" style="margin-top:6px">${esc(job.msg)}</div>`;
+    h += '</div>';
+  } else if (usb) {
+    h = `<div class="alert warn">Board on USB in loader mode, not maskrom. Unplug its power, hold MASKROM, power on, then try again.</div>`;
+  } else if (job.state === 'done' || job.state === 'error') {
+    h = `<div class="alert ${job.state === 'done' ? 'info' : 'bad'}">${esc(job.msg)}</div>`;
+  } else if (ramDead && !ident.board_cpu_id) {
+    h = `<div class="alert info">To read this board's cpu_id from the chip: plug the <b>A-to-A USB cable</b> into the laptop. A board with dead RAM drops into maskrom by itself; if nothing appears, power-cycle it holding MASKROM.</div>`;
+  }
+  box.innerHTML = h;
+  const btn = $('#readchip');
+  if (btn) btn.onclick = async () => {
+    btn.disabled = true; btn.textContent = 'Reading…';
+    try {
+      const r = obj(await fetch('/api/cpuid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()));
+      if (!r.ok) { btn.disabled = false; btn.textContent = 'Read CPU ID from the chip'; box.insertAdjacentHTML('beforeend', `<div class="alert bad">${esc(r.msg || 'failed')}</div>`); }
+    } catch (e) { btn.disabled = false; btn.textContent = 'Read CPU ID from the chip'; }
+  };
 }
 
 $('#copycpu').onclick = e => copyText(e.currentTarget.dataset.cpu, e.currentTarget);

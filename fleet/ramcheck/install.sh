@@ -23,7 +23,7 @@ install_deps
 chmod +x "$HERE/run.sh" "$HERE/ramcheck.py"
 
 # CH340, CH9102, CH341, CP210x, FTDI and PL2303: the common 3.3 V USB-TTL adapters.
-if [ ! -f "$RULE" ]; then
+if ! grep -q '2207' "$RULE" 2>/dev/null; then
   echo "  udev: making USB-TTL adapters readable without sudo ($RULE)"
   sudo tee "$RULE" >/dev/null <<'RULES'
 # Written by starcap-ops/fleet/ramcheck/install.sh: USB-TTL adapters for board debug UARTs.
@@ -33,6 +33,8 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="5523", MODE="0666"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="0666"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="0666"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", MODE="0666"
+# Rockchip boot ROM / loader (maskrom), so RAM Check can send cpuid/ without sudo.
+SUBSYSTEM=="usb", ATTR{idVendor}=="2207", MODE="0666"
 RULES
   sudo udevadm control --reload-rules
   sudo udevadm trigger --subsystem-match=tty --action=add

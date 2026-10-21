@@ -506,3 +506,59 @@ class Replay(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+import maskrom  # noqa: E402
+
+
+class Maskrom(unittest.TestCase):
+    """The Read CPU ID button: finding a board in maskrom and sending cpuid/."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
+        self.hub = Hub(log_dir=os.path.join(self.dir, "logs"), lookup_fn=FakeLookup())
+
+    def fake_sysfs(self, vendor, bcd):
+        d = os.path.join(self.dir, "sys", "1-1")
+        os.makedirs(d, exist_ok=True)
+        for k, v in {"idVendor": vendor, "idProduct": "350e", "busnum": "1",
+                     "devnum": "14", "bcdDevice": bcd}.items():
+            with open(os.path.join(d, k), "w") as f:
+                f.write(v + "\n")
+        return os.path.join(self.dir, "sys")
+
+    def test_find_board_modes(self):
+        dev = maskrom.find_board(self.fake_sysfs("2207", "0100"))
+        self.assertEqual((dev["id"], dev["mode"], dev["node"]),
+                         ("2207:350e", "maskrom", "/dev/bus/usb/001/014"))
+        self.assertEqual(maskrom.find_board(self.fake_sysfs("2207", "0223"))["mode"], "loader")
+        self.assertIsNone(maskrom.find_board(self.fake_sysfs("1a86", "0264")))
+
+    def run_job(self, dev, send):
+        self.hub.set_usb(dev)
+        ok, msg = self.hub.start_cpuid(send=send)
+        for _ in range(100):
+            if self.hub.cpuid_job["state"] != "running":
+                break
+            time.sleep(0.01)
+        return ok, msg
+
+    def test_sends_only_in_maskrom_with_access(self):
+        calls = []
+        send = lambda: (calls.append(1), (True, "Sent."))[1]  # noqa: E731
+        base = {"id": "2207:350e", "node": "/dev/bus/usb/001/014"}
+        self.assertFalse(self.hub.start_cpuid(send=send)[0])              # nothing on USB
+        self.assertIn("loader mode", self.run_job(dict(base, mode="loader", writable=True), send)[1])
+        self.assertIn("install.sh", self.run_job(dict(base, mode="maskrom", writable=False), send)[1])
+        self.assertEqual(calls, [])
+        ok, _ = self.run_job(dict(base, mode="maskrom", writable=True), send)
+        self.assertTrue(ok)
+        self.assertEqual(calls, [1])
+        self.assertEqual(self.hub.snapshot()["cpuid_job"]["state"], "done")
+
+    def test_failure_is_reported(self):
+        dev = {"id": "2207:350e", "node": "x", "mode": "maskrom", "writable": True}
+        self.run_job(dev, lambda: (False, "upgrade_tool: Download boot failed"))
+        self.assertEqual(self.hub.cpuid_job["state"], "error")
+        self.assertIn("failed", self.hub.snapshot()["cpuid_job"]["msg"])
