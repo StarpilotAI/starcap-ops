@@ -1,0 +1,28 @@
+DDR e10b4dfeaf wesley.yao 26/04/29-09:42:15,fwver: v1.13
+In
+ch0 ttot6
+ch1 ttot6
+ch0 ttot7
+LPDDR5, 2736MHz
+channel[0] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+ch1 ttot7
+channel[1] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+Manufacturer ID:0xff
+ch:0 dq7 fail,write:0x80,read:0x1080
+ch:0 dq15 fail,write:0x8000,read:0x9000
+error
+ERR
+DDR e10b4dfeaf wesley.yao 26/04/29-09:42:15,fwver: v1.13
+In
+pd/pu vd_ddr
+ch0 ttot6
+ch1 ttot6
+ch0 ttot7
+LPDDR5, 2736MHz
+channel[0] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+ch1 ttot7
+channel[1] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+Manufacturer ID:0xff
+ch:0 dq15 fail,write:0x8000,read:0x9000
+error
+ERR

@@ -33,6 +33,7 @@ network layout, the logins, and a fresh-laptop checklist.
 | grade a board's true fps / snapshot its hardware | `fleet/board-grading/` | `measure-fps <ip> <label> 90`, `board-fingerprint <ip>` |
 | silence the boot beep, fix the timezone, check a camera's USB link | `fleet/pi-fixes/` | see its `install.sh` output |
 | turn an SD card into plain ext4 storage | `storage/sd-format/` | `format-sd-storage` |
+| check a NanoPi's RAM on the debug UART: live boot log, verdict per power-on, its cpu_id | `fleet/ramcheck/` | `RAM Check` launcher, http://127.0.0.1:8776 |
 | flash a board (NanoPi or Orange Pi, SD or eMMC) | `flashing/` | see its [README](flashing/README.md); images via `flashing/fetch_images.sh` |
 | live-tune a camera's v4l2 controls in the browser | `camera/camrig/` | `camrig` launcher |
 | see a DECXIN live at native resolution | `camera/camrig/` | `CamView` launcher, or press ± |
