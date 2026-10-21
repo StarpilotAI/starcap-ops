@@ -446,3 +446,14 @@ class MaskromId(unittest.TestCase):
         b = Boot()
         b.feed("pi@NanoPi-R76S:~$ echo CPUID=$(tr -d '\\000' </proc/device-tree/serial-number)\r\n")
         self.assertIsNone(b.cpu_id)
+
+
+class MaskromIdOnHardware(unittest.TestCase):
+    def test_starcap163_real_run(self):
+        # 2026-10-21 16:13: failed RAM check, fell into maskrom, cpuid/ sent.
+        b = Boot()
+        for raw in lines("starcap163_maskrom_cpuid.log"):
+            b.feed(raw)
+        self.assertEqual(b.cpu_id, "ed013a06c1afc69f")
+        self.assertEqual(b.otp_raw, "4e5948383900000000000000000f0a0b")
+        self.assertEqual(b.verdict(True)["status"], "fail")    # the RAM is still dead

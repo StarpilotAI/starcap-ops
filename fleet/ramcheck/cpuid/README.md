@@ -12,8 +12,12 @@ OTP=<the 16 raw cpu-id fuse bytes>
 
 RAM Check shows it as **ID READ** and looks the board up by that cpu_id.
 
-**Status (2026-10-21): built and checked offline, NOT yet run on a board.**
-First run it on a healthy board whose cpu_id is known, and compare.
+**Status: PROVEN on hardware 2026-10-21.** First run, on starcap163 (dead RAM:
+"unknown device"), printed `CPUID=ed013a06c1afc69f`, exactly the cpu_id the
+tracker holds for starcap163, and `OTP=4e5948383900000000000000000f0a0b`, which
+`serial_from_otp.py` turns into the same value. That board ran its failing RAM
+check on a normal power-on and then fell into maskrom by itself, so the button
+may not even be needed on a dead-RAM board.
 
 ## How it works
 

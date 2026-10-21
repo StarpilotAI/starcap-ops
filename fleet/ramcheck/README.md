@@ -54,4 +54,4 @@ the same RAM program first.
 Every power-on is saved in `logs/` (gitignored) as `<time>_<name>.log` + `.json`.
 
 For a dead board with no label and no SD card, [`cpuid/`](cpuid/README.md) makes
-the chip print its own cpu_id in maskrom (not yet proven on hardware).
+the chip print its own cpu_id in maskrom (proven on starcap163, 2026-10-21).
