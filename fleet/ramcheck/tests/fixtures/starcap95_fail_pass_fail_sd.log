@@ -1,0 +1,66 @@
+DDR e10b4dfeaf wesley.yao 26/04/29-09:42:15,fwver: v1.13
+In
+ch0 ttot6
+ch1 ttot6
+ch0 ttot7
+LPDDR5, 2736MHz
+channel[0] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+ch1 ttot7
+channel[1] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+Manufacturer ID:0xff
+ch:0 dq7 fail,write:0x80,read:0x1080
+ch:0 dq15 fail,write:0x8000,read:0x9000
+error
+ERR
+DDR e10b4dfeaf wesley.yao 26/04/29-09:42:15,fwver: v1.13
+In
+pd/pu vd_ddr
+ch0 ttot6
+ch1 ttot6
+ch0 ttot7
+LPDDR5, 2736MHz
+channel[0] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+ch1 ttot7
+channel[1] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+Manufacturer ID:0xff
+CH0 RX Vref:28.2%, RX DQS Vref:37.2%, TX Vref:19.0%,0.0%
+DQ roc:
+p0 n0, p1 n1, p0 n0, p2 n1, p0 n0, p7 n0, p4 n1, p0 n0, p5 n0,
+p2 n0, p5 n0, p7 n0, p1 n4, p2 n0, p0 n0, p2 n2, p3 n0, p1 n0,
+DQ rds:l0 l0 l0 l0 l0 h1 l0 l0 , l0 l0 l0 h1 l0 l0 l0 l0 , l0 l0
+DQS roc: p1, n0, p1, n0
+CH1 RX Vref:24.9%, RX DQS Vref:33.7%, TX Vref:19.0%,0.0%
+DQ roc:
+p6 n0, p0 n0, p2 n0, p0 n0, p0 n0, p3 n1, p6 n0, p3 n0, p3 n0,
+p2 n2, p0 n0, p0 n0, p5 n0, p2 n0, p1 n0, p0 n0, p2 n0, p0 n1,
+DQ rds:h1 l0 l0 l0 l0 l0 h1 l0 , l0 l0 l0 l0 h1 l0 l0 l0 , l0 l0
+DQS roc: p2, n0, p0, n0
+change to F1: 534MHz
+ch0 ttot6
+ch1 ttot6
+change to F2: 1320MHz
+ch0 ttot8
+ch1 ttot8
+change to F3: 1968MHz
+ch0 ttot6
+ch1 ttot6
+change to F0: 2736MHz
+ch0 ttot7
+ch1 ttot7
+stride=0x3, ddr_config=0x2
+hash bank_mask0-3 0x0 0x2100 0x44200 0x88400, rank_mask0 0x0
+out
+DDR e10b4dfeaf wesley.yao 26/04/29-09:42:15,fwver: v1.13
+In
+pd/pu vd_ddr
+ch0 ttot6
+ch1 ttot6
+ch0 ttot7
+LPDDR5, 2736MHz
+channel[0] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+ch1 ttot7
+channel[1] BW=16 Col=10 Bk=16 CS0 Row=16 CS=1 Die BW=16 Size=2048MB
+Manufacturer ID:0xff
+ch:0 dq15 fail,write:0x8000,read:0x9000
+error
+ERR

@@ -52,7 +52,8 @@ MAX_LINES = 20000        # a board left panicking for an hour must not eat the l
 MAX_CRASHES = 20
 
 # Power-on boundaries (Splitter). Seconds.
-RETRY_GAP_S = 1.5        # "ERR" then the blob's own retry banner arrives faster than this
+RETRY_GAP_S = 3.0        # "ERR"/"out" then the next RAM attempt (retry, or the boot ROM
+                         # moving on to the next boot device) arrives faster than this
 MERGE_S = 6.0            # noise this long before a banner is that power-on's start
 PARTIAL_S = 0.5          # an unterminated noise burst (a cut's NULs) counts after this
 # A real power cut sprays ~25 bytes (NULs and the odd 0xE0) with no newline, and
@@ -244,6 +245,14 @@ class Boot:
                     "details": why + tries + d + notes +
                                ["Hardware fault on the board: RMA. Reflashing cannot fix it."]}
 
+        if why and self.stage == "ram" and finished:
+            # A pass somewhere among failures, and the bootloader never ran: the
+            # passes are luck, the stuck/missing line is the board.
+            return {"status": "fail", "title": "FAULTY RAM (intermittent)",
+                    "details": why + tries + d + notes +
+                               ["It passed some attempts but never got past the RAM stage.",
+                                "Hardware fault on the board: RMA. Reflashing cannot fix it."]}
+
         if self.trained or self.stage in ("spl", "uboot", "kernel", "login"):
             d.insert(0, "RAM check passed")
             if not self.attempts:
@@ -267,6 +276,15 @@ class Boot:
             if not finished:
                 return {"status": "running",
                         "title": f"RAM OK, booting… ({STAGE_LABEL[self.stage]})", "details": d}
+            if self.stage == "ram" and self.attempts > 1 and self.errors < self.attempts:
+                # Trained ("out"), yet the boot ROM ran the RAM program again: the
+                # bootloader it loaded died before printing. It runs IN the RAM.
+                return {"status": "warn", "title": "RAM passed, but the bootloader never started",
+                        "details": d + [f"The RAM program ran {self.attempts} times in one power-on: "
+                                        "after each pass the bootloader died silently.",
+                                        "The bootloader runs in RAM, so suspect intermittent RAM "
+                                        "(power-cycle a few times and watch for 'dq fail') before "
+                                        "blaming the eMMC."]}
             where = (f"at {STAGE_LABEL[self.stage]}" if self.stage != "ram"
                      else "before the bootloader")
             if self.cut:
@@ -411,8 +429,12 @@ class Splitter:
             text = text[m.start():]
         if m:
             b = self.boot
-            retry = (b is not None and self.open and not self.fresh and b.attempts == 1
-                     and b.lines and b.lines[-1] == "ERR"
+            # Still the same power-on: the blob's own retry after "ERR", or the boot
+            # ROM re-running the RAM program from the next IDB copy / the SD card
+            # after "out" when the bootloader it loaded never started (starcap95,
+            # 2026-10-21: fail, pass, fail within one second, one power-on).
+            retry = (b is not None and self.open and not self.fresh and b.stage == "ram"
+                     and b.lines and b.lines[-1] in ("ERR", "out")
                      and now - self.last_line_at < RETRY_GAP_S)
             if not retry:
                 self._new(ev)

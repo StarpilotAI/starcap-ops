@@ -249,9 +249,28 @@ class Boundaries(unittest.TestCase):
         self.assertEqual(b.verdict(True)["status"], "fail")
 
     def test_retry_banner_after_a_pause_is_a_new_power_on(self):
-        # Hung after one ERR, power pulled and replugged 3 s later.
-        r = Run().feed(first_attempt(DQ12)).wait(3).feed(UNKNOWN)
+        # Hung after one ERR, power pulled and replugged 4 s later.
+        r = Run().feed(first_attempt(DQ12)).wait(4).feed(UNKNOWN)
         self.assertEqual(len(r.boots()), 2)
+
+    def test_boot_rom_rerun_from_sd_is_one_power_on(self):
+        # starcap95, 2026-10-21 14:19:46: fail, pass ("out"), then the boot ROM ran
+        # the RAM program again from the SD card and it failed: one power-on.
+        r = Run().feed(fixture("starcap95_fail_pass_fail_sd.log")).wait(10)
+        self.assertEqual(len(r.boots()), 1)
+        b = r.boots()[0]
+        self.assertEqual((b.attempts, b.errors), (3, 2))
+        v = b.verdict(True)
+        self.assertEqual((v["status"], v["title"]), ("fail", "FAULTY RAM (intermittent)"))
+
+    def test_pass_then_rerun_means_the_bootloader_died(self):
+        # starcap95, 14:03:47: two clean passes, no SPL. The bootloader runs in RAM.
+        one = fixture("good_lpddr5_fresh_board.log").split("U-Boot SPL board init")[0]
+        r = Run().feed(one).feed(one.replace("In\n", "In\npd/pu vd_ddr\n", 1)).wait(10)
+        self.assertEqual(len(r.boots()), 1)
+        v = r.boots()[0].verdict(True)
+        self.assertEqual(v["status"], "warn")
+        self.assertIn("bootloader never started", v["title"])
 
     def test_power_cycle_after_a_hang_is_a_new_power_on(self):
         r = Run().feed(UNKNOWN).wait(10).feed("\x00\x00").wait(2).feed(DQ12).wait(5)
