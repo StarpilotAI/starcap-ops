@@ -44,16 +44,16 @@
 #
 # THIS PERMANENTLY ERASES EVERYTHING ON THE TARGET DEVICE.
 #
-# Usage:  ./format_sd_storage.sh /dev/sdX [/dev/sdY ...] [--label NAME] [--yes]
+# Usage:  ./format_sd_storage.sh /dev/sdX [/dev/sdY ...] [--label NAME]
 #         ./format_sd_storage.sh /dev/sdX [/dev/sdY ...] --check
 #   /dev/sdX      the WHOLE disk device (not a partition, e.g. /dev/sdb not
 #                 /dev/sdb1) — find it with `lsblk` first. Several cards are
-#                 done one after another, after a single confirmation.
+#                 done one after another. There is NO confirmation prompt —
+#                 it starts wiping straight away.
 #   --all         every card currently in a reader: removable (RM=1) whole
 #                 disks with media, up to 512 GiB. Never the laptop's own disk
 #                 or a USB SSD (those report RM=0). The list is shown first.
 #   --label NAME  ext4 volume label (default: starcap_storage)
-#   --yes         skip the confirmation prompt
 #   --check       read-only: report whether the card would hijack a NanoPi's
 #                 boot, and change nothing. Safe to run on any card.
 set -euo pipefail
@@ -69,13 +69,12 @@ LOADER_COUNT=1984        # ...through sector 2047, i.e. up to the 1 MiB mark
 
 DEVS=()
 LABEL="starcap_storage"
-AUTO_YES=0
 CHECK_ONLY=0
 ALL=0
 ALL_MAX_BYTES=$(( 512 * 1024 * 1024 * 1024 ))
 while [ $# -gt 0 ]; do
   case "$1" in
-    --yes)   AUTO_YES=1 ;;
+    --yes)   ;;         # no-op, kept so old invocations still work
     --check) CHECK_ONLY=1 ;;
     --all)   ALL=1 ;;
     --label) shift; LABEL="${1:?--label needs a value}" ;;
@@ -96,21 +95,19 @@ if [ "$ALL" -eq 1 ]; then
   # a single card still goes through the multi-card path so it gets the listing
 fi
 
-[ "${#DEVS[@]}" -gt 0 ] || { echo "usage: $0 /dev/sdX [/dev/sdY ...] | --all  [--label NAME] [--yes] [--check]"; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT; exit 1; }
+[ "${#DEVS[@]}" -gt 0 ] || { echo "usage: $0 /dev/sdX [/dev/sdY ...] | --all  [--label NAME] [--check]"; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT; exit 1; }
 
-# several cards: confirm once for the lot, then run this script on each in
-# turn (every one gets the full set of safety checks and its own verify)
+# several cards: run this script on each in turn (every one gets the full set
+# of safety checks and its own verify)
 if [ "${#DEVS[@]}" -gt 1 ] || [ "$ALL" -eq 1 ]; then
-  if [ "$CHECK_ONLY" -ne 1 ] && [ "$AUTO_YES" -ne 1 ]; then
+  if [ "$CHECK_ONLY" -ne 1 ]; then
     lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT "${DEVS[@]}"
     echo
-    echo "!! About to WIPE ALL ${#DEVS[@]} of: ${DEVS[*]} and reformat each as one ext4 partition (label: $LABEL) !!"
-    read -r -p "Type 'format' to continue: " CONFIRM
-    [ "$CONFIRM" = "format" ] || { echo "aborted — nothing written."; exit 1; }
+    echo "!! WIPING ALL ${#DEVS[@]} of: ${DEVS[*]} and reformatting each as one ext4 partition (label: $LABEL) !!"
   fi
   sudo -v || { echo "!! sudo failed — nothing written."; exit 1; }   # ask the password once, up front
   ARGS=(--label "$LABEL")
-  [ "$CHECK_ONLY" -eq 1 ] && ARGS+=(--check) || ARGS+=(--yes)
+  [ "$CHECK_ONLY" -eq 1 ] && ARGS+=(--check)
   OK=(); BAD=()
   for d in "${DEVS[@]}"; do
     echo
@@ -174,12 +171,8 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
   exit 1
 fi
 
-if [ "$AUTO_YES" -ne 1 ]; then
-  echo
-  echo "!! About to WIPE $DEV completely and reformat as one ext4 partition (label: $LABEL) !!"
-  read -r -p "Type 'format' to continue: " CONFIRM
-  [ "$CONFIRM" = "format" ] || { echo "aborted — nothing written."; exit 1; }
-fi
+echo
+echo "!! WIPING $DEV completely and reformatting as one ext4 partition (label: $LABEL) !!"
 
 echo "== unmounting any mounted partitions on $DEV =="
 for p in "${DEV}"*[0-9]; do
