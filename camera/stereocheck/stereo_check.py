@@ -459,7 +459,7 @@ def check(unit=None, label=None, frames=5, source=None, cal_id=None, log=print, 
     cur, prev = pick(cals, cal_id)
     log(f"current = {local(cur['calibrated_at'])} ({where(cur)})"
         + (f", previous = {local(prev['calibrated_at'])} ({where(prev)})" if prev else ""))
-    cols, res = [], {}
+    cols, res, notes = [], {}, []
     raw = measure(shots)
     if raw:
         raw["best"]["med"] = raw["offset"]
@@ -469,6 +469,15 @@ def check(unit=None, label=None, frames=5, source=None, cal_id=None, log=print, 
         if not c:
             continue
         m = measure(shots, rect_maps(c))
+        if not m and tag == "previous":
+            # An outgrown calibration (made before a refocus / lens change) leaves the eyes
+            # rows apart, past match()'s 40 px band: it says nothing about the scene, so
+            # drop it and still judge the current one.
+            notes.append(f"previous calibration ({local(c['calibrated_at'])}) no longer fits these frames:"
+                         " the eyes are more than 40 px apart with it (made before a refocus or lens change?)")
+            log(notes[-1])
+            prev = None
+            continue
         if not m:
             raise CheckError(f"camera {unit}: too few matches with calibration {local(c['calibrated_at'])}"
                              " (point it at a textured, well-lit scene)")
@@ -481,7 +490,6 @@ def check(unit=None, label=None, frames=5, source=None, cal_id=None, log=print, 
                         " yellow ring = where it is in the RIGHT eye (x4).", os.path.join(folder, "MARKED.jpg"))
     cur_m = res["current"]
     v = verdict(cur_m["offset"])
-    notes = []
     worst = max((abs(t) for t in cur_m["thirds"] if t is not None), default=0)
     if v == "PASS" and worst >= SPEC_PX:
         notes.append(f"one third of the frame reads {worst:.1f} px; the calibration fits less well there")
