@@ -39,6 +39,7 @@ network layout, the logins, and a fresh-laptop checklist.
 | see a DECXIN live at native resolution | `camera/camrig/` | `CamView` launcher, or press ± |
 | tell which firmware family a DECXIN camera is on | `camera/camfw/` | `Camera Firmware` / `Camera Firmware LAN` launchers |
 | check a camera's JPEGs will pass the RK hardware decoder | `camera/fingerprint/` | `camera-fingerprint` |
+| is the ArUco cube printed right? wear the docked DECXIN, turn the cube; per-face wrong/weak cells (persistent across views, both eyes), dirty white margin, curled border, duplicate or missing faces | `camera/arucocube/` | `ArUco Cube Check` launcher (http://127.0.0.1:8786), or `run.sh --expected 0-5` |
 | see who has held a camera | `inventory/whoholds/` | `whoholds <camera>` |
 
 ## Layout
