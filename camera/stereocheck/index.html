@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stereo Check</title>
+<style>
+:root {
+  --bg: #f4f5f7; --card: #ffffff; --ink: #1b1f24; --mute: #5d6672; --line: #dde1e6;
+  --accent: #2563eb; --accent-ink: #fff; --pass: #15803d; --pass-bg: #dcfce7;
+  --fail: #b91c1c; --fail-bg: #fee2e2; --warn: #a16207; --warn-bg: #fef3c7; --code: #eef0f3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418; --card: #1a1f25; --ink: #e6e9ed; --mute: #98a2ae; --line: #2c333b;
+    --accent: #3b82f6; --pass: #4ade80; --pass-bg: #12301d; --fail: #f87171; --fail-bg: #3a1616;
+    --warn: #fbbf24; --warn-bg: #3a2c0c; --code: #232a32;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--line); }
+header h1 { margin: 0 12px 0 0; font-size: 19px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 13px; background: var(--code); color: var(--mute); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); }
+.chip.ok .dot { background: var(--pass); } .chip.ok { color: var(--ink); }
+.chip.bad .dot { background: var(--fail); }
+main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; padding: 16px 20px; max-width: 1600px; margin: 0 auto; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mute); margin: 0 0 12px; }
+label { display: block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
+input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font: inherit; }
+button { width: 100%; padding: 11px 12px; margin-top: 10px; border: 0; border-radius: 8px; font: 600 15px system-ui, sans-serif; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+button.secondary { background: var(--code); color: var(--ink); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.hint { font-size: 13px; color: var(--mute); margin-top: 6px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#log { font: 12px/1.5 ui-monospace, monospace; background: var(--code); border-radius: 7px; padding: 8px 10px; max-height: 180px; overflow: auto; white-space: pre-wrap; margin: 0; }
+.verdict { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.badge { font: 800 28px system-ui, sans-serif; padding: 4px 14px; border-radius: 8px; }
+.badge.PASS { color: var(--pass); background: var(--pass-bg); } .badge.FAIL { color: var(--fail); background: var(--fail-bg); }
+.big { font: 700 28px system-ui, sans-serif; }
+.sub { color: var(--mute); }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; color: var(--mute); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; } th.num { text-align: right; }
+.note { background: var(--warn-bg); color: var(--warn); border-radius: 7px; padding: 8px 10px; margin-top: 10px; font-size: 14px; }
+.err { background: var(--fail-bg); color: var(--fail); border-radius: 7px; padding: 8px 10px; margin-top: 10px; }
+#pic { width: 100%; border-radius: 8px; margin-top: 14px; border: 1px solid var(--line); cursor: zoom-in; display: none; }
+#history tr { cursor: pointer; } #history tr:hover td { background: var(--code); }
+.p { color: var(--pass); font-weight: 700; } .f { color: var(--fail); font-weight: 700; }
+.empty { color: var(--mute); padding: 30px 0; text-align: center; }
+.key { font-size: 13px; color: var(--mute); margin-top: 8px; }
+.key b.r { color: #e11d48; } .key b.y { color: #ca8a04; } .key b.g { color: var(--pass); }
+.viz { --surface-1: #ffffff; --text-primary: #1b1f24; --text-secondary: #52514e; --text-muted: #7a7f87;
+  --grid: #e6e8eb; --axis: #9aa1a9; --band: #f0efec; --series-1: #2a78d6; --series-2: #eb6834; --critical: #d03b3b; --good: #0ca30c; }
+@media (prefers-color-scheme: dark) {
+  .viz { --surface-1: #1a1f25; --text-primary: #e6e9ed; --text-secondary: #c3c2b7; --text-muted: #8d949c;
+    --grid: #2a3138; --axis: #5d6670; --band: #2e3033; --series-1: #3987e5; --series-2: #d95926; --critical: #d03b3b; --good: #0ca30c; }
+}
+.viz { position: relative; }
+.viz svg { display: block; width: 100%; }
+.viz .tip { position: absolute; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.15); display: none; min-width: 220px; z-index: 5; }
+.viz .tip b { font-weight: 650; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.toolbar label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
+.toolbar input[type=checkbox] { width: auto; }
+.toolbar button { width: auto; margin: 0; padding: 6px 12px; font-size: 13px; }
+.toolbar .grow { flex: 1; }
+#casesTable { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stereo Check</h1>
+  <span class="chip" id="camChip"><span class="dot"></span><span>camera…</span></span>
+  <span class="chip" id="benchChip"><span class="dot"></span><span>robot bench…</span></span>
+</header>
+<main>
+  <div>
+    <div class="card">
+      <h2>Check</h2>
+      <label for="unit">Camera</label>
+      <select id="unit"></select>
+      <label for="label">Run name (optional)</label>
+      <input id="label" placeholder="e.g. in, out, bench — blank = time">
+      <button id="btnCheck">Check now</button>
+      <button id="btnRobot" class="secondary">🤖 Robot: centre board + check</button>
+      <div class="hint" id="robotHint"></div>
+    </div>
+    <div class="card">
+      <h2>Compare two runs</h2>
+      <div class="row2">
+        <div><label for="cmpA">First</label><select id="cmpA"></select></div>
+        <div><label for="cmpB">Second</label><select id="cmpB"></select></div>
+      </div>
+      <button id="btnCompare" class="secondary">Compare</button>
+      <div class="hint">Same objects in both runs, both corrected with the current calibration (e.g. out of vs in the enclosure).</div>
+    </div>
+    <div class="card">
+      <h2>Progress</h2>
+      <pre id="log">idle</pre>
+    </div>
+  </div>
+  <div>
+    <div class="card" id="resultCard">
+      <h2 id="resultTitle">Result</h2>
+      <div id="result"><div class="empty">Run a check, or pick a past run below.</div></div>
+      <img id="pic" alt="marked frames">
+      <div class="key" id="picKey" style="display:none">
+        <b class="r">Red line</b> = the row the object is on in the left eye ·
+        <b class="y">yellow ring</b> = where it is in the right eye ·
+        <b class="g">green arrow</b> = how far off (zoom ×4). Click the picture for full size.
+      </div>
+    </div>
+    <div class="card">
+      <h2>Cases <span class="sub" id="casesCam"></span></h2>
+      <div class="toolbar">
+        <label><input type="checkbox" id="casesAll"> include runs without a name</label>
+        <span class="grow sub" id="casesStatus"></span>
+        <button class="secondary" id="btnCasesTable">Table</button>
+        <button class="secondary" id="btnCasesPng">Download PNG</button>
+      </div>
+      <div class="viz" id="casesViz"><div class="empty">Name your runs (in, out, tight, loose…) and they show up here.</div></div>
+      <table id="casesTable"><thead><tr><th>Run</th><th>Captured</th><th class="num">Current cal</th><th class="num">Previous cal</th><th class="num">Left / mid / right</th><th class="num">Frames · pts</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>History <span class="sub" id="histCam"></span></h2>
+      <table><thead><tr><th>When</th><th>Run</th><th class="num">Offset</th><th>Verdict</th><th class="num">Prev cal</th><th>Calibration</th></tr></thead>
+      <tbody id="history"></tbody></table>
+    </div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let S = null, shownJob = null, chosenUnit = new URLSearchParams(location.search).get("unit");
+const fmt = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(2) + " px";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {});
+  return [r.status, await r.json()];
+}
+
+function chip(el, ok, text) { el.className = "chip " + (ok ? "ok" : "bad"); el.lastElementChild.textContent = text; }
+
+function renderCheck(r) {
+  const c = r.current, p = r.previous, raw = r.raw;
+  const rows = [];
+  if (raw) rows.push(`<tr><td>No correction (raw)</td><td class="num">${fmt(raw.offset)}</td><td class="sub">before view only — changes with the scene</td></tr>`);
+  if (p) rows.push(`<tr><td>Previous calibration · ${esc(p.calibrated_local)} <span class="sub">${esc(p.where || "")}</span></td><td class="num">${fmt(p.offset)}</td><td class="sub">${p.frames} frames, ~${p.points} pts</td></tr>`);
+  rows.push(`<tr><td><b>Current calibration · ${esc(c.calibrated_local)}</b> <span class="sub">${esc(c.where || "")}</span></td><td class="num"><b>${fmt(c.offset)}</b></td><td class="sub">${c.frames} frames, ~${c.points} pts, range ${fmt(Math.min(...c.per_frame))} … ${fmt(Math.max(...c.per_frame))}</td></tr>`);
+  const t = c.thirds.map(v => v == null ? "–" : fmt(v)).join(" / ");
+  $("result").innerHTML = `
+    <div class="verdict"><span class="badge ${r.verdict}">${r.verdict}</span>
+      <span class="big">${fmt(c.offset)}</span>
+      <span class="sub">camera ${esc(r.camera)} · run “${esc(r.label)}” · ${esc(r.measured)} · spec under ${r.spec_px} px</span></div>
+    <table><thead><tr><th>Corrected with</th><th class="num">Offset</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table>
+    <div class="hint">Current calibration across the frame, left / middle / right: ${t}</div>
+    ${(r.notes || []).map(n => `<div class="note">${esc(n)}</div>`).join("")}`;
+  $("resultTitle").textContent = "Result";
+  showPic(r.picture_url);
+}
+
+function renderCompare(r) {
+  const [a, b] = [r.a, r.b], A = r.runs[a], B = r.runs[b];
+  $("result").innerHTML = `
+    <div class="verdict"><span class="big">${fmt(r.difference)}</span>
+      <span class="sub">“${esc(b)}” minus “${esc(a)}” · camera ${esc(r.camera)} · calibration ${esc(r.calibrated_local)} (${esc(r.where || "")})</span></div>
+    <table><thead><tr><th>Run</th><th class="num">Offset</th><th></th></tr></thead><tbody>
+      <tr><td>${esc(a)}</td><td class="num">${fmt(A.offset)}</td><td class="sub">${A.frames} frames, ~${A.points} pts</td></tr>
+      <tr><td>${esc(b)}</td><td class="num">${fmt(B.offset)}</td><td class="sub">${B.frames} frames, ~${B.points} pts</td></tr>
+    </tbody></table>`;
+  $("resultTitle").textContent = "Comparison";
+  showPic(r.picture_url);
+}
+
+function showPic(url) {
+  $("pic").style.display = url ? "block" : "none";
+  $("picKey").style.display = url ? "block" : "none";
+  if (url && $("pic").dataset.src !== url) { $("pic").src = url; $("pic").dataset.src = url; }
+}
+
+function fillSelect(sel, items, keep) {
+  const cur = keep ?? sel.value;
+  sel.innerHTML = items.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("");
+  if (items.some(([v]) => v === cur)) sel.value = cur;
+}
+
+async function refresh() {
+  let st;
+  try { [, st] = await api("/api/state" + (chosenUnit ? "?unit=" + encodeURIComponent(chosenUnit) : "")); }
+  catch { chip($("benchChip"), false, "Stereo Check server stopped"); return; }
+  S = st;
+  const cams = st.cameras;
+  if (!cams.length) chip($("camChip"), false, "no camera docked");
+  else chip($("camChip"), true, cams.map(c => `camera ${c.unit}${c.held ? " (live view open)" : ""}`).join(", "));
+  const docked = new Set(cams.map(c => c.unit));
+  fillSelect($("unit"), [...cams.map(c => [c.unit, "camera " + c.unit + " · docked"]),
+    ...st.saved.filter(u => !docked.has(u)).map(u => [u, "camera " + u + " · not docked (history only)"])], chosenUnit ?? st.unit);
+  if (!chosenUnit && $("unit").value) { chosenUnit = $("unit").value; if (chosenUnit !== st.unit) return refresh(); }
+
+  const b = st.bench;
+  chip($("benchChip"), b.ready, b.ready ? (b.at_pose ? "robot ready · at check pose" : "robot ready") : b.reason.split(":")[0]);
+  $("robotHint").textContent = b.ready ? "Moves the arm to the saved pose (board centred), waits for it to settle, then checks." : b.reason;
+
+  const runs = st.runs.map(r => [r.label, `${r.label} · ${r.offset == null ? "–" : fmt(r.offset)}`]);
+  fillSelect($("cmpA"), runs); fillSelect($("cmpB"), runs);
+  if ($("cmpA").value === $("cmpB").value && runs.length > 1) $("cmpB").selectedIndex = 1;
+  $("histCam").textContent = st.unit ? "· camera " + st.unit : "";
+  $("history").innerHTML = st.runs.length ? st.runs.map(r => `<tr data-label="${esc(r.label)}">
+      <td>${esc((r.measured || "").slice(5, 16))}</td><td>${esc(r.label)}</td><td class="num">${fmt(r.offset)}</td>
+      <td class="${r.verdict === "PASS" ? "p" : "f"}">${esc(r.verdict)}</td><td class="num">${fmt(r.previous_offset)}</td>
+      <td class="sub">${esc(r.calibrated_local)}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">No runs for this camera yet.</td></tr>`;
+
+  const j = st.job, busy = !!j.running;
+  const here = docked.has($("unit").value);
+  $("btnCheck").disabled = busy || !here;
+  $("btnRobot").disabled = busy || !here || !b.ready;
+  $("btnCompare").disabled = busy || runs.length < 2;
+  $("btnCheck").textContent = busy && j.kind === "check" ? "Checking…" : "Check now";
+  $("btnRobot").textContent = busy && j.kind === "robot" ? "🤖 Robot moving / checking…" : "🤖 Robot: centre board + check";
+  if (j.log) { $("log").textContent = j.log.join("\n") + (j.error ? "" : ""); $("log").scrollTop = 1e9; }
+  if (j.started && shownJob !== j.started && !busy) {
+    shownJob = j.started;
+    if (j.error) { $("result").innerHTML = `<div class="err">${esc(j.error)}</div>`; showPic(null); }
+    else if (j.result && j.kind !== "cases") (j.kind === "compare" ? renderCompare : renderCheck)(j.result);
+    loadCases();
+  }
+  if (!casesUnit && $("unit").value) loadCases();
+}
+
+async function run(path, body) {
+  const [code, r] = await api(path, body);
+  if (code !== 200) { $("log").textContent = r.error || "refused"; return; }
+  shownJob = null; refresh();
+}
+
+$("unit").onchange = () => { chosenUnit = $("unit").value; refresh().then(loadCases); };
+$("btnCheck").onclick = () => run("/api/check", {unit: $("unit").value, label: $("label").value.trim()});
+$("btnRobot").onclick = () => run("/api/check", {unit: $("unit").value, label: $("label").value.trim(), robot: true});
+$("btnCompare").onclick = () => run("/api/compare", {unit: $("unit").value, a: $("cmpA").value, b: $("cmpB").value});
+$("pic").onclick = () => window.open($("pic").src, "_blank");
+$("history").onclick = async e => {
+  const tr = e.target.closest("tr[data-label]"); if (!tr) return;
+  const [code, r] = await api(`/api/run?unit=${encodeURIComponent($("unit").value)}&label=${encodeURIComponent(tr.dataset.label)}`);
+  if (code === 200) renderCheck(r);
+};
+// ---------------------------------------------------------------- cases graph
+let casesData = null, casesAuto = {}, casesUnit = null;
+async function loadCases() {
+  const unit = $("unit").value; if (!unit) return;
+  casesUnit = unit;
+  const all = $("casesAll").checked ? 1 : 0;
+  const [, r] = await api(`/api/cases?unit=${encodeURIComponent(unit)}&all=${all}`);
+  if (unit !== $("unit").value) return;
+  casesData = r;
+  $("casesCam").textContent = "· camera " + unit;
+  if (r.error) { $("casesViz").innerHTML = `<div class="err">${esc(r.error)}</div>`; return; }
+  if (r.missing && !(S && S.job && S.job.running) && !casesAuto[unit + all]) {
+    casesAuto[unit + all] = true;
+    $("casesStatus").textContent = `measuring ${r.missing} run/calibration pairs…`;
+    await api("/api/cases", {unit, all: !!all});
+  } else {
+    $("casesStatus").textContent = r.missing ? `${r.missing} not measured yet` : "";
+  }
+  drawCases(r); fillCasesTable(r);
+}
+
+const sgn = v => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(2) + " px";
+function css(name) { return getComputedStyle($("casesViz")).getPropertyValue(name).trim(); }
+
+function drawCases(r) {
+  const rows = (r.runs || []).filter(x => x.current || x.previous);
+  const box = $("casesViz");
+  if (!rows.length) { box.innerHTML = `<div class="empty">Name your runs (in, out, tight, loose…) and they show up here.</div>`; return; }
+  const C = {surf: css("--surface-1"), t1: css("--text-primary"), t2: css("--text-secondary"), t3: css("--text-muted"),
+             grid: css("--grid"), axis: css("--axis"), band: css("--band"), s1: css("--series-1"), s2: css("--series-2"), crit: css("--critical")};
+  const W = Math.max(box.clientWidth, 520), gut = Math.min(190, Math.max(110, 8 * Math.max(...rows.map(x => x.label.length)) + 16));
+  const padR = 150, top = 74, rowH = 38, bottom = 46, H = top + rows.length * rowH + bottom;
+  const vals = rows.flatMap(x => [x.current?.offset, x.previous?.offset]).filter(v => v != null);
+  const raw = Math.max(2, Math.max(...vals.map(Math.abs)) * 1.12);
+  const step = raw <= 6 ? 1 : raw <= 14 ? 2 : 5, M = Math.ceil(raw / step) * step;
+  const x = v => gut + (v + M) / (2 * M) * (W - gut - padR);
+  const y = i => top + i * rowH + rowH / 2;
+  const spec = r.spec_px, cal = r.calibration, prev = r.previous;
+  let g = `<rect width="${W}" height="${H}" fill="${C.surf}"/>`;
+  g += `<text x="0" y="18" font-size="15" font-weight="650" fill="${C.t1}">Camera ${esc(r.camera)} · vertical offset between the eyes, every run on one calibration</text>`;
+  // legend (2 series + band), drawn in the svg so the PNG carries it
+  let lx = 0; const ly = 44;
+  g += `<circle cx="${lx + 6}" cy="${ly}" r="6" fill="${C.s1}" stroke="${C.surf}" stroke-width="2"/><text x="${lx + 18}" y="${ly + 4}" font-size="13" fill="${C.t2}">current calibration ${esc(cal.calibrated_local)} (${esc(cal.where)})</text>`;
+  lx += 30 + 7.1 * (`current calibration ${cal.calibrated_local} (${cal.where})`).length;
+  if (prev) {
+    g += `<circle cx="${lx + 6}" cy="${ly}" r="5" fill="${C.surf}" stroke="${C.s2}" stroke-width="2"/><text x="${lx + 18}" y="${ly + 4}" font-size="13" fill="${C.t2}">previous calibration ${esc(prev.calibrated_local)}</text>`;
+    lx += 30 + 7.1 * (`previous calibration ${prev.calibrated_local}`).length;
+  }
+  g += `<rect x="${lx}" y="${ly - 7}" width="22" height="14" rx="2" fill="${C.band}"/><text x="${lx + 30}" y="${ly + 4}" font-size="13" fill="${C.t2}">spec ±${spec} px</text>`;
+  // band, grid, zero
+  g += `<rect x="${x(-spec)}" y="${top - 6}" width="${x(spec) - x(-spec)}" height="${rows.length * rowH + 12}" fill="${C.band}"/>`;
+  for (let v = -M; v <= M + 1e-9; v += step) {
+    const X = x(v);
+    g += `<line x1="${X}" x2="${X}" y1="${top - 6}" y2="${top + rows.length * rowH + 6}" stroke="${v === 0 ? C.axis : C.grid}" stroke-width="1"/>`;
+    g += `<text x="${X}" y="${top + rows.length * rowH + 22}" font-size="12" text-anchor="middle" fill="${C.t3}">${v > 0 ? "+" + v : v < 0 ? "−" + Math.abs(v) : 0}</text>`;
+  }
+  g += `<text x="${x(0)}" y="${H - 6}" font-size="12" text-anchor="middle" fill="${C.t3}">← right eye higher · px · right eye lower →</text>`;
+  g += `<text x="${W - 8}" y="${top - 12}" font-size="12" text-anchor="end" fill="${C.t3}">current calibration</text>`;
+  rows.forEach((row, i) => {
+    const Y = y(i), c = row.current, p = row.previous;
+    if (i) g += `<line x1="0" x2="${W}" y1="${Y - rowH / 2}" y2="${Y - rowH / 2}" stroke="${C.grid}" stroke-width="1" opacity=".6"/>`;
+    g += `<text x="${gut - 14}" y="${Y + 4}" font-size="13" text-anchor="end" fill="${C.t1}">${esc(row.label)}</text>`;
+    if (c && p) g += `<line x1="${x(p.offset)}" x2="${x(c.offset)}" y1="${Y}" y2="${Y}" stroke="${C.t3}" stroke-width="1.5" opacity=".7"/>`;
+    if (p) g += `<circle cx="${x(p.offset)}" cy="${Y}" r="5" fill="${C.surf}" stroke="${C.s2}" stroke-width="2"/>`;
+    if (c) {
+      g += `<circle cx="${x(c.offset)}" cy="${Y}" r="6.5" fill="${C.s1}" stroke="${C.surf}" stroke-width="2"/>`;
+      // values sit in their own column on the right, so they never collide with marks or names
+      const fail = Math.abs(c.offset) >= spec;
+      g += `<text x="${W - 8}" y="${Y + 4}" font-size="13" font-weight="600" text-anchor="end" fill="${C.t1}">${sgn(c.offset)}${fail ? `<tspan fill="${C.crit}" font-size="12" font-weight="700">  ✗ FAIL</tspan>` : `<tspan fill="${C.t3}" font-size="12" font-weight="500">  ✓ pass</tspan>`}</text>`;
+    }
+    g += `<rect class="hit" data-i="${i}" x="0" y="${Y - rowH / 2}" width="${W}" height="${rowH}" fill="transparent"/>`;
+  });
+  box.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="system-ui, -apple-system, Segoe UI, Ubuntu, sans-serif" role="img" aria-label="Offset per run for camera ${esc(r.camera)}">${g}</svg><div class="tip"></div>`;
+  const tip = box.querySelector(".tip");
+  box.querySelectorAll(".hit").forEach(h => {
+    h.addEventListener("mousemove", e => {
+      const row = rows[+h.dataset.i], c = row.current, p = row.previous, b = box.getBoundingClientRect();
+      const th = c ? c.thirds.map(v => v == null ? "–" : sgn(v).replace(" px", "")).join(" / ") : "–";
+      tip.innerHTML = `<b>${esc(row.label)}</b> <span class="sub">${esc(row.captured)}</span><br>
+        current cal: <b>${sgn(c?.offset)}</b>${c ? ` <span class="sub">(frames ${sgn(Math.min(...c.per_frame)).replace(" px","")} … ${sgn(Math.max(...c.per_frame))})</span>` : ""}<br>
+        previous cal: ${sgn(p?.offset)}<br>
+        <span class="sub">left / mid / right: ${th}<br>${c ? `${c.frames} frames, ~${c.points} matched points` : ""}</span>`;
+      tip.style.display = "block";
+      const tx = Math.min(e.clientX - b.left + 14, b.width - tip.offsetWidth - 4);
+      tip.style.left = tx + "px"; tip.style.top = (e.clientY - b.top + 14) + "px";
+    });
+    h.addEventListener("mouseleave", () => tip.style.display = "none");
+  });
+}
+
+function fillCasesTable(r) {
+  $("casesTable").querySelector("tbody").innerHTML = (r.runs || []).map(row => {
+    const c = row.current, p = row.previous;
+    return `<tr><td>${esc(row.label)}</td><td class="sub">${esc(row.captured)}</td><td class="num">${sgn(c?.offset)}</td><td class="num">${sgn(p?.offset)}</td>
+      <td class="num">${c ? c.thirds.map(v => v == null ? "–" : sgn(v).replace(" px", "")).join(" / ") : "–"}</td><td class="num">${c ? c.frames + " · " + c.points : "–"}</td></tr>`;
+  }).join("");
+}
+
+$("casesAll").onchange = loadCases;
+$("btnCasesTable").onclick = () => {
+  const t = $("casesTable"), on = t.style.display !== "table";
+  t.style.display = on ? "table" : "none"; $("btnCasesTable").textContent = on ? "Graph only" : "Table";
+};
+$("btnCasesPng").onclick = () => {
+  const svg = $("casesViz").querySelector("svg"); if (!svg) return;
+  const w = +svg.getAttribute("width"), h = +svg.getAttribute("height");
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement("canvas"); cv.width = w * 2; cv.height = h * 2;
+    const cx = cv.getContext("2d"); cx.scale(2, 2); cx.drawImage(img, 0, 0);
+    cv.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b);
+      a.download = `cam${casesData.camera}_cases.png`; a.click(); });
+  };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+};
+window.addEventListener("resize", () => casesData && drawCases(casesData));
+
+refresh(); setInterval(refresh, 1500);
+</script>
+</body>
+</html>
