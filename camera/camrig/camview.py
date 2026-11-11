@@ -101,9 +101,111 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gsk", "4.0")
 gi.require_version("Graphene", "1.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gsk, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gsk, Gtk  # noqa: E402
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# ---------------------------------------------------------------------------- old-distro shims
+# Ubuntu 22.04 ships GTK 4.6, libadwaita 1.1 and GLib 2.72; the widgets below are newer
+# (ToolbarView / OverlaySplitView 1.4, AlertDialog 1.5, Toast button-clicked 1.2,
+# append_scaled_texture 4.10, ApplicationFlags.DEFAULT_FLAGS 2.74). Each gets a plain-GTK
+# stand-in with the same few methods CamView calls. CAMVIEW_COMPAT=1 forces the stand-ins
+# so they can be tested on a new system.
+_COMPAT = os.environ.get("CAMVIEW_COMPAT") == "1"
+
+
+def _adw_at_least(minor):
+    return not _COMPAT and (Adw.get_major_version(), Adw.get_minor_version()) >= (1, minor)
+
+
+APP_FLAGS = (Gio.ApplicationFlags.FLAGS_NONE if _COMPAT else
+             getattr(Gio.ApplicationFlags, "DEFAULT_FLAGS", Gio.ApplicationFlags.FLAGS_NONE))
+HAS_SCALED_TEXTURE = not _COMPAT and hasattr(Gtk.Snapshot, "append_scaled_texture")
+TOAST_HAS_BUTTON_SIGNAL = _adw_at_least(2)
+
+
+class _ToolbarViewCompat(Gtk.Box):
+    """Adw.ToolbarView stand-in: header bars on top (hideable), content below."""
+
+    def __init__(self, **_kw):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self._bars = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self._rev = Gtk.Revealer(child=self._bars, reveal_child=True,
+                                 transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        self.append(self._rev)
+        self._content = None
+
+    def add_top_bar(self, w):
+        self._bars.append(w)
+
+    def set_content(self, w):
+        if self._content is not None:
+            self.remove(self._content)
+        self._content = w
+        w.set_vexpand(True)
+        self.append(w)
+
+    def set_reveal_top_bars(self, v):
+        self._rev.set_reveal_child(v)
+
+    def get_reveal_top_bars(self):
+        return self._rev.get_reveal_child()
+
+
+class _SplitViewCompat(Gtk.Box):
+    """Adw.OverlaySplitView stand-in: a fixed-width sidebar that can be hidden."""
+
+    show_sidebar = GObject.Property(type=bool, default=True)
+
+    def __init__(self, sidebar, content, min_sidebar_width=230, max_sidebar_width=290, **_kw):
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
+        sidebar.set_size_request(min(260, max_sidebar_width), -1)
+        sidebar.set_vexpand(True)
+        self._side = Gtk.Box()
+        self._side.append(sidebar)
+        self._side.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
+        content.set_hexpand(True)
+        self.append(self._side)
+        self.append(content)
+        self.connect("notify::show-sidebar",
+                     lambda *_: self._side.set_visible(self.show_sidebar))
+
+    def get_show_sidebar(self):
+        return self.show_sidebar
+
+    def set_show_sidebar(self, v):
+        self.show_sidebar = bool(v)
+
+
+ToolbarView = Adw.ToolbarView if _adw_at_least(4) else _ToolbarViewCompat
+SplitView = Adw.OverlaySplitView if _adw_at_least(4) else _SplitViewCompat
+
+
+def info_dialog(parent, heading, body_markup):
+    """Adw.AlertDialog (1.5) -> Adw.MessageDialog (1.2) -> Gtk.MessageDialog."""
+    if _adw_at_least(5):
+        d = Adw.AlertDialog(heading=heading, body=body_markup, body_use_markup=True)
+        d.add_response("ok", "Close")
+        d.present(parent)
+    elif _adw_at_least(2):
+        d = Adw.MessageDialog(transient_for=parent, heading=heading, body=body_markup,
+                              body_use_markup=True)
+        d.add_response("ok", "Close")
+        d.present()
+    else:
+        d = Gtk.MessageDialog(transient_for=parent, modal=True, text=heading,
+                              secondary_text=body_markup, secondary_use_markup=True,
+                              buttons=Gtk.ButtonsType.CLOSE)
+        d.connect("response", lambda dlg, *_: dlg.destroy())
+        d.present()
+
+
+def load_css(provider, css):
+    # GTK >= 4.9 takes (str, length); 4.6 takes the bytes alone.
+    try:
+        provider.load_from_data(css, len(css))
+    except TypeError:
+        provider.load_from_data(css.encode())
+
+HERE =os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 try:
     import camrig                      # measured eye seam, ffmpeg writer, 3-pass control apply
@@ -650,7 +752,10 @@ class VideoArea(Gtk.Widget):
         r = Graphene.Rect().init(0, 0, self.get_width(), self.get_height())
         # NEAREST: the texture is rendered at exactly the device size, so this is 1:1 anyway;
         # on the odd frame where the allocation just changed it stays sharp instead of smeared.
-        snap.append_scaled_texture(self.tex, Gsk.ScalingFilter.NEAREST, r)
+        if HAS_SCALED_TEXTURE:
+            snap.append_scaled_texture(self.tex, Gsk.ScalingFilter.NEAREST, r)
+        else:                              # GTK < 4.10: 1:1 anyway, so linear is fine
+            snap.append_texture(self.tex, r)
 
     def set_texture(self, tex):
         self.tex = tex
@@ -989,7 +1094,7 @@ class CamRow(Gtk.ListBoxRow):
 
 class CamView(Adw.Application):
     def __init__(self, opts):
-        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
+        super().__init__(application_id=APP_ID, flags=APP_FLAGS)
         self.opts = opts
         self.streams: list[Stream] = []
         self.by_key: dict[tuple[str, str], Stream] = {}
@@ -1024,13 +1129,15 @@ class CamView(Adw.Application):
             # running window is all a relaunch can do, so offer the restart it cannot.
             if self._mtime() != self._code_mtime:
                 t = Adw.Toast(title="CamView was updated - restart to load the new version",
-                              button_label="Restart", timeout=0)
-                t.connect("button-clicked", lambda *_: self.restart_app())
+                              timeout=0)
+                if TOAST_HAS_BUTTON_SIGNAL:
+                    t.set_button_label("Restart")
+                    t.connect("button-clicked", lambda *_: self.restart_app())
                 self.toasts.add_toast(t)
             return
         Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         css = Gtk.CssProvider()
-        css.load_from_data(CSS, len(CSS))
+        load_css(css, CSS)
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self._build()
@@ -1071,7 +1178,7 @@ class CamView(Adw.Application):
             margin_bottom=14, margin_top=8))
         side_head = Adw.HeaderBar(show_end_title_buttons=False)
         side_head.set_title_widget(Adw.WindowTitle(title="CamView", subtitle="1:1 native"))
-        side = Adw.ToolbarView()
+        side = ToolbarView()
         side.add_top_bar(side_head)
         side.set_content(side_body)
 
@@ -1129,11 +1236,12 @@ class CamView(Adw.Application):
         self.stack.add_named(empty, "empty")
         self.stack.add_named(self.grid, "stage")
         self.toasts = Adw.ToastOverlay(child=self.stack)
-        self.content = Adw.ToolbarView(top_bar_style=Adw.ToolbarStyle.FLAT)
+        self.content = (ToolbarView(top_bar_style=Adw.ToolbarStyle.FLAT)
+                        if ToolbarView is Adw.ToolbarView else ToolbarView())
         self.content.add_top_bar(head)
         self.content.set_content(self.toasts)
 
-        self.split = Adw.OverlaySplitView(sidebar=side, content=self.content,
+        self.split = SplitView(sidebar=side, content=self.content,
                                           min_sidebar_width=230, max_sidebar_width=290)
         self.split.bind_property("show-sidebar", self.side_btn, "active",
                                  gi.repository.GObject.BindingFlags.BIDIRECTIONAL
@@ -1480,7 +1588,10 @@ class CamView(Adw.Application):
         t = Adw.Toast(title=GLib.markup_escape_text(text), timeout=3)
         if kind == "saved":
             t.set_button_label("Show")
-            t.connect("button-clicked", lambda *_: self.open_folder())
+            if TOAST_HAS_BUTTON_SIGNAL:
+                t.connect("button-clicked", lambda *_: self.open_folder())
+            else:                              # libadwaita < 1.2: buttons fire an action
+                t.set_action_name("app.folder")
         self.toasts.add_toast(t)
 
     def open_folder(self):
@@ -1488,9 +1599,7 @@ class CamView(Adw.Application):
         Gio.AppInfo.launch_default_for_uri(GLib.filename_to_uri(SAVE_DIR, None), None)
 
     def show_shortcuts(self):
-        d = Adw.AlertDialog(heading="Keyboard shortcuts", body=SHORTCUTS, body_use_markup=True)
-        d.add_response("ok", "Close")
-        d.present(self.win)
+        info_dialog(self.win, "Keyboard shortcuts", SHORTCUTS)
 
     def _on_key(self, _c, keyval, _code, state):
         if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK):
