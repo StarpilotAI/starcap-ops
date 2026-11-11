@@ -1,24 +1,17 @@
 #!/usr/bin/env bash
-# CamView launcher. Used by the desktop icon; also fine to run by hand.
+# CamView launcher. Used by the desktop icon and the ± hotkey; also fine to run by hand.
+# CamView is a single-instance GTK app: launching it again just raises the open window.
 here="$(dirname "$(readlink -f "$0")")"
 cd "$here" || exit 1
 
-# OpenCV's Qt window only full-screens properly under X11; on a Wayland session this runs it
-# through XWayland instead of the native Wayland plugin.
-export QT_QPA_PLATFORM=xcb
-
-# install.sh builds a private venv only when the system OpenCV cannot open a window.
-PY="python3 -s"   # -s: ignore a pip OpenCV in ~/.local, use the one install.sh checked
-[ -x "$here/.venv/bin/python3" ] && PY="$here/.venv/bin/python3"
-
-$PY camview.py --take "$@"
-rc=$?
-# Launched from the icon, the terminal would vanish with the error in it.
-if [ "$rc" -ne 0 ] && [ -t 0 ]; then
-    echo
-    echo "CamView exited with code $rc. Common causes:"
-    echo "  - no DECXIN plugged in (it needs a USB 3 port, the blue one)"
-    echo "  - you were just added to the 'video' group: log out and back in once"
-    read -rp "Press Enter to close..." _
+# -s: ignore a pip OpenCV in ~/.local and use the apt one install.sh checked
+err="$(mktemp)"; trap 'rm -f "$err"' EXIT
+python3 -s camview.py --take "$@" 2> >(tee "$err" >&2); rc=$?
+out="$(cat "$err")"
+# Launched from the icon there is no terminal to show an error in, so say it on the desktop.
+if [ "$rc" -ne 0 ]; then
+    msg="$(printf '%s' "$out" | grep -v -e '^$' -e WARN | tail -3)"
+    notify-send -u critical "CamView could not open" \
+        "${msg:-exit $rc}"$'\n'"Missing packages? Run camera/camrig/install.sh" 2>/dev/null
 fi
 exit "$rc"

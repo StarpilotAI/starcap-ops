@@ -16,7 +16,10 @@ the hardware, never hardcoded, so you get whatever the camera actually exposes.
 
 It resolves paths at install time, so re-run it if the checkout moves. Two apps
 live here: **camrig** (the browser control panel) and **CamView** (`camview.py`,
-the native 1:1 viewer, which imports `camrig.py`). Then
+the native 1:1 viewer app, which imports `camrig.py`: a sidebar of every DECXIN
+plugged in, view all of them or click one to view it alone, and cameras can be
+plugged and pulled while it runs. Keys and the 60 fps decode notes are in its
+docstring: `python3 -s camview.py --help`). Then
 double-click **camrig** on your Desktop, or run it directly:
 
 ```bash
