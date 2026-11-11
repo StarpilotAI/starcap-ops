@@ -199,11 +199,17 @@ def info_dialog(parent, heading, body_markup):
 
 
 def load_css(provider, css):
-    # GTK >= 4.9 takes (str, length); 4.6 takes the bytes alone.
+    # GTK >= 4.9 takes (data, length); 4.6 takes the bytes alone.
+    data = css if isinstance(css, bytes) else css.encode()
+    if _COMPAT:
+        try:                                   # prove the 4.6 form at least gets to GTK
+            provider.load_from_data(data)
+        except TypeError as e:
+            print(f"  (compat) 1-arg load_from_data refused here as expected: {e}")
     try:
-        provider.load_from_data(css, len(css))
+        provider.load_from_data(data, len(data))
     except TypeError:
-        provider.load_from_data(css.encode())
+        provider.load_from_data(data)
 
 HERE =os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
